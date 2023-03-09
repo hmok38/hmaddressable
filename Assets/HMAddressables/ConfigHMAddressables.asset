@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TestValues: TestValues
   AseetsPaths:
-  - Assets/RES
+  - Assets/HMAddressables/Sample/RES
