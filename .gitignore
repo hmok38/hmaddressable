@@ -1,0 +1,10 @@
+/UserSettings
+/.idea
+/DisabledImporterBuildPath
+/Library
+/Logs
+/obj
+/Temp
+/*.csproj
+/*.sln
+/*.user
