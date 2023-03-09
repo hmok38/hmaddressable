@@ -10,24 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
-  m_Name: Duplicate Asset Isolation
+  m_Name: Assets-HMAddressables-Sample-RES-Capsule
   m_EditorClassIdentifier: 
-  m_GroupName: Duplicate Asset Isolation
+  m_GroupName: Assets-HMAddressables-Sample-RES-Capsule
   m_Data:
     m_SerializedData: []
-  m_GUID: 3ee28edcfff9dcb4cab0dd564306d269
+  m_GUID: 29b3c056b5bdf2b45b1be02538a59a3e
   m_SerializeEntries:
-  - m_GUID: 53f417f9a91503b4fb9fa2546b484978
-    m_Address: Assets/Materials/SphereMate.mat
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-  - m_GUID: 2fed067ac09792d47a8b4d800ca74334
-    m_Address: Assets/Sprite/test.png
+  - m_GUID: 72b40c5a1437f3a4198685456ae92034
+    m_Address: Assets/HMAddressables/Sample/RES/Capsule/Capsule.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 976b1045c39d3624d846ce5871451b7f, type: 2}
   m_SchemaSet:
     m_Schemas:
-    - {fileID: 11400000, guid: d6bd05439d16aa0418f44bfe39403987, type: 2}
-    - {fileID: 11400000, guid: a98f5d5d5da790441af444b7fb3c7724, type: 2}
+    - {fileID: 11400000, guid: 1cfe92700bc55724da678de9d32e56c6, type: 2}
+    - {fileID: 11400000, guid: c0589832775b5c74f87357b99313b5a0, type: 2}

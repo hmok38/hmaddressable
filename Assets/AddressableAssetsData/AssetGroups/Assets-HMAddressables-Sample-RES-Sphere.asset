@@ -10,20 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
-  m_Name: Assets-RES-Capsule
+  m_Name: Assets-HMAddressables-Sample-RES-Sphere
   m_EditorClassIdentifier: 
-  m_GroupName: Assets-RES-Capsule
+  m_GroupName: Assets-HMAddressables-Sample-RES-Sphere
   m_Data:
     m_SerializedData: []
-  m_GUID: 1c5b33fd15754ab46ab341bd3f823014
+  m_GUID: 3e1755a1a29821f46a3e08b7ae262a9a
   m_SerializeEntries:
-  - m_GUID: 72b40c5a1437f3a4198685456ae92034
-    m_Address: Assets/RES/Capsule/Capsule.prefab
+  - m_GUID: dfe84e6b6375a4b4a9cc579e818a07a0
+    m_Address: Assets/HMAddressables/Sample/RES/Sphere/CapsuleCopy.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: a6711ee051532824887844bb46a32624
+    m_Address: Assets/HMAddressables/Sample/RES/Sphere/Sphere.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 976b1045c39d3624d846ce5871451b7f, type: 2}
   m_SchemaSet:
     m_Schemas:
-    - {fileID: 11400000, guid: 81ca747ca43609a488963df6dc4afda3, type: 2}
-    - {fileID: 11400000, guid: 4e66e99da0a73314eb6a78961eac725a, type: 2}
+    - {fileID: 11400000, guid: 87766eeac20f86e489cd235f7ef3a55a, type: 2}
+    - {fileID: 11400000, guid: 4b5cd29b72419c74091f9538a01a00c2, type: 2}

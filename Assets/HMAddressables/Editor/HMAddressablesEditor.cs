@@ -9,6 +9,7 @@ using UnityEditor.AddressableAssets.Build;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using Object = UnityEngine.Object;
 
 /// <summary>
@@ -40,7 +41,7 @@ public class HMAddressablesEditor : MonoBehaviour
             AddressableAssetSettingsDefaultObject.Settings = AddressableAssetSettings.Create(
                 AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
                 AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
-
+            AddressableAssetSettingsDefaultObject.Settings.BuildRemoteCatalog = true;
         }
 
         SetToSetting(configHMAddressables);
@@ -65,12 +66,32 @@ public class HMAddressablesEditor : MonoBehaviour
         Debug.Log("处理重复依赖将其独立出来-清理之前的重复依赖组:  完成");
     }
 
-    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/****打包资源****")]
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/****第一次打包资源****")]
     public static void BuildAddressablesAssetsMenuItem()
     {
         Debug.Log(configHMAddressables.TestValues);
 
         BuildAsset();
+    }
+
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/****打更新资源包****")]
+    public static void BuildUpdateMenuItem()
+    {
+        string assetPath = Path.Combine(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
+            PlatformMappingService.GetPlatformPathSubFolder());
+        var path = Path.Combine(assetPath, "addressables_content_state.bin");
+
+        var obj = AssetDatabase.LoadAssetAtPath<Object>(path);
+        if (obj == null)
+        {
+            Debug.Log("还没打第一次的资源包:" + path);
+            return;
+        }
+
+
+        ContentUpdateScript.BuildContentUpdate(AddressableAssetSettingsDefaultObject.Settings,
+            Path.Combine(assetPath, "addressables_content_state.bin"));
+        Debug.Log("更新资源包 打包完成");
     }
 
     [UnityEditor.MenuItem("Tools/HMAddressablesAssets/========================以下为谨慎选项==============================")]
@@ -84,11 +105,11 @@ public class HMAddressablesEditor : MonoBehaviour
         var groupPath = Path.Combine(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder, "AssetGroups");
         if (AssetDatabase.IsValidFolder(groupPath))
         {
-            DeleteAllSubAssetsByFolderPath(groupPath,false,x=>x.IndexOf("Built In Data")<0);
+            DeleteAllSubAssetsByFolderPath(groupPath, false, x => x.IndexOf("Built In Data") < 0);
             var schemasPath = Path.Combine(groupPath, "Schemas");
             if (AssetDatabase.IsValidFolder(schemasPath))
             {
-                DeleteAllSubAssetsByFolderPath(schemasPath,false,x=>x.IndexOf("Built In Data")<0);
+                DeleteAllSubAssetsByFolderPath(schemasPath, false, x => x.IndexOf("Built In Data") < 0);
             }
         }
 
@@ -152,7 +173,7 @@ public class HMAddressablesEditor : MonoBehaviour
             return;
         }
 
-      
+
         if (config.AseetsPaths == null || config.AseetsPaths.Length <= 0)
         {
             Debug.LogError($"未设置需要打包的资源路径,请检查{ConfigPath}的设置");
@@ -176,17 +197,18 @@ public class HMAddressablesEditor : MonoBehaviour
 
         CreatAndClearGroupBySelectFolder(groupInfos);
         SetAssetsToGroup(groupInfos);
-        DeleteEmptyGroup();
-        ClearGroupMissingReferences();
+         DeleteEmptyGroup();
+         ClearGroupMissingReferences();
     }
 
     private static void SetAssetsToGroup(List<GroupInfo> groupInfos)
     {
         foreach (var groupInfo in groupInfos)
         {
-            if (!groupInfo.Group.name.Equals("Built In Data") &&groupInfo.Group.entries.Count > 0)
+            if (!groupInfo.Group.name.Equals("Built In Data") && !groupInfo.Group.name.Contains("Content Update") &&
+                groupInfo.Group.entries.Count > 0)
             {
-                //先移除
+                //先移除 除特殊组合更新组的 所有资源
                 var old = groupInfo.Group.entries.ToArray();
                 for (int i = 0; i < old.Length; i++)
                 {
@@ -195,18 +217,41 @@ public class HMAddressablesEditor : MonoBehaviour
             }
         }
 
-        //重新添加
+        //重新添加到 非特殊组
         foreach (var groupInfo in groupInfos)
         {
-            if(groupInfo.Group.name.Equals("Built In Data"))continue;
+            //不对特殊组处理
+            if (groupInfo.Group.name.Equals("Built In Data") ||
+                groupInfo.Group.name.Contains("Content Update")) continue;
+            
             var strs = AssetDatabase.FindAssets("", new[] {groupInfo.path});
+            //Debug.Log($"{groupInfo.groupName}的要添加的资源为:{strs.Length}");
+            
+            DirectoryInfo folderInfo = new DirectoryInfo(groupInfo.path);
+            
             foreach (var assetGuid in strs)
             {
-                if (!AssetDatabase.IsValidFolder(AssetDatabase.GUIDToAssetPath(assetGuid)))
+                // 文件夹就不添加
+                if (AssetDatabase.IsValidFolder(AssetDatabase.GUIDToAssetPath(assetGuid))) continue;
+                //判断是目录下的资源,而不是子目录下的资源
+                FileInfo fileInfo = new FileInfo(AssetDatabase.GUIDToAssetPath(assetGuid));
+                //Debug.Log(fileInfo.DirectoryName + " " + folderInfo.FullName);
+                //是子目录的资源就不添加
+                if (!fileInfo.DirectoryName.Equals(folderInfo.FullName))
                 {
-                    //不是文件夹才添加
-                    AddressableAssetSettingsDefaultObject.Settings.CreateOrMoveEntry(assetGuid, groupInfo.Group);
+                    //Debug.Log(!fileInfo.DirectoryName.Equals(folderInfo.FullName));
+                    continue;
                 }
+                var address = AddressableAssetSettingsDefaultObject.Settings.FindAssetEntry(assetGuid);
+                //没找到就添加-防止从升级组移出来
+                if (address != null)
+                {
+                    //Debug.Log("已经存在的不添加了: "+address.AssetPath );
+                    continue;
+                }
+                //Debug.Log("添加了: "+fileInfo.Name );
+                //不是文件夹才添加,且不在 升级组 里面
+                AddressableAssetSettingsDefaultObject.Settings.CreateOrMoveEntry(assetGuid, groupInfo.Group);
             }
         }
     }
@@ -214,15 +259,15 @@ public class HMAddressablesEditor : MonoBehaviour
     private static void SetGroupSchema(AddressableAssetGroup group)
     {
         var updateGroupSchema = group.GetSchema<ContentUpdateGroupSchema>();
-        updateGroupSchema.StaticContent = false;
+        updateGroupSchema.StaticContent = true;
 
         var bundledAssetGroupSchema = group.GetSchema<BundledAssetGroupSchema>();
         bundledAssetGroupSchema.BuildPath.SetVariableByName(group.Settings,
-            AddressableAssetSettings.kRemoteBuildPath);
+            AddressableAssetSettings.kLocalBuildPath);
         bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
-            AddressableAssetSettings.kRemoteLoadPath);
-        bundledAssetGroupSchema.Timeout = 2000;
-        bundledAssetGroupSchema.RetryCount = 5;
+            AddressableAssetSettings.kLocalLoadPath);
+        //bundledAssetGroupSchema.Timeout = 0;
+        //bundledAssetGroupSchema.RetryCount = 5;
     }
 
     private static void GetAllSubFolderAndCreatGroupInfo(string folder, ref List<GroupInfo> groupInfos)
@@ -373,8 +418,8 @@ public class HMAddressablesEditor : MonoBehaviour
         List<AddressableAssetGroup> needDeleteGroups = new List<AddressableAssetGroup>();
         for (int i = 0; i < AddressableAssetSettingsDefaultObject.Settings.groups.Count; i++)
         {
-            if (!AddressableAssetSettingsDefaultObject.Settings.groups[i].name.Equals("Built In Data") 
-                &&AddressableAssetSettingsDefaultObject.Settings.groups[i].entries.Count <= 0)
+            if (!AddressableAssetSettingsDefaultObject.Settings.groups[i].name.Equals("Built In Data")
+                && AddressableAssetSettingsDefaultObject.Settings.groups[i].entries.Count <= 0)
             {
                 needDeleteGroups.Add(AddressableAssetSettingsDefaultObject.Settings.groups[i]);
             }
@@ -386,31 +431,8 @@ public class HMAddressablesEditor : MonoBehaviour
         }
     }
 
-    private static void CreatBuiltInData()
-    {
-        
-       var builtInDataGroup= AssetDatabase.LoadAssetAtPath<AddressableAssetGroup>(
-            "Assets/AddressableAssetsData/AssetGroups/Built In Data.asset");
-       if (builtInDataGroup != null)
-       {
-           Debug.Log("builtInDataGroup 存在");
-           if (builtInDataGroup.Settings != AddressableAssetSettingsDefaultObject.Settings)
-           {
-               AddressableAssetSettingsDefaultObject.Settings = builtInDataGroup.Settings;
-           }
-       }
-       else
-       { 
-           Debug.Log("builtInDataGroup 不存在");
-           builtInDataGroup = AddressableAssetSettingsDefaultObject.Settings.CreateGroup("Built In Data", false, true, true,
-               null, typeof(PlayerDataGroupSchema));
-           var schema = builtInDataGroup.GetSchema<PlayerDataGroupSchema>();
-           schema.IncludeResourcesFolders = true;
-           schema.IncludeBuildSettingsScenes = true;
-       }
-    }
 
-    private static void CreatAndClearGroupBySelectFolder( List<GroupInfo> groupInfos)
+    private static void CreatAndClearGroupBySelectFolder(List<GroupInfo> groupInfos)
     {
         //创建组
         foreach (var groupInfo in groupInfos)
@@ -425,15 +447,18 @@ public class HMAddressablesEditor : MonoBehaviour
                 groupInfo.Group = AddressableAssetSettingsDefaultObject.Settings.CreateGroup(groupInfo.groupName, false,
                     false, false, null, typeof(BundledAssetGroupSchema), typeof(ContentUpdateGroupSchema));
 
-                SetGroupSchema(groupInfo.Group );
+                SetGroupSchema(groupInfo.Group);
+                Debug.Log("创建" + groupInfo.groupName);
             }
         }
+
         //清理除 builtInGroup 组以外的不包含在groupInfos里面的组
         List<AddressableAssetGroup> needDeleteGroups = new List<AddressableAssetGroup>();
         for (int i = 0; i < AddressableAssetSettingsDefaultObject.Settings.groups.Count; i++)
         {
-            var group=AddressableAssetSettingsDefaultObject.Settings.groups[i];
-            if (group != null && !group.name.Equals("Built In Data") && !groupInfos.Exists(x => x.Group == group))
+            var group = AddressableAssetSettingsDefaultObject.Settings.groups[i];
+            if (group != null && !group.name.Equals("Built In Data") && !group.name.Contains("Content Update") &&
+                !groupInfos.Exists(x => x.Group == group))
             {
                 needDeleteGroups.Add(group);
             }
@@ -444,7 +469,7 @@ public class HMAddressablesEditor : MonoBehaviour
             AddressableAssetSettingsDefaultObject.Settings.RemoveGroup(needDeleteGroups[i]);
         }
     }
-    
+
     class GroupInfo
     {
         public string path;

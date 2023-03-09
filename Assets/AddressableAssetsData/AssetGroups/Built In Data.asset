@@ -10,20 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
-  m_Name: Assets-RES-Sphere
+  m_Name: Built In Data
   m_EditorClassIdentifier: 
-  m_GroupName: Assets-RES-Sphere
+  m_GroupName: Built In Data
   m_Data:
     m_SerializedData: []
-  m_GUID: ff8563a9dd3486d4b8b6dc6157a2793c
+  m_GUID: 3916da6ad262ab6438c6471b67700ee0
   m_SerializeEntries:
-  - m_GUID: a6711ee051532824887844bb46a32624
-    m_Address: Assets/RES/Sphere/Sphere.prefab
-    m_ReadOnly: 0
+  - m_GUID: Resources
+    m_Address: Resources
+    m_ReadOnly: 1
     m_SerializedLabels: []
-  m_ReadOnly: 0
+  - m_GUID: EditorSceneList
+    m_Address: EditorSceneList
+    m_ReadOnly: 1
+    m_SerializedLabels: []
+  m_ReadOnly: 1
   m_Settings: {fileID: 11400000, guid: 976b1045c39d3624d846ce5871451b7f, type: 2}
   m_SchemaSet:
     m_Schemas:
-    - {fileID: 11400000, guid: 264b3b10d89a41d45b8fcfba6b219a36, type: 2}
-    - {fileID: 11400000, guid: bd3d4876d2d6cb34ca9fec2b33585e57, type: 2}
+    - {fileID: 11400000, guid: dc9f6ce05b17e49438619320c30dca0b, type: 2}

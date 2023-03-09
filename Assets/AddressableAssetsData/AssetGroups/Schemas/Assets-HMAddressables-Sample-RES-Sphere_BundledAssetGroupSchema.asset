@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e5d17a21594effb4e9591490b009e7aa, type: 3}
-  m_Name: Assets-RES-Capsule_BundledAssetGroupSchema
+  m_Name: Assets-HMAddressables-Sample-RES-Sphere_BundledAssetGroupSchema
   m_EditorClassIdentifier: 
-  m_Group: {fileID: 11400000, guid: cd6be68e470cbbb4ea1d9d78e06ef538, type: 2}
+  m_Group: {fileID: 11400000, guid: cf83756a206663940ad49d2fc8d0605e, type: 2}
   m_InternalBundleIdMode: 1
   m_Compression: 1
   m_IncludeAddressInCatalog: 1
@@ -29,14 +29,14 @@ MonoBehaviour:
   m_UseAssetBundleCrc: 1
   m_UseAssetBundleCrcForCachedBundles: 1
   m_UseUWRForLocalBundles: 0
-  m_Timeout: 2000
+  m_Timeout: 0
   m_ChunkedTransfer: 0
   m_RedirectLimit: -1
-  m_RetryCount: 5
+  m_RetryCount: 0
   m_BuildPath:
-    m_Id: 1e0898cdf69d00246a7dadea5bead6e1
+    m_Id: 608762e05c06bdf458f552de5ae3e163
   m_LoadPath:
-    m_Id: 10e63fac66bcbb8489a1e7de4edc3df2
+    m_Id: 224ef57f21f5bdd4ebdb61df24c93f1c
   m_BundleMode: 0
   m_AssetBundleProviderType:
     m_AssemblyName: Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
