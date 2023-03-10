@@ -24,6 +24,8 @@ public class HMAddressablesEditor : MonoBehaviour
 
 
     //=============================public=============================================
+    
+    
     [UnityEditor.MenuItem("Tools/HMAddressablesAssets/***选择并显示配置表***")]
     public static void ShowAndSelectConfigMenuItem()
     {
@@ -44,7 +46,7 @@ public class HMAddressablesEditor : MonoBehaviour
             AddressableAssetSettingsDefaultObject.Settings.BuildRemoteCatalog = true;
         }
 
-        SetToSetting(configHMAddressables);
+        SetStaticGroupSetting(configHMAddressables);
         Debug.Log("更新 资源分组(没有就创建) 完毕,请根据需要 去处理重复依赖");
     }
 
@@ -65,11 +67,18 @@ public class HMAddressablesEditor : MonoBehaviour
         CheckAndFixDupDependencies();
         Debug.Log("处理重复依赖将其独立出来-清理之前的重复依赖组:  完成");
     }
+    
+    
+    
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/========================打包选项==============================")]
+    public static void Readme2()
+    {
+    }
 
-    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/****第一次打包资源****")]
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/****打出包资源****")]
     public static void BuildAddressablesAssetsMenuItem()
     {
-        Debug.Log(configHMAddressables.TestValues);
+      
 
         BuildAsset();
     }
@@ -77,23 +86,12 @@ public class HMAddressablesEditor : MonoBehaviour
     [UnityEditor.MenuItem("Tools/HMAddressablesAssets/****打更新资源包****")]
     public static void BuildUpdateMenuItem()
     {
-        string assetPath = Path.Combine(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
-            PlatformMappingService.GetPlatformPathSubFolder());
-        var path = Path.Combine(assetPath, "addressables_content_state.bin");
-
-        var obj = AssetDatabase.LoadAssetAtPath<Object>(path);
-        if (obj == null)
-        {
-            Debug.Log("还没打第一次的资源包:" + path);
-            return;
-        }
-
-
-        ContentUpdateScript.BuildContentUpdate(AddressableAssetSettingsDefaultObject.Settings,
-            Path.Combine(assetPath, "addressables_content_state.bin"));
-        Debug.Log("更新资源包 打包完成");
+        BuildUpdateAsset();
+       
     }
 
+    
+    
     [UnityEditor.MenuItem("Tools/HMAddressablesAssets/========================以下为谨慎选项==============================")]
     public static void Readme()
     {
@@ -128,24 +126,38 @@ public class HMAddressablesEditor : MonoBehaviour
     [UnityEditor.MenuItem("Tools/HMAddressablesAssets/测试")]
     public static void Test()
     {
-        DeleteDupDependenciesGroup();
+        CheckForContentUpdateRestructions();
     }
 
     //-------------------------private------------------------------------------------
 
     private static void BuildAsset()
     {
+        //没有就创建
         if (AddressableAssetSettingsDefaultObject.Settings == null)
         {
             BuildAddressablesSettingsMenuItem();
         }
-
+        else
+        {
+            //更新组设置
+            SetStaticGroupSetting(configHMAddressables);
+        }
+        
+        
         AddressableAssetSettings settings
             = AddressableAssetSettingsDefaultObject.Settings;
 
         settings.activeProfileId
             = settings.profileSettings.GetProfileId("Default");
-
+        
+        //设置配置表选项
+        SetProfiles();
+        
+        //检查依赖关系
+        CheckAndFixBundleDupeDependenciesClearMenuItem();
+        
+        //打包
         IDataBuilder builder
             = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
                     "Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.asset") as
@@ -165,7 +177,52 @@ public class HMAddressablesEditor : MonoBehaviour
         }
     }
 
-    private static void SetToSetting(HMAddressablesConfig config)
+    private static void BuildUpdateAsset()
+    {
+        
+        //没有就创建
+        if (AddressableAssetSettingsDefaultObject.Settings == null)
+        {
+            BuildAddressablesSettingsMenuItem();
+        }
+        else
+        {
+            //更新组设置-采用升级资源组配置
+           
+            SetUpdateGroupSetting(configHMAddressables);
+        }
+        
+        
+        //检查依赖关系-升级包不能检查依赖关系,因为新的依赖关系组会发布成本地包
+       // CheckAndFixDupDependencies();
+        
+        string assetPath = Path.Combine(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
+            PlatformMappingService.GetPlatformPathSubFolder());
+        var path = Path.Combine(assetPath, "addressables_content_state.bin");
+
+        var obj = AssetDatabase.LoadAssetAtPath<Object>(path);
+        if (obj == null)
+        {
+            Debug.Log("还没打第一次的资源包:" + path);
+            return;
+        }
+        //设置配置表选项
+        SetProfiles();
+        
+        
+        // //检查静态组升级设置,设立升级组
+        CheckForContentUpdateRestructions();
+        
+        
+        
+        //打资源包
+        
+        ContentUpdateScript.BuildContentUpdate(AddressableAssetSettingsDefaultObject.Settings,
+            Path.Combine(assetPath, "addressables_content_state.bin"));
+        Debug.Log("更新资源包 打包完成");
+    }
+    
+    private static void SetStaticGroupSetting(HMAddressablesConfig config)
     {
         if (!AssetDatabase.IsValidFolder(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder))
         {
@@ -201,13 +258,18 @@ public class HMAddressablesEditor : MonoBehaviour
          ClearGroupMissingReferences();
     }
 
-    private static void SetAssetsToGroup(List<GroupInfo> groupInfos)
+    private static void SetAssetsToGroup(List<GroupInfo> groupInfos,bool beUpdateAssets=false)
     {
         foreach (var groupInfo in groupInfos)
         {
             if (!groupInfo.Group.name.Equals("Built In Data") && !groupInfo.Group.name.Contains("Content Update") &&
                 groupInfo.Group.entries.Count > 0)
             {
+                //如果是打更新包,重复依赖组的不删除,因为打更新资源包的时候不再处理重复依赖关系
+                if (beUpdateAssets&&groupInfo.Group.name.Contains("Duplicate Asset Isolation"))
+                {
+                    continue;
+                }
                 //先移除 除特殊组合更新组的 所有资源
                 var old = groupInfo.Group.entries.ToArray();
                 for (int i = 0; i < old.Length; i++)
@@ -256,7 +318,7 @@ public class HMAddressablesEditor : MonoBehaviour
         }
     }
 
-    private static void SetGroupSchema(AddressableAssetGroup group)
+    private static void SetStaticAndLocalGroupSchema(AddressableAssetGroup group)
     {
         var updateGroupSchema = group.GetSchema<ContentUpdateGroupSchema>();
         updateGroupSchema.StaticContent = true;
@@ -266,8 +328,18 @@ public class HMAddressablesEditor : MonoBehaviour
             AddressableAssetSettings.kLocalBuildPath);
         bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
             AddressableAssetSettings.kLocalLoadPath);
-        //bundledAssetGroupSchema.Timeout = 0;
-        //bundledAssetGroupSchema.RetryCount = 5;
+    }
+    
+    private static void SetCanChangerAndRemoteGroupSchema(AddressableAssetGroup group)
+    {
+        var updateGroupSchema = group.GetSchema<ContentUpdateGroupSchema>();
+        updateGroupSchema.StaticContent = false;
+
+        var bundledAssetGroupSchema = group.GetSchema<BundledAssetGroupSchema>();
+        bundledAssetGroupSchema.BuildPath.SetVariableByName(group.Settings,
+            AddressableAssetSettings.kRemoteBuildPath);
+        bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
+            AddressableAssetSettings.kRemoteLoadPath);
     }
 
     private static void GetAllSubFolderAndCreatGroupInfo(string folder, ref List<GroupInfo> groupInfos)
@@ -408,7 +480,7 @@ public class HMAddressablesEditor : MonoBehaviour
             var group = groups[i];
             if (group.Name.Contains("Duplicate Asset Isolation"))
             {
-                SetGroupSchema(group);
+                SetStaticAndLocalGroupSchema(group);
             }
         }
     }
@@ -430,11 +502,10 @@ public class HMAddressablesEditor : MonoBehaviour
             AddressableAssetSettingsDefaultObject.Settings.RemoveGroup(needDeleteGroups[i]);
         }
     }
-
-
-    private static void CreatAndClearGroupBySelectFolder(List<GroupInfo> groupInfos)
+    
+    private static void CreatAndClearGroupBySelectFolder(List<GroupInfo> groupInfos,bool beUpdateAssetGroup=false)
     {
-        //创建组
+        //创建组(已经存在了就不用了)
         foreach (var groupInfo in groupInfos)
         {
             var groupAssetPath = Path.Combine(AddressableAssetSettingsDefaultObject.Settings.GroupFolder,
@@ -446,8 +517,17 @@ public class HMAddressablesEditor : MonoBehaviour
                 //没有就创建
                 groupInfo.Group = AddressableAssetSettingsDefaultObject.Settings.CreateGroup(groupInfo.groupName, false,
                     false, false, null, typeof(BundledAssetGroupSchema), typeof(ContentUpdateGroupSchema));
-
-                SetGroupSchema(groupInfo.Group);
+                if (beUpdateAssetGroup)
+                {
+                    //是升级包中出现的新组,那么就设置为远程包且为可变组
+                    SetCanChangerAndRemoteGroupSchema(groupInfo.Group);
+                }
+                else
+                {
+                    //不是升级包,那么就设置为本地的,
+                    SetStaticAndLocalGroupSchema(groupInfo.Group);
+                }
+              
                 Debug.Log("创建" + groupInfo.groupName);
             }
         }
@@ -460,7 +540,20 @@ public class HMAddressablesEditor : MonoBehaviour
             if (group != null && !group.name.Equals("Built In Data") && !group.name.Contains("Content Update") &&
                 !groupInfos.Exists(x => x.Group == group))
             {
-                needDeleteGroups.Add(group);
+                if (beUpdateAssetGroup)
+                {
+                    //升级包不能删除之前的重复引用组
+                    if (!group.name.Contains("Duplicate Asset Isolation"))
+                    {
+                        needDeleteGroups.Add(group);
+                    }
+                    
+                }
+                else
+                {
+                    needDeleteGroups.Add(group);
+                }
+               
             }
         }
 
@@ -470,6 +563,75 @@ public class HMAddressablesEditor : MonoBehaviour
         }
     }
 
+    private static void SetProfiles()
+    {
+        if (AddressableAssetSettingsDefaultObject.Settings==null)
+        {
+            Debug.LogErrorFormat("未初始化系统,请先运行 更新资源分组(没有就创建)");
+            return;
+        }
+        AddressableAssetSettingsDefaultObject.Settings.profileSettings.SetValue(AddressableAssetSettingsDefaultObject.Settings.activeProfileId,AddressableAssetSettings.kRemoteLoadPath,configHMAddressables.RemoteLoadPath);
+    }
+    private static void CheckForContentUpdateRestructions()
+    {
+        string assetPath = Path.Combine(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
+            PlatformMappingService.GetPlatformPathSubFolder());
+        var path = Path.Combine(assetPath, "addressables_content_state.bin");
+        
+        var modifiedEntries = ContentUpdateScript.GatherModifiedEntriesWithDependencies(AddressableAssetSettingsDefaultObject.Settings, path);
+        List<AddressableAssetEntry> items = new List<AddressableAssetEntry>();
+        foreach (var entry in modifiedEntries)
+        {
+            items.Add(entry.Key);
+            Debug.Log(entry.Key.AssetPath);
+        }
+
+        if (items.Count > 0)
+        {
+            ContentUpdateScript.CreateContentUpdateGroup(AddressableAssetSettingsDefaultObject.Settings, items, "Content Update");
+            
+        }
+        else
+        {
+            Debug.Log("没有发现需要更新的静态资源包");
+        }
+       
+        
+    }
+    
+    private static void SetUpdateGroupSetting(HMAddressablesConfig config)
+    {
+        if (!AssetDatabase.IsValidFolder(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder))
+        {
+            Debug.LogError($"没找到数据文件,不能设置升级包,请恢复代码");
+            return;
+        }
+
+
+       
+
+        var groupInfos = new List<GroupInfo>();
+
+        foreach (var assetsPath in config.AseetsPaths)
+        {
+            GetAllSubFolderAndCreatGroupInfo(assetsPath, ref groupInfos);
+        }
+
+        if (groupInfos.Count <= 0)
+        {
+            Debug.LogError($"未设置需要打包的资源路径,请检查{ConfigPath}的设置");
+            ShowAndSelectConfigMenuItem();
+            return;
+        }
+        
+        
+        
+        CreatAndClearGroupBySelectFolder(groupInfos,true);
+        SetAssetsToGroup(groupInfos,true);
+        DeleteEmptyGroup();
+        ClearGroupMissingReferences();
+    }
+    
     class GroupInfo
     {
         public string path;
