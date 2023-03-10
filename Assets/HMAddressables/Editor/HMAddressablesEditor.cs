@@ -14,6 +14,10 @@ using Object = UnityEngine.Object;
 
 /// <summary>
 /// 如果有报错,则请保证Addressables的版本号在1.19.17以上 V1.0 20230310 by HM
+/// 依赖 newtonsoft.Json包(Unity2021后内置,2021前版本请在PackageManage的UnityRegistry中搜索)
+/// 依赖 UniTask异步插件 请在PackageManage中点+号,选择git url
+/// 输入: https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask 有时候会输入失败,多试几次
+/// 实在不行就去 https://github.com/Cysharp/UniTask.git 下载unityPackage包
 /// </summary>
 public class HMAddressablesEditor : MonoBehaviour
 {
