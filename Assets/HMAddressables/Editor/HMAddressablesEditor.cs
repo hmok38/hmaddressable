@@ -13,7 +13,7 @@ using UnityEngine.AddressableAssets;
 using Object = UnityEngine.Object;
 
 /// <summary>
-/// 如果有报错,则请保证Addressables的版本号在1.19.17以上
+/// 如果有报错,则请保证Addressables的版本号在1.19.17以上 V1.0 20230310 by HM
 /// </summary>
 public class HMAddressablesEditor : MonoBehaviour
 {
@@ -25,6 +25,22 @@ public class HMAddressablesEditor : MonoBehaviour
 
     //=============================public=============================================
     
+    [UnityEditor.MenuItem(@"Tools/HMAddressablesAssets/*************************************HMAddresables资源管理插件<点我读说明>************************")]
+    public static void Readme0()
+    {
+        Debug.Log(@"HMAddresables资源管理插件,它是基于UnityAddressablesAssets系统做得自动化打包管理工具,
+资源分组和打包基于文件夹目录进行分组,并在发布游戏包体时一次性打包进入APK包,后续热更时采用增量更新的方式进行热更新,
+它具有高度自动化和热更新体量小的特点,使用它完全不用关心太多资源包知识和原理,只要管理好资源目录即可");
+    }
+    
+    [UnityEditor.MenuItem(@"Tools/HMAddressablesAssets/========================打包选项<点我读说明>==============================")]
+    public static void Readme2()
+    {
+        Debug.Log(@"使用方法:
+1:发布新游戏版本时使用 <一键打出包资源(正式包)> 选项
+2:发布热更包时使用 <一键打更新资源包(正式包)> 选项
+");
+    }
     
     [UnityEditor.MenuItem("Tools/HMAddressablesAssets/***选择并显示配置表***")]
     public static void ShowAndSelectConfigMenuItem()
@@ -34,8 +50,63 @@ public class HMAddressablesEditor : MonoBehaviour
         EditorUtility.FocusProjectWindow();
         Debug.Log("已经选择并显示配置表");
     }
+    
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/****一键打出包资源(正式包)****")]
+    public static void BuildAddressablesAssetsMenuItem()
+    {
+        //设置配置表选项
+        SetProfiles();
+        SetActiveProfiles(false);
+        BuildAsset();
+    }
 
-    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/更新 资源分组(没有就创建)")]
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/****一键打更新资源包(正式包)****")]
+    public static void BuildUpdateMenuItem()
+    {
+        //设置配置表选项
+        SetProfiles();
+        SetActiveProfiles(false);
+        BuildUpdateAsset();
+    }
+    [UnityEditor.MenuItem(@"Tools/HMAddressablesAssets/========================不影响线上的热更测试<点我读说明>============================")]
+    public static void Readme4()
+    {
+        Debug.Log(@"测试包可以配合git使用,用来不影响线上产品的同时 测试热更是否正常,测试方式:
+1,需要进行热更前,请将工程使用git回退到上一次发布的版本;
+2,使用一键打出包资源(测试包) 选项打出测试资源,并打出游戏包;
+3,将资源发布到测试用的资源服务器,并运行游戏包检查是否正常,此时已经准备好了跟线上游戏相同的游戏,只是资源地址不同
+4,git还原修改,但不要还原数据文件(如:Assets/AddressableAssetsData/[发布平台]/addressables_content_state.bin),然后再切换到最新的版本,
+5,使用一键打更新资源包(测试包) 打出测试用的热更包,然后发布到测试用的资源服务器,再次运行测试游戏包,即可在不影响线上产品的同时检查热更是否成功
+");
+    }
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/********一键打出包资源(测试包)********")]
+    public static void BuildAddressablesTestAssetsMenuItem()
+    {
+        //设置配置表选项
+        SetProfiles();
+        SetActiveProfiles(true);
+
+        BuildAsset();
+        
+    }
+
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/********一键打更新资源包(测试包)********")]
+    public static void BuildUpdateTestMenuItem()
+    {
+        //设置配置表选项
+        SetProfiles();
+        SetActiveProfiles(true);
+
+        BuildUpdateAsset();
+       
+    }
+    
+    [UnityEditor.MenuItem(@"Tools/HMAddressablesAssets/====================独立配置<不需要可以无视>==========================")]
+    public static void Readme3()
+    {
+    }
+    
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/更新(创建)资源分组 <更新包阶段禁止使用>")]
     public static void BuildAddressablesSettingsMenuItem()
     {
         if (AddressableAssetSettingsDefaultObject.Settings == null)
@@ -50,7 +121,7 @@ public class HMAddressablesEditor : MonoBehaviour
         Debug.Log("更新 资源分组(没有就创建) 完毕,请根据需要 去处理重复依赖");
     }
 
-    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/处理重复依赖将其独立出来-不清理之前的重复依赖组")]
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/处理重复依赖,不清理之前的重复依赖组 <更新包阶段禁止使用>")]
     public static void CheckAndFixBundleDupeDependenciesMenuItem()
     {
         Debug.Log("处理重复依赖将其独立出来-不清理之前的重复依赖组:  开始");
@@ -58,7 +129,7 @@ public class HMAddressablesEditor : MonoBehaviour
         Debug.Log("处理重复依赖将其独立出来-不清理之前的重复依赖组:  完成");
     }
 
-    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/处理重复依赖将其独立出来-清理之前的重复依赖组")]
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/处理重复依赖-清理之前的重复依赖组 <更新包阶段禁止使用>")]
     public static void CheckAndFixBundleDupeDependenciesClearMenuItem()
     {
         Debug.Log("处理重复依赖将其独立出来-清理之前的重复依赖组:  开始");
@@ -68,31 +139,7 @@ public class HMAddressablesEditor : MonoBehaviour
         Debug.Log("处理重复依赖将其独立出来-清理之前的重复依赖组:  完成");
     }
     
-    
-    
-    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/========================打包选项==============================")]
-    public static void Readme2()
-    {
-    }
-
-    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/****打出包资源****")]
-    public static void BuildAddressablesAssetsMenuItem()
-    {
-      
-
-        BuildAsset();
-    }
-
-    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/****打更新资源包****")]
-    public static void BuildUpdateMenuItem()
-    {
-        BuildUpdateAsset();
-       
-    }
-
-    
-    
-    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/========================以下为谨慎选项==============================")]
+    [UnityEditor.MenuItem("Tools/HMAddressablesAssets/========================以下为谨慎选项<除非发包,否则禁止使用>==============================")]
     public static void Readme()
     {
     }
@@ -120,13 +167,19 @@ public class HMAddressablesEditor : MonoBehaviour
     public static void CleanAddressablesSettingsMenuItem()
     {
         AssetDatabase.DeleteAsset(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder);
+        if (Directory.Exists("ServerData"))
+        {
+            Directory.Delete("ServerData",true);
+        }
         Debug.Log("清理所有设置 完毕!已经删除Assets-AddressableAssetsData文件夹");
     }
 
     [UnityEditor.MenuItem("Tools/HMAddressablesAssets/测试")]
     public static void Test()
     {
-        CheckForContentUpdateRestructions();
+        
+        var has = Directory.Exists("ServerData");
+    Debug.Log(has);
     }
 
     //-------------------------private------------------------------------------------
@@ -147,12 +200,7 @@ public class HMAddressablesEditor : MonoBehaviour
         
         AddressableAssetSettings settings
             = AddressableAssetSettingsDefaultObject.Settings;
-
-        settings.activeProfileId
-            = settings.profileSettings.GetProfileId("Default");
         
-        //设置配置表选项
-        SetProfiles();
         
         //检查依赖关系
         CheckAndFixBundleDupeDependenciesClearMenuItem();
@@ -206,9 +254,6 @@ public class HMAddressablesEditor : MonoBehaviour
             Debug.Log("还没打第一次的资源包:" + path);
             return;
         }
-        //设置配置表选项
-        SetProfiles();
-        
         
         // //检查静态组升级设置,设立升级组
         CheckForContentUpdateRestructions();
@@ -570,8 +615,24 @@ public class HMAddressablesEditor : MonoBehaviour
             Debug.LogErrorFormat("未初始化系统,请先运行 更新资源分组(没有就创建)");
             return;
         }
-        AddressableAssetSettingsDefaultObject.Settings.profileSettings.SetValue(AddressableAssetSettingsDefaultObject.Settings.activeProfileId,AddressableAssetSettings.kRemoteLoadPath,configHMAddressables.RemoteLoadPath);
+        
+        //设置Default设置
+        var defaultId=  AddressableAssetSettingsDefaultObject.Settings.profileSettings.GetProfileId("Default");
+        AddressableAssetSettingsDefaultObject.Settings.profileSettings.SetValue(defaultId,
+            AddressableAssetSettings.kRemoteLoadPath, configHMAddressables.RemoteLoadPath);
+        //创建和设置TestProfile设置
+        var profileId= AddressableAssetSettingsDefaultObject.Settings.profileSettings.GetProfileId("TestProfile");
+        if (string.IsNullOrEmpty(profileId))
+        {
+          
+            profileId= AddressableAssetSettingsDefaultObject.Settings.profileSettings.AddProfile("TestProfile", defaultId);
+        }
+        AddressableAssetSettingsDefaultObject.Settings.profileSettings.SetValue(profileId,
+            AddressableAssetSettings.kRemoteLoadPath, configHMAddressables.TestRemoteLoadPath);
+       
+        
     }
+   
     private static void CheckForContentUpdateRestructions()
     {
         string assetPath = Path.Combine(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
@@ -630,6 +691,19 @@ public class HMAddressablesEditor : MonoBehaviour
         SetAssetsToGroup(groupInfos,true);
         DeleteEmptyGroup();
         ClearGroupMissingReferences();
+    }
+
+    private static void SetActiveProfiles(bool beTest=false)
+    {
+        if (AddressableAssetSettingsDefaultObject.Settings == null)
+        {
+            Debug.LogError("AddressableAssetSettingsDefaultObject.Settings 不存在");
+            return;
+        }
+
+        AddressableAssetSettingsDefaultObject.Settings.activeProfileId =
+            AddressableAssetSettingsDefaultObject.Settings.profileSettings.GetProfileId(
+                beTest ? "TestProfile" : "Default");
     }
     
     class GroupInfo
