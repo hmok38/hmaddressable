@@ -8,7 +8,10 @@ using UnityEngine.AddressableAssets.ResourceLocators;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 
-public static class AddressableManager
+/// <summary>
+/// HMAddresablesAsset资源管理系统的运行时代码,可以通过它进行资源升级和加载
+/// </summary>
+public static class HMAddressableManager
 {
     private const string PrefsName = "ADDRESSABLES_NEEDUPDATE";
 
@@ -344,7 +347,8 @@ public static class AddressableManager
 
         if (BeOtherDebug)
         {
-            Debug.Log($"需要更新的MainCatalog数量:{_needUpdateCatalogs.Count}");
+            Debug.Log($"需要更新的MainCatalog数量:{_needUpdateCatalogs.Count} " +
+                      $":{Newtonsoft.Json.JsonConvert.SerializeObject(_needUpdateCatalogs)}");
         }
 
         if (_needUpdateCatalogs.Count <= 0)
@@ -462,7 +466,7 @@ public static class AddressableManager
         //Debug.Log("DownLoadAssets");
         try
         {
-            _downloadOp = Addressables.DownloadDependenciesAsync(NeedUpdateKeys);
+            _downloadOp = Addressables.DownloadDependenciesAsync(NeedUpdateKeys, Addressables.MergeMode.Union);
         }
         catch
         {
@@ -518,8 +522,9 @@ public static class AddressableManager
                 DispatchUpdateCallback();
                 return false;
         }
+
         return true;
     }
-   
+
     #endregion
 }
