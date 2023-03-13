@@ -6,18 +6,8 @@ HMAddresable资源管理插件是基于 **Unity Addressables Assets** 系统的�
 它具有高度自动化和热更新体量小的特点,使用它完全不用关心太多资源包知识和原理,只要管理好资源目录.并将打包好的资源放入设定的服务器目录下即可  
 运行态时不会自动更新资源,可以在游戏初始化时手动调用 HMAddressableManager.UpdateAddressablesAllAssets() 即可更新所有资源  
 ---
-##添加包:
 
-在Unity的**PackageManager**中点+号,选择**Add package from git URL**  
-输入:https://github.com/hmok38/hmaddressable.git?path=/Assets/HMAddressable  
-点击add按钮,等待安装完毕.因为网络的原因,可以会添加失败,请多试两次,实在不行就去git拉下代码导入项目  
-git地址:https://github.com/hmok38/hmaddressable  
-
-**请帮忙点star哦**
-
----
-
-##手动添加依赖:
+##先手动添加依赖:
 项目依赖于UniTask插件,它是当前Unity中最好的Await/Async实现异步和等待的插件,可以完美无GC的替代Unity的协程,
 且可以在非Mono脚本中使用,因为自定义包中不支持git包到git包的依赖,所以需要手动添加:
 1. 打开Unity的**PackageManager**中点+号;
@@ -25,6 +15,18 @@ git地址:https://github.com/hmok38/hmaddressable
 3. 填入:https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#2.3.3
 4. 等待安装完毕,因为git访问原因,可能会添加失败,请多试2次,实在不行就去拉下代码导入项目
 5. git地址:https://github.com/Cysharp/UniTask
+
+
+---
+
+##添加包:
+
+在Unity的**PackageManager**中点+号,选择**Add package from git URL**  
+输入:https://github.com/hmok38/hmaddressable.git?path=/Assets/HMAddressable  
+点击add按钮,等待安装完毕.因为网络的原因,可以会添加失败,请多试两次,实在不行就去git拉下代码导入项目  
+git地址:https://github.com/hmok38/hmaddressable
+
+**请帮忙点star哦**
   
 
 ---
