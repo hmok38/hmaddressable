@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 637bda5d1592f3446b87b2bd397d9122, type: 3}
   m_Name: ConfigHMAddressables
   m_EditorClassIdentifier: 
-  TestValues: TestValues
   AseetsPaths:
-  - Assets/HMAddressables/Sample/RES
+  - Assets/Bundles
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
+  TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
