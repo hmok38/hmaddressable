@@ -11,7 +11,7 @@
   "dependencies": {
     "com.unity.addressables": "1.19.17",
     "com.unity.nuget.newtonsoft-json": "3.0.2",
-    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#v2.3.3"
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask"
   },
   "repository": {
     "type": "git",
