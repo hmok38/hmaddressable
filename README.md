@@ -33,6 +33,7 @@ git地址:https://github.com/hmok38/hmaddressable
 
 
 ---
+
 ##开始使用:
 
 1. 配置好目录下的 **ConfigHMAddressables** 配置表,要打包的目录按照'Assets/xxx'的方式填入AssetsPaths列表,并按照填入的域名准备好资源服务器
@@ -42,7 +43,9 @@ git地址:https://github.com/hmok38/hmaddressable
 5. 待需要热更资源时,选择unity上方菜单的HMAA资源管理的 一键打更新资源包
 6. 到工程目录下的ServerData目录获取刚刚打出的相应平台的资源,并将其放入资源服务器中
 7. 游戏启动后,根据逻辑调用 HMAddressableManager.UpdateAddressablesAllAssets() 接口进行热更即可更新资源
+
 ---
+
 ##不影响线上的热更测试功能:
 1. 需要进行热更前,请将工程使用git回退到上一次发布的版本;
 2. 使用一键打出包资源(测试包) 选项打出测试资源,并打出游戏包;
@@ -50,7 +53,47 @@ git地址:https://github.com/hmok38/hmaddressable
 4. git还原修改,但不要还原数据文件(如:Assets/AddressableAssetsData/[发布平台]/addressables_content_state.bin),然后再切换到最新的版本
 5. 使用一键打更新资源包(测试包) 打出测试用的热更包,然后发布到测试用的资源服务器,再次运行测试游戏包,即可在不影响线上产品的同时检查热更是否成功
 6. 还原全部Git
+
 ---
+
+##升级接口和其他接口参考:
+
+```c#
+
+ private void UpdateCb(AsyncOperationStatus status, float progeress, string message)
+    {
+        switch (status)
+        {
+            case  AsyncOperationStatus.Failed:
+                Debug.LogError(message);
+                break;
+            case  AsyncOperationStatus.Succeeded:
+                Debug.Log($"更新成功{message}");
+                this.Capsule(true);
+                this.Sphere(true);
+                break;
+            case AsyncOperationStatus.None:
+                Debug.Log($"正在下载,进度={progeress}");
+                break;
+        }
+    }
+
+    private void OnGUI()
+    {
+        if (GUILayout.Button("更新资源"))
+        {
+            //使用此接口进行统一的资源更新
+            HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
+            //使用此类接口进行实例化及加载和释放
+            HMAddressableManager.InstantiateGameObject(this.spherePath);
+        }
+    }
+
+
+```
+
+---
+
 ##依赖说明
 1. 依赖 Addressables的版本号在1.19.17以上
 2. 依赖 newtonsoft.Json包(Unity2021后内置,2021前版本请在PackageManage的UnityRegistry中搜索)
