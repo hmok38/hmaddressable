@@ -1,10 +1,12 @@
 HMAddresables 资源管理插件
 ===
+
 by:黄敏  
 HMAddresable资源管理插件是基于 **Unity Addressables Assets** 系统的自动化打包管理工具,
 资源分组和打包基于文件夹目录进行分组,并在发布游戏包体时一次性打包进入APK包,后续热更时采用增量更新的方式进行热更新,
 它具有高度自动化和热更新体量小的特点,使用它完全不用关心太多资源包知识和原理,只要管理好资源目录.并将打包好的资源放入设定的服务器目录下即可  
 运行态时不会自动更新资源,可以在游戏初始化时手动调用 HMAddressableManager.UpdateAddressablesAllAssets() 即可更新所有资源
+
 ---
 
 ##先手动添加依赖 UniTask 插件:
