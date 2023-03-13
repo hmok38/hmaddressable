@@ -22,7 +22,7 @@ HMAddresable资源管理插件是基于 **Unity Addressables Assets** 系统的�
 ##添加包:
 
 在Unity的**PackageManager**中点+号,选择**Add package from git URL**  
-输入:https://github.com/hmok38/hmaddressable.git?path=/Assets/HMAddressable  
+输入:https://github.com/hmok38/hmaddressable.git?path=Assets/HMAddressable  
 点击add按钮,等待安装完毕.因为网络的原因,可以会添加失败,请多试两次,实在不行就去git拉下代码导入项目  
 git地址:https://github.com/hmok38/hmaddressable
 
