@@ -9,4 +9,4 @@ EditorBuildSettings:
     path: Assets/HMAddressable/Samples/Scenes/SampleScene.unity
     guid: 9fc0d4010bbf28b4594072e72b8655ab
   m_configObjects:
-    com.unity.addressableassets: {fileID: 11400000, guid: 1735a65f41fb3b34f80902edcbe1d731, type: 2}
+    com.unity.addressableassets: {fileID: 11400000, guid: 27e1b217d5b959049b9a78be2dea043f, type: 2}

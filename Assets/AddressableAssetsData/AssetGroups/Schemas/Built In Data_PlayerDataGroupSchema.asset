@@ -9,10 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 637bda5d1592f3446b87b2bd397d9122, type: 3}
-  m_Name: ConfigHMAddressables
+  m_Script: {fileID: 11500000, guid: b1487f5d688e4f94f828f879d599dbdc, type: 3}
+  m_Name: Built In Data_PlayerDataGroupSchema
   m_EditorClassIdentifier: 
-  AseetsPaths:
-  - Assets/Samples/Test/RES
-  RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
-  TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
+  m_Group: {fileID: 11400000, guid: 8eb7db7db9a1993468413a7a97c2b79a, type: 2}
+  m_IncludeResourcesFolders: 1
+  m_IncludeBuildSettingsScenes: 1

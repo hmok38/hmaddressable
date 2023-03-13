@@ -11,11 +11,5 @@
     "com.unity.addressables": "1.19.17",
     "com.unity.nuget.newtonsoft-json": "3.0.2",
     "com.cysharp.unitask": "2.3.3"
-  },
-  "samples": [
-    {
-      "displayName": "TestScene",
-      "description": "runtime更新代码示例",
-      "path": "Samples~/Test"
-    }]
+  }
 }
