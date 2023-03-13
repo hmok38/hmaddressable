@@ -4,14 +4,13 @@
   "version": "1.0.0",
   "unity": "2020.3",
   "author":{ "name" : "黄敏",
-    "email" : "hmok@163.com",
-    "url" : "http://john.doe.example.com/"
+    "email" : "hmok@163.com"
   },
   "description": "基于UnityAdrressableAssets系统的快速自动化资源管理系统,可以一键打包资源并自动分析重复依赖,按照文件夹进行分组,且运行时调用函数自动更新,依赖Git外部Unitask:https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
   "dependencies": {
     "com.unity.addressables": "1.19.17",
     "com.unity.nuget.newtonsoft-json": "3.0.2",
-    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#2.3.3"
+    "com.cysharp.unitask": "2.3.3"
   },
   "repository": {
     "type": "git",
