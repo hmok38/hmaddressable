@@ -10,13 +10,13 @@ namespace HM.Editor
         [DidReloadScripts]
         static void DidReloadScripts()
         {
-            var path = "Assets/HMAddressable/ConfigHMAddressables.asset";
+            var path = "Assets/HMAddressables/ConfigHMAddressables.asset";
             var config = AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(path);
             if (config == null)
             {
-                if (!AssetDatabase.IsValidFolder("Assets/HMAddressable"))
+                if (!AssetDatabase.IsValidFolder("Assets/HMAddressables"))
                 {
-                    AssetDatabase.CreateFolder("Assets", "HMAddressable");
+                    AssetDatabase.CreateFolder("Assets", "HMAddressables");
                 }
                 
 
