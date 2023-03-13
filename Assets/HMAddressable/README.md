@@ -7,7 +7,7 @@ HMAddresable资源管理插件是基于 **Unity Addressables Assets** 系统的�
 运行态时不会自动更新资源,可以在游戏初始化时手动调用 HMAddressableManager.UpdateAddressablesAllAssets() 即可更新所有资源
 ---
 
-##先手动添加依赖:
+##先手动添加依赖 UniTask 插件:
 项目依赖于UniTask插件,它是当前Unity中最好的Await/Async实现异步和等待的插件,可以完美无GC的替代Unity的协程,
 且可以在非Mono脚本中使用,因为自定义包中不支持git包到git包的依赖,所以需要手动添加:
 1. 打开Unity的**PackageManager**中点+号;
@@ -16,10 +16,11 @@ HMAddresable资源管理插件是基于 **Unity Addressables Assets** 系统的�
 4. 等待安装完毕,因为git访问原因,可能会添加失败,请多试2次,实在不行就去拉下代码导入项目
 5. git地址:https://github.com/Cysharp/UniTask
 
+###注意:依赖的UnityAddressabls包在  PackageManager 中的In Project选项中是找不到的,如果需要对它升级,请到Unity Registry中寻找
 
 ---
 
-##添加包:
+##添加本包:
 
 在Unity的**PackageManager**中点+号,选择**Add package from git URL**  
 输入:https://github.com/hmok38/hmaddressable.git?path=Assets/HMAddressable  
