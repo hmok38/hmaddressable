@@ -239,7 +239,8 @@ namespace HM
         /// 更新所有资源
         ///  </summary>
         ///  <param name="updateCb"></param>
-        public static void UpdateAddressablesAllAssets(UnityAction<AsyncOperationStatus, float, string> updateCb)
+        public static async UniTask UpdateAddressablesAllAssets(
+            UnityAction<AsyncOperationStatus, float, string> updateCb)
         {
             if (_updateStatus == AsyncOperationStatus.None)
             {
@@ -252,11 +253,11 @@ namespace HM
             _updateStatus = AsyncOperationStatus.None;
             _updateCb += updateCb;
             _progressValue = 0;
-            UpdateWork();
+            await UpdateWork();
         }
 
 
-        static async void UpdateWork()
+        static async UniTask UpdateWork()
         {
             Debug.Log("Addressable.InitializeAsync");
 
