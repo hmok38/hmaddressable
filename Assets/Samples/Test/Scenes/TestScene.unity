@@ -166,8 +166,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53ea41024a71c3f44874746a623a7ca7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  capsulePath: Assets/HMAddressables/Sample/RES/Capsule/Capsule.prefab
-  spherePath: Assets/HMAddressables/Sample/RES/Sphere/Sphere.prefab
 --- !u!1 &470755514
 GameObject:
   m_ObjectHideFlags: 0

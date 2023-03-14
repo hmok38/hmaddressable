@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-RES-Capsule
   m_Data:
     m_SerializedData: []
-  m_GUID: 22c85f91ba7121e439aab1f82cad3970
+  m_GUID: 9a2670f511fbb3443acb4e5ccc42fd49
   m_SerializeEntries:
   - m_GUID: 72b40c5a1437f3a4198685456ae92034
     m_Address: Assets/Samples/Test/RES/Capsule/Capsule.prefab

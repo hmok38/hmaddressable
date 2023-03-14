@@ -15,14 +15,14 @@ MonoBehaviour:
   m_GroupName: Duplicate Asset Isolation
   m_Data:
     m_SerializedData: []
-  m_GUID: fdf62d6e8c0c4a14c9faae29fe5bf1ce
+  m_GUID: df9e09d2a40340b45b52b0fc7d2a6bf5
   m_SerializeEntries:
   - m_GUID: 53f417f9a91503b4fb9fa2546b484978
     m_Address: Assets/Samples/Test/Materials/SphereMate.mat
     m_ReadOnly: 0
     m_SerializedLabels: []
   - m_GUID: 2fed067ac09792d47a8b4d800ca74334
-    m_Address: Assets/Samples/Test/Sprite/test.png
+    m_Address: Assets/Samples/Test/test.png
     m_ReadOnly: 0
     m_SerializedLabels: []
   - m_GUID: 59840925755dae546b01ad96abf9c322

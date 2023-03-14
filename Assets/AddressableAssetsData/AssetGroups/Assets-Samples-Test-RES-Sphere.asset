@@ -15,14 +15,14 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-RES-Sphere
   m_Data:
     m_SerializedData: []
-  m_GUID: cc4d9e2f0162d0741914f2cdff34ad6d
+  m_GUID: 3b4b5f98aac257842a556e93fc9f7cab
   m_SerializeEntries:
-  - m_GUID: a6711ee051532824887844bb46a32624
-    m_Address: Assets/Samples/Test/RES/Sphere/Sphere.prefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
   - m_GUID: dfe84e6b6375a4b4a9cc579e818a07a0
     m_Address: Assets/Samples/Test/RES/Sphere/CapsuleCopy.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: a6711ee051532824887844bb46a32624
+    m_Address: Assets/Samples/Test/RES/Sphere/Sphere.prefab
     m_ReadOnly: 0
     m_SerializedLabels: []
   m_ReadOnly: 0

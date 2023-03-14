@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -7,6 +6,9 @@ using UnityEngine.Events;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using UnityEngine.ResourceManagement.ResourceProviders;
+using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace HM
 {
@@ -17,29 +19,11 @@ namespace HM
     {
         private const string PrefsName = "ADDRESSABLES_NEEDUPDATE";
 
-        static readonly Dictionary<string, AsyncOperationHandle> ResMap =
-            new Dictionary<string, AsyncOperationHandle>();
+        static readonly Dictionary<string, Object> ResMap =
+            new Dictionary<string, Object>();
 
-        /// <summary>
-        ///通过预制体名字实例化GameObject,注意:销毁时,请使用 DestroyGameObject()接口销毁
-        /// </summary>
-        /// <param name="prefabName"></param>
-        /// <returns></returns>
-        public static GameObject InstantiateGameObject(string prefabName)
-        {
-            var operation = Addressables.InstantiateAsync(prefabName);
-            return operation.WaitForCompletion();
-        }
+        private static readonly Dictionary<string, bool> LoadingMap = new Dictionary<string, bool>();
 
-        /// <summary>
-        /// 销毁被Addressables管理系统实例化的GameObject,计数器会自动计数
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public static bool DestroyGameObject(GameObject obj)
-        {
-            return Addressables.ReleaseInstance(obj);
-        }
 
         /// <summary>
         /// 加载资源
@@ -49,22 +33,45 @@ namespace HM
         /// <returns></returns>
         public static T Load<T>(string resName) where T : UnityEngine.Object
         {
-            if (typeof(T) == typeof(Sprite))
+            if (ResMap.ContainsKey(resName))
             {
-                return LoadSprite(resName) as T;
+                return ResMap[resName] as T;
             }
 
-            if (typeof(T) == typeof(Texture2D))
+            if (BeOtherDebug)
             {
-                return LoadTexture2d(resName) as T;
+                Debug.Log($"准备直接加载资源:{resName} ");
             }
 
-            if (ResMap.ContainsKey(resName)) return ResMap[resName].Result as T;
             var operation = Addressables.LoadAssetAsync<T>(resName);
             operation.WaitForCompletion();
-            ResMap.Add(resName, operation);
+            ResMap.Add(resName, operation.Result);
+            RemoveFromLoadingMap(resName);
+            return ResMap[resName] as T;
+        }
 
-            return ResMap[resName].Result as T;
+        public static async UniTask<T> LoadAsync<T>(string resName) where T : UnityEngine.Object
+        {
+            if (ResMap.ContainsKey(resName))
+                return ResMap[resName] as T;
+            if (LoadingMap.ContainsKey(resName) && LoadingMap[resName])
+            {
+                await UniTask.WaitUntil(() => !LoadingMap[resName]);
+
+                return ResMap[resName] as T;
+            }
+
+            if (BeOtherDebug)
+            {
+                Debug.Log($"准备异步加载资源:{resName} ");
+            }
+
+            var operation = Addressables.LoadAssetAsync<T>(resName);
+            AddToLoadingMap(resName);
+            await operation.Task;
+            ResMap.Add(resName, operation.Result);
+            RemoveFromLoadingMap(resName);
+            return ResMap[resName] as T;
         }
 
         /// <summary>
@@ -89,114 +96,108 @@ namespace HM
         /// </summary>
         /// <param name="res"></param>
         /// <returns></returns>
-        public static bool ReleaseRes(object res)
+        public static bool ReleaseRes(Object res)
         {
-            if (res is Sprite || res is Texture2D)
-            {
-                return ReleaseTexture(res);
-            }
-
-            var item = ResMap.First((item) => item.Value.Result == res);
+            var item = ResMap.First((item) => item.Value == res);
             if (item.Key == null) return false;
             var operation = ResMap[item.Key];
             ResMap.Remove(item.Key);
+            if (BeOtherDebug)
+            {
+                Debug.Log($"释放资源:{operation.name}");
+            }
+
             Addressables.Release(operation);
-            return true;
-        }
 
-        static bool ReleaseTexture(object res)
-        {
-            var name = "";
-            if (res is Sprite spriteObj)
-            {
-                name = spriteObj.texture.name;
-            }
-            else if (res is Texture2D)
-            {
-                name = (res as Texture2D).name;
-            }
-
-            if (SpritesInTextureMap.ContainsKey(name))
-            {
-                SpritesInTextureMap.Remove(name);
-            }
-
-            if (!SpriteTextureOprationMap.ContainsKey(name)) return false;
-            Addressables.Release(SpriteTextureOprationMap[name]);
             return true;
         }
 
         /// <summary>
-        /// 因为Sprite是子资源,所以特殊处理
+        /// 释放资源,
         /// </summary>
         /// <param name="resName"></param>
         /// <returns></returns>
-        public static Sprite LoadSprite(string resName)
+        public static async void ReleaseRes(string resName)
         {
-            var nameBaoIndex = resName.IndexOf("[", StringComparison.Ordinal);
-            var textureName = resName.Substring(0, nameBaoIndex);
-            var spriteName = resName.Substring(nameBaoIndex + 1);
-            spriteName = spriteName.Replace("]", "");
-            var sprites = LoadAllSpriteByTexture(textureName);
-            if (sprites != null && sprites.Length > 0)
+            if (ResMap.ContainsKey(resName))
             {
-                return sprites.First(x => x.name == spriteName);
+                var operation = ResMap[resName];
+                ResMap.Remove(resName);
+                if (operation != null)
+                {
+                    if (BeOtherDebug)
+                    {
+                        Debug.Log($"释放资源:{resName}");
+                    }
+
+                    Addressables.Release(operation);
+                }
             }
-
-            return null;
-        }
-
-        private static readonly Dictionary<string, AsyncOperationHandle<IList<Sprite>>>
-            SpriteTextureOprationMap =
-                new Dictionary<string,
-                    AsyncOperationHandle<IList<Sprite>>>();
-
-        static readonly Dictionary<string, Sprite[]> SpritesInTextureMap = new Dictionary<string, Sprite[]>();
-
-        public static Sprite[] LoadAllSpriteByTexture(string texture2DName)
-        {
-            if (SpritesInTextureMap.ContainsKey(texture2DName))
+            //正在加载中,就等加载完毕后再释放
+            else if (LoadingMap.ContainsKey(resName) && LoadingMap[resName])
             {
-                return SpritesInTextureMap[texture2DName];
+                await UniTask.WaitUntil(() => !LoadingMap[resName]);
+                ReleaseRes(resName);
             }
-
-            if (!SpriteTextureOprationMap.ContainsKey(texture2DName))
-            {
-                var a = Addressables.LoadAssetAsync<IList<Sprite>>(texture2DName);
-                var res = a.WaitForCompletion();
-
-                SpriteTextureOprationMap.Add(texture2DName, a);
-            }
-
-            if (SpriteTextureOprationMap[texture2DName].Result == null) return null;
-            SpritesInTextureMap.Add(texture2DName, SpriteTextureOprationMap[texture2DName].Result.ToArray<Sprite>());
-            return SpritesInTextureMap[texture2DName];
         }
 
         /// <summary>
-        /// 加载贴图
+        /// 异步加载场景,如果要对加载完毕的场景做操作,请用await写
+        /// 如果要手动释放,请保留好这个SceneInstance释放的时候需要它
         /// </summary>
-        /// <param name="texture2DName"></param>
+        /// <param name="sceneName"></param>
+        /// <param name="loadSceneMode"></param>
+        /// <param name="activeteOnLoad"></param>
         /// <returns></returns>
-        public static Texture2D LoadTexture2d(string texture2DName)
+        public static async UniTask<SceneInstance> LoadSceneAsync(string sceneName,
+            LoadSceneMode loadSceneMode = LoadSceneMode.Single, bool activeteOnLoad = true)
         {
-            var sprites = LoadAllSpriteByTexture(texture2DName);
-            if (sprites != null && sprites.Length > 0)
+            var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
+            await op.Task;
+            return op.Result;
+        }
+
+        /// <summary>
+        /// 同步加载场景
+        /// 如果要手动释放,请保留好这个SceneInstance释放的时候需要它
+        /// </summary>
+        /// <param name="sceneName"></param>
+        /// <param name="loadSceneMode"></param>
+        /// <param name="activeteOnLoad"></param>
+        /// <returns></returns>
+        public static SceneInstance LoadScene(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Single,
+            bool activeteOnLoad = true)
+        {
+            var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
+            op.WaitForCompletion();
+            return op.Result;
+        }
+
+        /// <summary>
+        /// 释放场景
+        /// </summary>
+        /// <param name="sceneInstance"></param>
+        public static void UnloadSceneAsync(SceneInstance sceneInstance)
+        {
+            Addressables.UnloadSceneAsync(sceneInstance);
+        }
+
+        private static void AddToLoadingMap(string res)
+        {
+            if (!LoadingMap.ContainsKey(res))
             {
-                return sprites[0].texture;
+                LoadingMap.Add(res, true);
             }
 
-            return null;
+            LoadingMap[res] = true;
         }
 
-        public static void LoadSceneAsync(string sceneName)
+        private static void RemoveFromLoadingMap(string res)
         {
-            Addressables.LoadSceneAsync(sceneName);
-        }
-
-        public static void UnloadSceneAsync(AsyncOperationHandle handle)
-        {
-            Addressables.UnloadSceneAsync(handle);
+            if (LoadingMap.ContainsKey(res))
+            {
+                LoadingMap[res] = false;
+            }
         }
 
 
