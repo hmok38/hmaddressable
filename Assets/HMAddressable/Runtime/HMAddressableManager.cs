@@ -149,12 +149,12 @@ namespace HM
         /// <param name="loadSceneMode"></param>
         /// <param name="activeteOnLoad"></param>
         /// <returns></returns>
-        public static async UniTask<SceneInstance> LoadSceneAsync(string sceneName,
+        public static async UniTask<Scene> LoadSceneAsync(string sceneName,
             LoadSceneMode loadSceneMode = LoadSceneMode.Single, bool activeteOnLoad = true)
         {
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             await op.Task;
-            return op.Result;
+            return op.Result.Scene;
         }
 
         /// <summary>
@@ -165,12 +165,12 @@ namespace HM
         /// <param name="loadSceneMode"></param>
         /// <param name="activeteOnLoad"></param>
         /// <returns></returns>
-        public static SceneInstance LoadScene(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Single,
+        public static Scene LoadScene(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Single,
             bool activeteOnLoad = true)
         {
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             op.WaitForCompletion();
-            return op.Result;
+            return op.Result.Scene;
         }
 
         /// <summary>
