@@ -68,6 +68,7 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/****一键打出包资源(正式包)****")]
         public static void BuildAddressablesAssetsMenuItem()
         {
+            CleanAddressablesSettingsMenuItem();
             //没有就创建
             if (AddressableAssetSettingsDefaultObject.Settings == null)
             {
@@ -121,6 +122,7 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/********一键打出包资源(测试包)********")]
         public static void BuildAddressablesTestAssetsMenuItem()
         {
+            CleanAddressablesSettingsMenuItem();
             //没有就创建
             if (AddressableAssetSettingsDefaultObject.Settings == null)
             {
