@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-RES-New
   m_Data:
     m_SerializedData: []
-  m_GUID: 2bf6ab51369efa045bf50f29620e8fcb
+  m_GUID: fa23b065c8c551842b4ee6cb6f3cab9f
   m_SerializeEntries:
   - m_GUID: b4c42b3f599b64f43abacd3243821a50
     m_Address: Assets/Samples/Test/RES/New/Cylinder.prefab

@@ -97,7 +97,7 @@ by:黄敏
 ---
 
 **依赖说明**
-1. 依赖 Addressables的版本号在1.19.17以上
+1. 依赖 Addressables的版本号在1.20.5以上
 2. 依赖 newtonsoft.Json包(Unity2021后内置,2021前版本请在PackageManage的UnityRegistry中搜索)
 3. 依赖 UniTask异步插件 请在PackageManage中点+号,选择git url
    输入: https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask 有时候会加载失败,多试几次

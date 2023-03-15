@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-RES-aaa
   m_Data:
     m_SerializedData: []
-  m_GUID: e928bb1dea86bca47bae98aba84a98fe
+  m_GUID: 8a7675292cb36ef4193c4e60ed73eeb6
   m_SerializeEntries:
   - m_GUID: 5b92c789fe29600458058643f8ef403c
     m_Address: Assets/Samples/Test/RES/aaa/aaa.mat

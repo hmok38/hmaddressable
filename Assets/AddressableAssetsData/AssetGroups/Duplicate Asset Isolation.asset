@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Duplicate Asset Isolation
   m_Data:
     m_SerializedData: []
-  m_GUID: df9e09d2a40340b45b52b0fc7d2a6bf5
+  m_GUID: 50514c1f37b742d42bb8a62ae32600c1
   m_SerializeEntries:
   - m_GUID: 53f417f9a91503b4fb9fa2546b484978
     m_Address: Assets/Samples/Test/Materials/SphereMate.mat
