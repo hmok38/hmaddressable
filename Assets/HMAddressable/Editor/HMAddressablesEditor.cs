@@ -413,6 +413,7 @@ namespace HM.Editor
                 AddressableAssetSettings.kLocalBuildPath);
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 AddressableAssetSettings.kLocalLoadPath);
+            bundledAssetGroupSchema.UseAssetBundleCrc = false;
         }
 
         private static void SetCanChangerAndRemoteGroupSchema(AddressableAssetGroup group)
@@ -425,6 +426,7 @@ namespace HM.Editor
                 AddressableAssetSettings.kRemoteBuildPath);
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 AddressableAssetSettings.kRemoteLoadPath);
+            bundledAssetGroupSchema.UseAssetBundleCrc = false;
         }
 
         private static void GetAllSubFolderAndCreateGroupInfo(string folder, ref List<GroupInfo> groupInfos)
