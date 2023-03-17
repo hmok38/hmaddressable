@@ -24,7 +24,8 @@ namespace HM
 
         private static readonly Dictionary<string, bool> LoadingMap = new Dictionary<string, bool>();
 
-
+        private static Dictionary<string, SceneInstance> LoadedSceneMap = new Dictionary<string, SceneInstance>();
+        private static Dictionary<string, bool> LoadingSceneMap = new Dictionary<string, bool>();
         /// <summary>
         /// 加载资源
         /// </summary>
@@ -152,9 +153,30 @@ namespace HM
         public static async UniTask<Scene> LoadSceneAsync(string sceneName,
             LoadSceneMode loadSceneMode = LoadSceneMode.Single, bool activeteOnLoad = true)
         {
+            if (LoadedSceneMap.ContainsKey(sceneName)&&LoadedSceneMap[sceneName].Scene.isLoaded)
+            {
+                return LoadedSceneMap[sceneName].Scene;
+            }
+            //正在加载中就等待
+            if (LoadingSceneMap.ContainsKey(sceneName) && LoadingSceneMap[sceneName])
+            {
+                await UniTask.WaitUntil(() => !LoadingSceneMap[sceneName]&&LoadedSceneMap[sceneName].Scene.isLoaded);
+                return LoadedSceneMap[sceneName].Scene;
+            }
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
+            AddToLoadingSceneMap(sceneName);
             await op.Task;
-            return op.Result.Scene;
+            if (!LoadedSceneMap.ContainsKey(sceneName))
+            {
+                LoadedSceneMap.Add(sceneName, op.Result);
+            }
+            else
+            {
+                LoadedSceneMap[sceneName] = op.Result;
+            }
+           
+            RemoveFromLoadingSceneMap(sceneName);
+            return  LoadedSceneMap[sceneName].Scene;
         }
 
         /// <summary>
@@ -168,18 +190,55 @@ namespace HM
         public static Scene LoadScene(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Single,
             bool activeteOnLoad = true)
         {
+            if (LoadedSceneMap.ContainsKey(sceneName)&&LoadedSceneMap[sceneName].Scene.isLoaded)
+            {
+                return LoadedSceneMap[sceneName].Scene;
+            }
+
+            
+            
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             op.WaitForCompletion();
-            return op.Result.Scene;
+            if (!LoadedSceneMap.ContainsKey(sceneName))
+            {
+                LoadedSceneMap.Add(sceneName,op.Result);
+            }
+            else
+            {
+                LoadedSceneMap[sceneName]=op.Result;
+            }
+            RemoveFromLoadingSceneMap(sceneName);
+            return LoadedSceneMap[sceneName].Scene;
         }
 
         /// <summary>
         /// 释放场景
         /// </summary>
-        /// <param name="sceneInstance"></param>
-        public static void UnloadSceneAsync(SceneInstance sceneInstance)
+        /// <param name="scenePath"></param>
+        public static async UniTask UnloadSceneAsync(string scenePath)
         {
-            Addressables.UnloadSceneAsync(sceneInstance);
+            if (LoadedSceneMap.ContainsKey(scenePath)&&LoadedSceneMap[scenePath].Scene.isLoaded)
+            {
+                
+               var op= Addressables.UnloadSceneAsync(LoadedSceneMap[scenePath]);
+               await op.Task;
+               LoadedSceneMap.Remove(scenePath);
+
+            }
+            else if(LoadedSceneMap.ContainsKey(scenePath)&&!LoadedSceneMap[scenePath].Scene.isLoaded)
+            {
+                LoadedSceneMap.Remove(scenePath);
+            }
+           
+        }
+
+        /// <summary>
+        /// 释放场景
+        /// </summary>
+        /// <param name="scene"></param>
+        public static async UniTask UnloadSceneAsync(Scene scene)
+        {
+            await  UnloadSceneAsync(scene.name);
         }
 
         private static void AddToLoadingMap(string res)
@@ -200,7 +259,24 @@ namespace HM
             }
         }
 
+        private static void AddToLoadingSceneMap(string res)
+        {
+            if (!LoadingSceneMap.ContainsKey(res))
+            {
+                LoadingSceneMap.Add(res, true);
+            }
 
+            LoadingSceneMap[res] = true;
+        }
+
+        private static void RemoveFromLoadingSceneMap(string res)
+        {
+            if (LoadingSceneMap.ContainsKey(res))
+            {
+                LoadingSceneMap[res] = false;
+            }
+        }
+        
         #region ============================资源更新相关==================================================================
 
         /// <summary>
