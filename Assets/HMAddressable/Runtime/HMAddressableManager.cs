@@ -6,6 +6,12 @@ using UnityEngine.Events;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditor.SceneManagement;
+#endif
+
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
@@ -26,6 +32,7 @@ namespace HM
 
         private static Dictionary<string, SceneInstance> LoadedSceneMap = new Dictionary<string, SceneInstance>();
         private static Dictionary<string, bool> LoadingSceneMap = new Dictionary<string, bool>();
+
         /// <summary>
         /// 加载资源
         /// </summary>
@@ -44,9 +51,23 @@ namespace HM
                 Debug.Log($"准备直接加载资源:{resName} ");
             }
 
-            var operation = Addressables.LoadAssetAsync<T>(resName);
-            operation.WaitForCompletion();
-            ResMap.Add(resName, operation.Result);
+            T obj=null;
+
+#if UNITY_EDITOR
+            if (!HasAssets(resName))
+            {
+                //编辑器下判断有没有,没有就直接读目录,有就从aa走
+                obj = AssetDatabase.LoadAssetAtPath<T>(resName);
+            }
+#endif
+
+            if (obj == null)
+            {
+                var operation = Addressables.LoadAssetAsync<T>(resName);
+                operation.WaitForCompletion();
+                obj = operation.Result;
+            }
+            ResMap.Add(resName, obj);
             RemoveFromLoadingMap(resName);
             return ResMap[resName] as T;
         }
@@ -66,11 +87,26 @@ namespace HM
             {
                 Debug.Log($"准备异步加载资源:{resName} ");
             }
+            
+            T obj=null;
+#if UNITY_EDITOR
+            if (!HasAssets(resName))
+            {
+                //编辑器下判断有没有,没有就直接读目录,有就从aa走
+                obj = AssetDatabase.LoadAssetAtPath<T>(resName);
+               
+            }
+#endif
+            if (obj == null)
+            {
+                var operation = Addressables.LoadAssetAsync<T>(resName);
+                AddToLoadingMap(resName);
+                await operation.Task;
+                obj = operation.Result;
+            }
+            
 
-            var operation = Addressables.LoadAssetAsync<T>(resName);
-            AddToLoadingMap(resName);
-            await operation.Task;
-            ResMap.Add(resName, operation.Result);
+            ResMap.Add(resName, obj);
             RemoveFromLoadingMap(resName);
             return ResMap[resName] as T;
         }
@@ -82,7 +118,17 @@ namespace HM
         /// <returns></returns>
         public static bool HasAssets(string resName)
         {
+#if UNITY_EDITOR
+            //编辑器下检查是不是有设置,没有就直接返回,有就真的判断是不是存在资源
+          var sett=  AssetDatabase.LoadAssetAtPath<Object>("Assets/AddressableAssetsData/AddressableAssetSettings.asset");
+          if (sett == null)
+          {
+              return false;
+          }
+#endif
+            
             var rs = Addressables.LoadResourceLocationsAsync(resName);
+            
             rs.WaitForCompletion();
             if (rs.IsDone && rs.IsValid())
             {
@@ -107,7 +153,12 @@ namespace HM
             {
                 Debug.Log($"释放资源:{operation.name}");
             }
-
+#if UNITY_EDITOR
+            if (!HasAssets(operation.name))
+            {
+                return true;
+            }
+#endif
             Addressables.Release(operation);
 
             return true;
@@ -130,7 +181,12 @@ namespace HM
                     {
                         Debug.Log($"释放资源:{resName}");
                     }
-
+#if UNITY_EDITOR
+                    if (!HasAssets(resName))
+                    {
+                        return;
+                    }
+#endif
                     Addressables.Release(operation);
                 }
             }
@@ -153,16 +209,33 @@ namespace HM
         public static async UniTask<Scene> LoadSceneAsync(string sceneName,
             LoadSceneMode loadSceneMode = LoadSceneMode.Single, bool activeteOnLoad = true)
         {
-            if (LoadedSceneMap.ContainsKey(sceneName)&&LoadedSceneMap[sceneName].Scene.isLoaded)
+            if (LoadedSceneMap.ContainsKey(sceneName) && LoadedSceneMap[sceneName].Scene.isLoaded)
             {
                 return LoadedSceneMap[sceneName].Scene;
             }
+
             //正在加载中就等待
             if (LoadingSceneMap.ContainsKey(sceneName) && LoadingSceneMap[sceneName])
             {
-                await UniTask.WaitUntil(() => !LoadingSceneMap[sceneName]&&LoadedSceneMap[sceneName].Scene.isLoaded);
+                await UniTask.WaitUntil(() => !LoadingSceneMap[sceneName] && LoadedSceneMap[sceneName].Scene.isLoaded);
                 return LoadedSceneMap[sceneName].Scene;
             }
+
+
+           
+#if UNITY_EDITOR
+            if (!HasAssets(sceneName))
+            {
+              var scene=  EditorSceneManager.LoadSceneInPlayMode(sceneName,new LoadSceneParameters());
+              return scene;
+            }
+#else
+            var operation = Addressables.LoadAssetAsync<T>(resName);
+            AddToLoadingMap(resName);
+            await operation.Task;
+            obj = operation.Result;
+#endif
+            
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             AddToLoadingSceneMap(sceneName);
             await op.Task;
@@ -174,9 +247,9 @@ namespace HM
             {
                 LoadedSceneMap[sceneName] = op.Result;
             }
-           
+
             RemoveFromLoadingSceneMap(sceneName);
-            return  LoadedSceneMap[sceneName].Scene;
+            return LoadedSceneMap[sceneName].Scene;
         }
 
         /// <summary>
@@ -190,23 +263,32 @@ namespace HM
         public static Scene LoadScene(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Single,
             bool activeteOnLoad = true)
         {
-            if (LoadedSceneMap.ContainsKey(sceneName)&&LoadedSceneMap[sceneName].Scene.isLoaded)
+            if (LoadedSceneMap.ContainsKey(sceneName) && LoadedSceneMap[sceneName].Scene.isLoaded)
             {
                 return LoadedSceneMap[sceneName].Scene;
             }
+            
+#if UNITY_EDITOR
+            if (!HasAssets(sceneName))
+            {
+                var scene = EditorSceneManager.LoadSceneInPlayMode(sceneName, new LoadSceneParameters(loadSceneMode));
+                return scene;
+            }
+#endif
+            
 
-            
-            
+
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             op.WaitForCompletion();
             if (!LoadedSceneMap.ContainsKey(sceneName))
             {
-                LoadedSceneMap.Add(sceneName,op.Result);
+                LoadedSceneMap.Add(sceneName, op.Result);
             }
             else
             {
-                LoadedSceneMap[sceneName]=op.Result;
+                LoadedSceneMap[sceneName] = op.Result;
             }
+
             RemoveFromLoadingSceneMap(sceneName);
             return LoadedSceneMap[sceneName].Scene;
         }
@@ -217,19 +299,23 @@ namespace HM
         /// <param name="scenePath"></param>
         public static async UniTask UnloadSceneAsync(string scenePath)
         {
-            if (LoadedSceneMap.ContainsKey(scenePath)&&LoadedSceneMap[scenePath].Scene.isLoaded)
+#if UNITY_EDITOR
+            if (!HasAssets(scenePath))
             {
-                
-               var op= Addressables.UnloadSceneAsync(LoadedSceneMap[scenePath]);
-               await op.Task;
-               LoadedSceneMap.Remove(scenePath);
-
+               
+                return;
             }
-            else if(LoadedSceneMap.ContainsKey(scenePath)&&!LoadedSceneMap[scenePath].Scene.isLoaded)
+#endif
+            if (LoadedSceneMap.ContainsKey(scenePath) && LoadedSceneMap[scenePath].Scene.isLoaded)
+            {
+                var op = Addressables.UnloadSceneAsync(LoadedSceneMap[scenePath]);
+                await op.Task;
+                LoadedSceneMap.Remove(scenePath);
+            }
+            else if (LoadedSceneMap.ContainsKey(scenePath) && !LoadedSceneMap[scenePath].Scene.isLoaded)
             {
                 LoadedSceneMap.Remove(scenePath);
             }
-           
         }
 
         /// <summary>
@@ -238,7 +324,14 @@ namespace HM
         /// <param name="scene"></param>
         public static async UniTask UnloadSceneAsync(Scene scene)
         {
-            await  UnloadSceneAsync(scene.name);
+#if UNITY_EDITOR
+            if (!HasAssets(scene.name))
+            {
+               
+                return;
+            }
+#endif
+            await UnloadSceneAsync(scene.name);
         }
 
         private static void AddToLoadingMap(string res)
@@ -276,7 +369,7 @@ namespace HM
                 LoadingSceneMap[res] = false;
             }
         }
-        
+
         #region ============================资源更新相关==================================================================
 
         /// <summary>
@@ -324,6 +417,13 @@ namespace HM
 
                 return; //正在更新
             }
+#if UNITY_EDITOR
+            _updateStatus = AsyncOperationStatus.Succeeded;
+            _resultMessage = "不需要更新资源";
+            DispatchUpdateCallback();
+            return;
+            
+#endif
 
             NeedUpdateKeys.Clear();
             _updateStatus = AsyncOperationStatus.None;

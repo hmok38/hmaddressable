@@ -107,5 +107,12 @@ public class HMAddressableTest : MonoBehaviour
             HMAddressableManager.ReleaseRes(capsulePath);
 
         }
+        
+        if (GUILayout.Button("加载场景"))
+        {
+
+            HMAddressableManager.LoadSceneAsync("Assets/Samples/Test/RES/Scenes/BeLoadScene.unity");
+
+        }
     }
 }
