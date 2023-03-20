@@ -229,11 +229,7 @@ namespace HM
               var scene=  EditorSceneManager.LoadSceneInPlayMode(sceneName,new LoadSceneParameters());
               return scene;
             }
-#else
-            var operation = Addressables.LoadAssetAsync<T>(resName);
-            AddToLoadingMap(resName);
-            await operation.Task;
-            obj = operation.Result;
+
 #endif
             
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
