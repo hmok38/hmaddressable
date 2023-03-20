@@ -693,13 +693,75 @@ namespace HM.Editor
 
             if (items.Count > 0)
             {
-                ContentUpdateScript.CreateContentUpdateGroup(AddressableAssetSettingsDefaultObject.Settings, items,
+                CreatContentUpdateGroup(AddressableAssetSettingsDefaultObject.Settings, items,
                     "Content Update");
+                
             }
             else
             {
                 Debug.Log("没有发现需要更新的静态资源包");
             }
+        }
+
+        private static void CreatContentUpdateGroup(AddressableAssetSettings settings, List<AddressableAssetEntry> items, string groupName)
+        {
+            var contentGroup = settings.CreateGroup(FindUniqueGroupName(groupName), false, false, true, null);
+            var schema = contentGroup.AddSchema<BundledAssetGroupSchema>();
+            schema.BuildPath.SetVariableByName(settings, AddressableAssetSettings.kRemoteBuildPath);
+            schema.LoadPath.SetVariableByName(settings, AddressableAssetSettings.kRemoteLoadPath);
+            schema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackTogether;
+            var staiSchema = contentGroup.AddSchema<ContentUpdateGroupSchema>();
+            staiSchema.StaticContent = false;
+            settings.MoveEntries(items, contentGroup);
+           
+            UnityEditor.EditorUtility.SetDirty(contentGroup);
+            UnityEditor.EditorUtility.SetDirty(schema);
+            UnityEditor.EditorUtility.SetDirty(staiSchema);
+          
+            EditorUtility.FocusProjectWindow();
+        }
+        
+        private  static  string FindUniqueGroupName(string potentialName)
+        {
+            var cleanedName = potentialName.Replace('/', '-');
+            cleanedName = cleanedName.Replace('\\', '-');
+            if (cleanedName != potentialName)
+                Addressables.Log("Group names cannot include '\\' or '/'.  Replacing with '-'. " + cleanedName);
+            var validName = cleanedName;
+            int index = 1;
+            bool foundExisting = true;
+            while (foundExisting)
+            {
+                if (index > 1000)
+                {
+                    Addressables.LogError("Unable to create valid name for new Addressable Assets group.");
+                    return cleanedName;
+                }
+
+                foundExisting = IsNotUniqueGroupName(validName);
+                if (foundExisting)
+                {
+                    validName = cleanedName + index;
+                    index++;
+                }
+            }
+
+            return validName;
+        }
+
+        private  static bool IsNotUniqueGroupName(string groupName)
+        {
+            bool foundExisting = false;
+            foreach (var g in AddressableAssetSettingsDefaultObject.Settings.groups)
+            {
+                if (g != null && g.Name == groupName)
+                {
+                    foundExisting = true;
+                    break;
+                }
+            }
+
+            return foundExisting;
         }
 
         private static void SetUpdateGroupSetting(HMAddressablesConfig config)
