@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using HM.Editor.HMAddressable.Editor;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
@@ -178,6 +180,31 @@ namespace HM.Editor
                     AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
                 AddressableAssetSettingsDefaultObject.Settings.BuildRemoteCatalog = true;
                 AddressableAssetSettingsDefaultObject.Settings.DisableCatalogUpdateOnStartup = true;
+                HMAACustomEncryptBuild builder= ScriptableObject.CreateInstance<HMAACustomEncryptBuild>();
+
+                if (!AssetDatabase.IsValidFolder("Assets/AddressableAssetsData"))
+                {
+                    AssetDatabase.CreateFolder("Assets", "AddressableAssetsData");
+                }
+
+                if (!AssetDatabase.IsValidFolder("Assets/AddressableAssetsData/DataBuilders"))
+                {
+                    AssetDatabase.CreateFolder("Assets/AddressableAssetsData", "DataBuilders");
+                }
+              
+              
+                AssetDatabase.CreateAsset(builder,"Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset");
+                AssetDatabase.SaveAssets();
+                
+                // IDataBuilder builder
+                //     = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
+                //             "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset") as
+                //         IDataBuilder;
+                AddressableAssetSettingsDefaultObject.Settings.DataBuilders.Add(builder);
+                UnityEditor.EditorUtility.SetDirty(builder);
+                UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
+                
+                EditorUtility.FocusProjectWindow();
             }
 
             SetStaticGroupSetting(ConfigHmAddressables);
@@ -260,12 +287,13 @@ namespace HM.Editor
             //打包
             IDataBuilder builder
                 = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
-                        "Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.asset") as
+                        "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset") as
                     IDataBuilder;
-
+            
             settings.ActivePlayerDataBuilderIndex
                 = settings.DataBuilders.IndexOf((ScriptableObject) builder);
-
+            Debug.Log($"打包器选用:{builder.Name}");
+           
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
 
             if (!string.IsNullOrEmpty(result.Error))
@@ -414,6 +442,14 @@ namespace HM.Editor
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 AddressableAssetSettings.kLocalLoadPath);
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
+          
+            var va = bundledAssetGroupSchema.AssetBundleProviderType;
+            va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
+            //没办法了,变量没公开,只好用反射调用
+            EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
+            
+            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
+            UnityEditor.EditorUtility.FocusProjectWindow();
         }
 
         private static void SetCanChangerAndRemoteGroupSchema(AddressableAssetGroup group)
@@ -427,8 +463,21 @@ namespace HM.Editor
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 AddressableAssetSettings.kRemoteLoadPath);
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
+            
+            var va = bundledAssetGroupSchema.AssetBundleProviderType;
+            va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
+            //没办法了,变量没公开,只好用反射调用
+            EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
+            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
+            UnityEditor.EditorUtility.FocusProjectWindow();
+          
         }
 
+        private static void EditPrivateValue(object obj,string valueName,object value)
+        {
+          var x=  obj.GetType().GetProperty(valueName);
+          x.SetValue(obj,value);
+        }
         private static void GetAllSubFolderAndCreateGroupInfo(string folder, ref List<GroupInfo> groupInfos)
         {
             if (!AssetDatabase.IsValidFolder(folder)) return;
