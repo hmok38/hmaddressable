@@ -105,6 +105,7 @@ public class HMAddressableTest : MonoBehaviour
         {
           
             HMAddressableManager.ReleaseRes(capsulePath);
+            HMAddressableManager.ReleaseRes(spherePath);
 
         }
         
