@@ -198,8 +198,22 @@ namespace HM.Editor.HMAddressable.Editor
             {
                 m_CreatedProviderIds.Add(bundleProviderId);
                 var bundleProviderType = schema.AssetBundleProviderType.Value;
-                var bundleProviderData = ObjectInitializationData.CreateSerializedInitializationData(bundleProviderType, bundleProviderId);
-                m_ResourceProviderData.Add(bundleProviderData);
+             
+                if (HMAddressablesEditor.UseEncrypyType!=null)
+                {
+                    var type = new SerializedType();
+                    type.Value = HMAddressablesEditor.UseEncrypyType;
+                    var bundleProviderData = ObjectInitializationData.CreateSerializedInitializationData(bundleProviderType, bundleProviderId,type);
+                    m_ResourceProviderData.Add(bundleProviderData);
+                }
+                else
+                {
+                    var bundleProviderData = ObjectInitializationData.CreateSerializedInitializationData(bundleProviderType, bundleProviderId);  
+                    m_ResourceProviderData.Add(bundleProviderData);
+                }
+                
+              
+               
             }
         }
 
@@ -1122,7 +1136,20 @@ namespace HM.Editor.HMAddressable.Editor
                     Directory.CreateDirectory(directory);
                 else if (File.Exists(destPath))
                     File.Delete(destPath);
-                File.Move(srcPath, destPath);
+                //加密打包的话
+                if (HMAddressablesEditor.UseEncrypyType!=null) {
+                    using (var src = new FileStream(srcPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1024 * 1204, FileOptions.Asynchronous))
+                    {
+                        using (var dst = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.Write, 1024 * 1204, FileOptions.Asynchronous))
+                        {
+                            var dsp = Activator.CreateInstance(HMAddressablesEditor.UseEncrypyType) as IDataConverter;
+                            using (var writeStr = dsp.CreateWriteStream(dst, ""))
+                                src.CopyTo(writeStr);
+                        }
+                    }
+                } else {
+                    File.Move(srcPath, destPath);
+                }
             }
         }
 

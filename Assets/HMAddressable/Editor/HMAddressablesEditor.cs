@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using HM.Editor.HMAddressable.Editor;
 using UnityEditor;
@@ -12,6 +11,7 @@ using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.Util;
 using Object = UnityEngine.Object;
 
 namespace HM.Editor
@@ -30,17 +30,17 @@ namespace HM.Editor
         private static HMAddressablesConfig ConfigHmAddressables =>
             AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(ConfigPath);
 
-        
+
         /// <summary>
-        /// 是否使用加密打包
+        /// 加密类型
         /// </summary>
-        public static bool BeUseEncrypyPackAsset =true ;
+        public static Type UseEncrypyType = typeof(AESStreamProcessor);
 
         /// <summary>
         /// 是否用加密加载
         /// </summary>
         public static bool BeUseLoadEncrypt = true;
-        
+
         //=============================public=============================================
 
         [UnityEditor.MenuItem(
@@ -190,7 +190,7 @@ namespace HM.Editor
                     AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
                 AddressableAssetSettingsDefaultObject.Settings.BuildRemoteCatalog = true;
                 AddressableAssetSettingsDefaultObject.Settings.DisableCatalogUpdateOnStartup = true;
-                HMAACustomEncryptBuild builder= ScriptableObject.CreateInstance<HMAACustomEncryptBuild>();
+                HMAACustomEncryptBuild builder = ScriptableObject.CreateInstance<HMAACustomEncryptBuild>();
 
                 if (!AssetDatabase.IsValidFolder("Assets/AddressableAssetsData"))
                 {
@@ -201,11 +201,11 @@ namespace HM.Editor
                 {
                     AssetDatabase.CreateFolder("Assets/AddressableAssetsData", "DataBuilders");
                 }
-              
-              
-                AssetDatabase.CreateAsset(builder,"Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset");
+
+
+                AssetDatabase.CreateAsset(builder, "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset");
                 AssetDatabase.SaveAssets();
-                
+
                 // IDataBuilder builder
                 //     = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
                 //             "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset") as
@@ -213,7 +213,7 @@ namespace HM.Editor
                 AddressableAssetSettingsDefaultObject.Settings.DataBuilders.Add(builder);
                 UnityEditor.EditorUtility.SetDirty(builder);
                 UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
-                
+
                 EditorUtility.FocusProjectWindow();
             }
 
@@ -294,14 +294,14 @@ namespace HM.Editor
             //检查依赖关系
             CheckAndFixBundleDupeDependenciesClearMenuItem();
 
-            if (BeUseEncrypyPackAsset)
+            if (UseEncrypyType != null)
             {
                 //打包
                 IDataBuilder builder
                     = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
                             "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset") as
                         IDataBuilder;
-            
+
                 settings.ActivePlayerDataBuilderIndex
                     = settings.DataBuilders.IndexOf((ScriptableObject) builder);
                 Debug.Log($"打包器选用:{builder.Name}");
@@ -313,13 +313,13 @@ namespace HM.Editor
                     = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
                             "Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.asset") as
                         IDataBuilder;
-            
+
                 settings.ActivePlayerDataBuilderIndex
                     = settings.DataBuilders.IndexOf((ScriptableObject) builder);
                 Debug.Log($"打包器选用:{builder.Name}");
             }
-          
-           
+
+
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
 
             if (!string.IsNullOrEmpty(result.Error))
@@ -470,15 +470,16 @@ namespace HM.Editor
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
 
             if (BeUseLoadEncrypt)
-            {  
+            {
                 var va = bundledAssetGroupSchema.AssetBundleProviderType;
                 va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
                 //没办法了,变量没公开,只好用反射调用
                 EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
             }
           
-          
-            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema); 
+
+
+            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
             UnityEditor.EditorUtility.FocusProjectWindow();
         }
 
@@ -493,26 +494,27 @@ namespace HM.Editor
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 AddressableAssetSettings.kRemoteLoadPath);
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
-            
+
             if (BeUseLoadEncrypt)
-            {  
+            {
                 var va = bundledAssetGroupSchema.AssetBundleProviderType;
                 va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
                 //没办法了,变量没公开,只好用反射调用
                 EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
             }
-          
-          
-            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema); 
+           
+
+
+            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
             UnityEditor.EditorUtility.FocusProjectWindow();
-          
         }
 
-        private static void EditPrivateValue(object obj,string valueName,object value)
+        private static void EditPrivateValue(object obj, string valueName, object value)
         {
-          var x=  obj.GetType().GetProperty(valueName);
-          x.SetValue(obj,value);
+            var x = obj.GetType().GetProperty(valueName);
+            x.SetValue(obj, value);
         }
+
         private static void GetAllSubFolderAndCreateGroupInfo(string folder, ref List<GroupInfo> groupInfos)
         {
             if (!AssetDatabase.IsValidFolder(folder)) return;
@@ -779,7 +781,6 @@ namespace HM.Editor
             {
                 CreatContentUpdateGroup(AddressableAssetSettingsDefaultObject.Settings, items,
                     "Content Update");
-                
             }
             else
             {
@@ -787,7 +788,8 @@ namespace HM.Editor
             }
         }
 
-        private static void CreatContentUpdateGroup(AddressableAssetSettings settings, List<AddressableAssetEntry> items, string groupName)
+        private static void CreatContentUpdateGroup(AddressableAssetSettings settings,
+            List<AddressableAssetEntry> items, string groupName)
         {
             var contentGroup = settings.CreateGroup(FindUniqueGroupName(groupName), false, false, true, null);
             var schema = contentGroup.AddSchema<BundledAssetGroupSchema>();
@@ -797,15 +799,15 @@ namespace HM.Editor
             var staiSchema = contentGroup.AddSchema<ContentUpdateGroupSchema>();
             staiSchema.StaticContent = false;
             settings.MoveEntries(items, contentGroup);
-           
+
             UnityEditor.EditorUtility.SetDirty(contentGroup);
             UnityEditor.EditorUtility.SetDirty(schema);
             UnityEditor.EditorUtility.SetDirty(staiSchema);
-          
+
             EditorUtility.FocusProjectWindow();
         }
-        
-        private  static  string FindUniqueGroupName(string potentialName)
+
+        private static string FindUniqueGroupName(string potentialName)
         {
             var cleanedName = potentialName.Replace('/', '-');
             cleanedName = cleanedName.Replace('\\', '-');
@@ -833,7 +835,7 @@ namespace HM.Editor
             return validName;
         }
 
-        private  static bool IsNotUniqueGroupName(string groupName)
+        private static bool IsNotUniqueGroupName(string groupName)
         {
             bool foundExisting = false;
             foreach (var g in AddressableAssetSettingsDefaultObject.Settings.groups)

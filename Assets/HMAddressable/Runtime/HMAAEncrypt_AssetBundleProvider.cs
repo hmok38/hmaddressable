@@ -30,13 +30,28 @@ namespace HM
             }
             new AssetBundleResource().Start(providerInterface, unloadOp);
 #else
-            new HMAA_AssetBundleResource().Start(providerInterface,null);
+            new HMAA_AssetBundleResource().Start(providerInterface,DataStreamProcessor);
 #endif
         }
         
         public override Type GetDefaultType(IResourceLocation location)
         {
             return typeof(IAssetBundleResource);
+        }
+        
+        public override bool Initialize(string id, string data)
+        {
+            if (!base.Initialize(id, data))
+                return false;
+            Debug.Log($"HMAAEncrypt_AssetBundleProvider Initialize:{data}");
+            if (!string.IsNullOrEmpty(data))
+            {
+                var dsType = JsonUtility.FromJson<SerializedType>(data);
+                if (dsType.Value != null)
+                    DataStreamProcessor = Activator.CreateInstance(dsType.Value) as IDataConverter;
+            }
+
+            return true;
         }
 
         /// <summary>
