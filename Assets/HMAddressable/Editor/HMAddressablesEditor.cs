@@ -800,6 +800,14 @@ namespace HM.Editor
             staiSchema.StaticContent = false;
             settings.MoveEntries(items, contentGroup);
 
+            if (BeUseLoadEncrypt)
+            {
+                var va = schema.AssetBundleProviderType;
+                va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
+                //没办法了,变量没公开,只好用反射调用
+                EditPrivateValue(schema, "AssetBundleProviderType", va);
+            }
+            
             UnityEditor.EditorUtility.SetDirty(contentGroup);
             UnityEditor.EditorUtility.SetDirty(schema);
             UnityEditor.EditorUtility.SetDirty(staiSchema);
