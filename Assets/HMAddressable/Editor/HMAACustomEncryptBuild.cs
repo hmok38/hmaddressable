@@ -1161,7 +1161,7 @@ namespace HM.Editor.HMAddressable.Editor
                     var info = buildResult.BundleInfos[builtBundleNames[i]];
                     bundleResultInfo.Crc = info.Crc;
                     bundleResultInfo.Hash = info.Hash.ToString();
-                    var requestOptions = new AssetBundleRequestOptions
+                    var requestOptions = new HMAA_AssetBundleRequestOptions
                     {
                         Crc = schema.UseAssetBundleCrc ? info.Crc : 0,
                         UseCrcForCachedBundle = schema.UseAssetBundleCrcForCachedBundles,

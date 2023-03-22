@@ -30,7 +30,17 @@ namespace HM.Editor
         private static HMAddressablesConfig ConfigHmAddressables =>
             AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(ConfigPath);
 
+        
+        /// <summary>
+        /// 是否使用加密打包
+        /// </summary>
+        public static bool BeUseEncrypyPackAsset =true ;
 
+        /// <summary>
+        /// 是否用加密加载
+        /// </summary>
+        public static bool BeUseLoadEncrypt = true;
+        
         //=============================public=============================================
 
         [UnityEditor.MenuItem(
@@ -284,15 +294,31 @@ namespace HM.Editor
             //检查依赖关系
             CheckAndFixBundleDupeDependenciesClearMenuItem();
 
-            //打包
-            IDataBuilder builder
-                = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
-                        "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset") as
-                    IDataBuilder;
+            if (BeUseEncrypyPackAsset)
+            {
+                //打包
+                IDataBuilder builder
+                    = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
+                            "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset") as
+                        IDataBuilder;
             
-            settings.ActivePlayerDataBuilderIndex
-                = settings.DataBuilders.IndexOf((ScriptableObject) builder);
-            Debug.Log($"打包器选用:{builder.Name}");
+                settings.ActivePlayerDataBuilderIndex
+                    = settings.DataBuilders.IndexOf((ScriptableObject) builder);
+                Debug.Log($"打包器选用:{builder.Name}");
+            }
+            else
+            {
+                //打包
+                IDataBuilder builder
+                    = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
+                            "Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.asset") as
+                        IDataBuilder;
+            
+                settings.ActivePlayerDataBuilderIndex
+                    = settings.DataBuilders.IndexOf((ScriptableObject) builder);
+                Debug.Log($"打包器选用:{builder.Name}");
+            }
+          
            
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
 
@@ -442,13 +468,17 @@ namespace HM.Editor
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 AddressableAssetSettings.kLocalLoadPath);
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
+
+            if (BeUseLoadEncrypt)
+            {  
+                var va = bundledAssetGroupSchema.AssetBundleProviderType;
+                va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
+                //没办法了,变量没公开,只好用反射调用
+                EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
+            }
           
-            var va = bundledAssetGroupSchema.AssetBundleProviderType;
-            va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
-            //没办法了,变量没公开,只好用反射调用
-            EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
-            
-            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
+          
+            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema); 
             UnityEditor.EditorUtility.FocusProjectWindow();
         }
 
@@ -464,11 +494,16 @@ namespace HM.Editor
                 AddressableAssetSettings.kRemoteLoadPath);
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
             
-            var va = bundledAssetGroupSchema.AssetBundleProviderType;
-            va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
-            //没办法了,变量没公开,只好用反射调用
-            EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
-            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
+            if (BeUseLoadEncrypt)
+            {  
+                var va = bundledAssetGroupSchema.AssetBundleProviderType;
+                va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
+                //没办法了,变量没公开,只好用反射调用
+                EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
+            }
+          
+          
+            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema); 
             UnityEditor.EditorUtility.FocusProjectWindow();
           
         }

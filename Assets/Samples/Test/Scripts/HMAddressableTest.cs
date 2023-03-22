@@ -12,9 +12,9 @@ public class HMAddressableTest : MonoBehaviour
      string spherePath = "Assets/Samples/Test/RES/Sphere/Sphere.prefab";
      private List<GameObject> allObjs = new List<GameObject>();
      void Start()
-    {
-       
-    }
+     {
+         Addressables.InitializeAsync();
+     }
 
      async void Wait()
      {
