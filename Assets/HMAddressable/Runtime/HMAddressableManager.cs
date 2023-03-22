@@ -413,6 +413,12 @@ namespace HM
 
                 return; //正在更新
             }
+            
+            NeedUpdateKeys.Clear();
+            _updateStatus = AsyncOperationStatus.None;
+            _updateCb += updateCb;
+            _progressValue = 0;
+            
 #if UNITY_EDITOR
             _updateStatus = AsyncOperationStatus.Succeeded;
             _resultMessage = "不需要更新资源";
@@ -421,10 +427,7 @@ namespace HM
             
 #endif
 
-            NeedUpdateKeys.Clear();
-            _updateStatus = AsyncOperationStatus.None;
-            _updateCb += updateCb;
-            _progressValue = 0;
+          
             await UpdateWork();
         }
 
