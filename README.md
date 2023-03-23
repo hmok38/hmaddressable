@@ -1,16 +1,17 @@
 HMAddresables 资源管理插件
 ===
 
-by:黄敏  
+by:黄敏
 * HMAddresable资源管理插件是基于 **Unity Addressables Assets** 系统的自动化打包管理工具
 * 资源分组和打包基于文件夹目录进行分组,并在发布游戏包体时一次性打包进入APK包,
 * 后续热更时采用增量更新的方式进行热更新
+* 同时能对资源进行加密避免解包(1.2.0以上)
 * 插件具有高度自动化和热更新体量小的特点,使用它完全不用关心太多资源包知识和原理,只要管理好资源目录,并将打包好的资源放入设定的服务器目录下即可
 * 运行态时不会自动更新资源,可以在游戏初始化时手动调用 HMAddressableManager.UpdateAddressablesAllAssets()进行更新
 
 ---
 
-**先手动添加依赖 UniTask 插件:**  
+**先手动添加依赖 UniTask 插件:**
 
 项目依赖于UniTask插件,它是当前Unity中最好的Await/Async实现异步和等待的插件,可以完美无GC的替代Unity的协程,
 且可以在非Mono脚本中使用,因为自定义包中不支持git包到git包的依赖,所以需要手动添加:
@@ -26,9 +27,9 @@ by:黄敏
 
 **添加本包:**
 
-1. 在Unity的**PackageManager**中点+号,选择**Add package from git URL**  
-2. 输入:https://github.com/hmok38/hmaddressable.git?path=Assets/HMAddressable  
-3. 点击add按钮,等待安装完毕.因为网络的原因,可以会添加失败,请多试两次,实在不行就去git拉下代码导入项目  
+1. 在Unity的**PackageManager**中点+号,选择**Add package from git URL**
+2. 输入:https://github.com/hmok38/hmaddressable.git?path=Assets/HMAddressable
+3. 点击add按钮,等待安装完毕.因为网络的原因,可以会添加失败,请多试两次,实在不行就去git拉下代码导入项目
 4. git地址:https://github.com/hmok38/hmaddressable
 
 **请帮忙点star哦**

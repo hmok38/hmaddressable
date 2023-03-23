@@ -1142,7 +1142,7 @@ namespace HM.Editor.HMAddressable.Editor
                     {
                         using (var dst = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.Write, 1024 * 1204, FileOptions.Asynchronous))
                         {
-                            var dsp = Activator.CreateInstance(HMAddressablesEditor.UseEncrypyType) as IDataConverter;
+                            var dsp = Activator.CreateInstance(HMAddressablesEditor.UseEncrypyType) as DataConverterBase;
                             using (var writeStr = dsp.CreateWriteStream(dst, ""))
                                 src.CopyTo(writeStr);
                         }

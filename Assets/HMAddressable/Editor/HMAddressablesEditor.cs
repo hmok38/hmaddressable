@@ -11,6 +11,7 @@ using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.ResourceManagement.Util;
 using Object = UnityEngine.Object;
 
@@ -34,12 +35,13 @@ namespace HM.Editor
         /// <summary>
         /// 加密类型
         /// </summary>
-        public static Type UseEncrypyType = typeof(AESStreamProcessor);
+        public static Type UseEncrypyType => DataConverterBase.GetEncryptType(ConfigHmAddressables.MyAssetsEncryptType);
+       
 
         /// <summary>
         /// 是否用加密加载
         /// </summary>
-        public static bool BeUseLoadEncrypt = true;
+        public static bool BeUseLoadEncrypt = UseEncrypyType!=null;
 
         //=============================public=============================================
 
@@ -476,7 +478,13 @@ namespace HM.Editor
                 //没办法了,变量没公开,只好用反射调用
                 EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
             }
-          
+            else
+            {
+                var va = bundledAssetGroupSchema.AssetBundleProviderType;
+                va.Value = typeof(AssetBundleProvider);
+                //没办法了,变量没公开,只好用反射调用
+                EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
+            }
 
 
             UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
@@ -499,6 +507,13 @@ namespace HM.Editor
             {
                 var va = bundledAssetGroupSchema.AssetBundleProviderType;
                 va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
+                //没办法了,变量没公开,只好用反射调用
+                EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
+            }
+            else
+            {
+                var va = bundledAssetGroupSchema.AssetBundleProviderType;
+                va.Value = typeof(AssetBundleProvider);
                 //没办法了,变量没公开,只好用反射调用
                 EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
             }
@@ -807,6 +822,13 @@ namespace HM.Editor
                 //没办法了,变量没公开,只好用反射调用
                 EditPrivateValue(schema, "AssetBundleProviderType", va);
             }
+            else
+            {
+                var va = schema.AssetBundleProviderType;
+                va.Value = typeof(AssetBundleProvider);
+                //没办法了,变量没公开,只好用反射调用
+                EditPrivateValue(schema, "AssetBundleProviderType", va);
+            }
             
             UnityEditor.EditorUtility.SetDirty(contentGroup);
             UnityEditor.EditorUtility.SetDirty(schema);
@@ -907,5 +929,7 @@ namespace HM.Editor
             public string GroupName;
             public AddressableAssetGroup Group;
         }
+        
+        
     }
 }

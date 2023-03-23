@@ -19,7 +19,7 @@ namespace HM
     [DisplayName("HMAAEncrypt_AssetBundleProvider")]
     public class HMAAEncrypt_AssetBundleProvider : AssetBundleProvider
     {
-        public IDataConverter DataStreamProcessor {get;set;}
+        public DataConverterBase DataStreamProcessor {get;set;}
         public override void Provide(ProvideHandle providerInterface)
         {
 #if UNLOAD_BUNDLE_ASYNC
@@ -48,7 +48,7 @@ namespace HM
             {
                 var dsType = JsonUtility.FromJson<SerializedType>(data);
                 if (dsType.Value != null)
-                    DataStreamProcessor = Activator.CreateInstance(dsType.Value) as IDataConverter;
+                    DataStreamProcessor = Activator.CreateInstance(dsType.Value) as DataConverterBase;
             }
 
             return true;
@@ -105,7 +105,7 @@ namespace HM
         WebRequestQueueOperation m_WebRequestQueueOperation;
         internal ProvideHandle m_ProvideHandle;
         internal HMAA_AssetBundleRequestOptions m_Options;
-        IDataConverter m_dataProc;
+        DataConverterBase m_dataProc;
         [NonSerialized]
         bool m_WebRequestCompletedCallbackCalled = false;
         int m_Retries;
@@ -324,7 +324,7 @@ namespace HM
             }
         }
 
-        internal void Start(ProvideHandle provideHandle, IDataConverter dataProc)
+        internal void Start(ProvideHandle provideHandle, DataConverterBase dataProc)
         {
             m_dataProc = dataProc;
             m_Retries = 0;
@@ -395,12 +395,12 @@ namespace HM
                 operation.completed += callback;
         }
         
-        internal static void GetLoadInfo(ProvideHandle handle, IDataConverter dataProc, out LoadType loadType, out string path)
+        internal static void GetLoadInfo(ProvideHandle handle, DataConverterBase dataProc, out LoadType loadType, out string path)
         {
             GetLoadInfo(handle.Location, handle.ResourceManager, dataProc, out loadType, out path);
         }
 
-        internal static void GetLoadInfo(IResourceLocation location, ResourceManager resourceManager, IDataConverter dataProc, out LoadType loadType, out string path)
+        internal static void GetLoadInfo(IResourceLocation location, ResourceManager resourceManager, DataConverterBase dataProc, out LoadType loadType, out string path)
         {
             var options = location?.Data as HMAA_AssetBundleRequestOptions;
             if (options == null)
