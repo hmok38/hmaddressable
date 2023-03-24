@@ -34,7 +34,7 @@ namespace HM
         private static Dictionary<string, bool> LoadingSceneMap = new Dictionary<string, bool>();
 
         /// <summary>
-        /// 加载资源
+        /// 加载资源 同步加载,尽量不要使用
         /// </summary>
         /// <param name="resName"></param>
         /// <typeparam name="T"></typeparam>
@@ -46,10 +46,10 @@ namespace HM
                 return ResMap[resName] as T;
             }
 
-            if (BeOtherDebug)
-            {
-                Debug.Log($"准备直接加载资源:{resName} ");
-            }
+            // if (BeOtherDebug)
+            // {
+            //     Debug.Log($"准备直接加载资源:{resName} ");
+            // }
 
             T obj=null;
 
@@ -83,10 +83,10 @@ namespace HM
                 return ResMap[resName] as T;
             }
 
-            if (BeOtherDebug)
-            {
-                Debug.Log($"准备异步加载资源:{resName} ");
-            }
+            // if (BeOtherDebug)
+            // {
+            //     Debug.Log($"准备异步加载资源:{resName} ");
+            // }
             
             T obj=null;
 #if UNITY_EDITOR
@@ -109,6 +109,53 @@ namespace HM
             ResMap.Add(resName, obj);
             RemoveFromLoadingMap(resName);
             return ResMap[resName] as T;
+        }
+        /// <summary>
+        /// 加载多个资源
+        /// </summary>
+        /// <param name="resNames"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static async UniTask<List<T>> loadAssetsAsync<T>(List<string> resNames) where T : UnityEngine.Object
+        {
+            List<UniTask<T>> uniTasks = new List<UniTask<T>>(resNames.Count);
+            var lists = new List<T>(resNames.Count);
+            for (int i = 0; i < resNames.Count; i++)
+            {
+                uniTasks.Add(  LoadAsync<T>(resNames[i]));
+                lists.Add(null);
+            }
+            bool beWaite = true;
+            //等待加载完毕
+            while (beWaite)
+            {
+                bool allOver = true;
+                for (int i = 0; i < uniTasks.Count; i++)
+                {
+                    if (uniTasks[i].Status == UniTaskStatus.Pending)
+                    {
+                        allOver = false;
+                        break;
+                    }
+                    else
+                    {
+                        lists[i] = uniTasks[i].GetAwaiter().GetResult();
+                    }
+                }
+
+                if (!allOver)
+                {
+                    await UniTask.Yield();//还在执行就等待一帧
+                }
+                else
+                {
+                    beWaite = false;
+                }
+            }
+
+
+            return lists;
+
         }
 
         /// <summary>
@@ -177,10 +224,10 @@ namespace HM
                 ResMap.Remove(resName);
                 if (operation != null)
                 {
-                    if (BeOtherDebug)
-                    {
-                        Debug.Log($"释放资源:{resName}");
-                    }
+                    // if (BeOtherDebug)
+                    // {
+                    //     Debug.Log($"释放资源:{resName}");
+                    // }
 #if UNITY_EDITOR
                     if (!HasAssets(resName))
                     {
@@ -197,7 +244,19 @@ namespace HM
                 ReleaseRes(resName);
             }
         }
-
+        
+        /// <summary>
+        /// 释放多个资源
+        /// </summary>
+        /// <param name="resNames"></param>
+        public static  void ReleaseRes(List<string> resNames)
+        {
+            for (int i = 0; i < resNames.Count; i++)
+            {
+                ReleaseRes(resNames[i]);
+            }
+        }
+        
         /// <summary>
         /// 异步加载场景,如果要对加载完毕的场景做操作,请用await写
         /// 如果要手动释放,请保留好这个SceneInstance释放的时候需要它
