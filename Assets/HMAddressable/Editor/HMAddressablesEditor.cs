@@ -454,7 +454,8 @@ namespace HM.Editor
 
                     //Debug.Log("添加了: "+fileInfo.Name );
                     //不是文件夹才添加,且不在 升级组 里面
-                    AddressableAssetSettingsDefaultObject.Settings.CreateOrMoveEntry(assetGuid, groupInfo.Group);
+                  var tmp=  AddressableAssetSettingsDefaultObject.Settings.CreateOrMoveEntry(assetGuid, groupInfo.Group);
+                  tmp.SetLabel(groupInfo.Path, true,true);
                 }
             }
         }

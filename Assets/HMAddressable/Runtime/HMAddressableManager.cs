@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -34,7 +35,7 @@ namespace HM
         private static Dictionary<string, bool> LoadingSceneMap = new Dictionary<string, bool>();
 
         /// <summary>
-        /// 加载资源 同步加载,尽量不要使用
+        /// 加载资源 同步加载,尽量使用异步加载
         /// </summary>
         /// <param name="resName"></param>
         /// <typeparam name="T"></typeparam>
@@ -51,7 +52,7 @@ namespace HM
             //     Debug.Log($"准备直接加载资源:{resName} ");
             // }
 
-            T obj=null;
+            T obj = null;
 
 #if UNITY_EDITOR
             if (!HasAssets(resName))
@@ -67,6 +68,7 @@ namespace HM
                 operation.WaitForCompletion();
                 obj = operation.Result;
             }
+
             ResMap.Add(resName, obj);
             RemoveFromLoadingMap(resName);
             return ResMap[resName] as T;
@@ -87,14 +89,13 @@ namespace HM
             // {
             //     Debug.Log($"准备异步加载资源:{resName} ");
             // }
-            
-            T obj=null;
+
+            T obj = null;
 #if UNITY_EDITOR
             if (!HasAssets(resName))
             {
                 //编辑器下判断有没有,没有就直接读目录,有就从aa走
                 obj = AssetDatabase.LoadAssetAtPath<T>(resName);
-               
             }
 #endif
             if (obj == null)
@@ -104,12 +105,13 @@ namespace HM
                 await operation.Task;
                 obj = operation.Result;
             }
-            
+
 
             ResMap.Add(resName, obj);
             RemoveFromLoadingMap(resName);
             return ResMap[resName] as T;
         }
+
         /// <summary>
         /// 加载多个资源
         /// </summary>
@@ -118,44 +120,44 @@ namespace HM
         /// <returns></returns>
         public static async UniTask<List<T>> loadAssetsAsync<T>(List<string> resNames) where T : UnityEngine.Object
         {
-            List<UniTask<T>> uniTasks = new List<UniTask<T>>(resNames.Count);
-            var lists = new List<T>(resNames.Count);
+            UniTask<T>[] uniTasks = new UniTask<T>[resNames.Count];
             for (int i = 0; i < resNames.Count; i++)
             {
-                uniTasks.Add(  LoadAsync<T>(resNames[i]));
-                lists.Add(null);
+                uniTasks[i]=( LoadAsync<T>(resNames[i]));
             }
-            bool beWaite = true;
-            //等待加载完毕
-            while (beWaite)
+
+            var objs=  await UniTask.WhenAll(uniTasks);
+            
+            return objs.ToList();
+        }
+
+        /// <summary>
+        /// 通过组或者标签加载多个资源
+        /// </summary>
+        /// <param name="groupNameOrLabel"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static async UniTask<List<T>> LoadAssetsAsyncByGroup<T>(string groupNameOrLabel)
+            where T : UnityEngine.Object
+        {
+            List<string> names = null;
+#if UNITY_EDITOR
+            names = GetAllResouceAssetsByFolder<T>(groupNameOrLabel);
+#endif
+            if (names == null||names.Count<=0)
             {
-                bool allOver = true;
-                for (int i = 0; i < uniTasks.Count; i++)
+                var resouceLocationsHandle =
+                    Addressables.LoadResourceLocationsAsync(groupNameOrLabel,typeof(T));
+                await resouceLocationsHandle.Task;
+                var resouceLocations = resouceLocationsHandle.Result;
+                names = new List<string>();
+                foreach (var resouceLocation in resouceLocations)
                 {
-                    if (uniTasks[i].Status == UniTaskStatus.Pending)
-                    {
-                        allOver = false;
-                        break;
-                    }
-                    else
-                    {
-                        lists[i] = uniTasks[i].GetAwaiter().GetResult();
-                    }
-                }
-
-                if (!allOver)
-                {
-                    await UniTask.Yield();//还在执行就等待一帧
-                }
-                else
-                {
-                    beWaite = false;
+                    names.Add(resouceLocation.PrimaryKey);
                 }
             }
 
-
-            return lists;
-
+            return await loadAssetsAsync<T>(names);
         }
 
         /// <summary>
@@ -167,15 +169,16 @@ namespace HM
         {
 #if UNITY_EDITOR
             //编辑器下检查是不是有设置,没有就直接返回,有就真的判断是不是存在资源
-          var sett=  AssetDatabase.LoadAssetAtPath<Object>("Assets/AddressableAssetsData/AddressableAssetSettings.asset");
-          if (sett == null)
-          {
-              return false;
-          }
+            var sett = AssetDatabase.LoadAssetAtPath<Object>(
+                "Assets/AddressableAssetsData/AddressableAssetSettings.asset");
+            if (sett == null)
+            {
+                return false;
+            }
 #endif
-            
+
             var rs = Addressables.LoadResourceLocationsAsync(resName);
-            
+
             rs.WaitForCompletion();
             if (rs.IsDone && rs.IsValid())
             {
@@ -196,10 +199,10 @@ namespace HM
             if (item.Key == null) return false;
             var operation = ResMap[item.Key];
             ResMap.Remove(item.Key);
-            if (BeOtherDebug)
-            {
-                Debug.Log($"释放资源:{operation.name}");
-            }
+            // if (BeOtherDebug)
+            // {
+            //     Debug.Log($"释放资源:{operation.name}");
+            // }
 #if UNITY_EDITOR
             if (!HasAssets(operation.name))
             {
@@ -244,19 +247,47 @@ namespace HM
                 ReleaseRes(resName);
             }
         }
-        
+
         /// <summary>
         /// 释放多个资源
         /// </summary>
         /// <param name="resNames"></param>
-        public static  void ReleaseRes(List<string> resNames)
+        public static void ReleaseRes(List<string> resNames)
         {
             for (int i = 0; i < resNames.Count; i++)
             {
                 ReleaseRes(resNames[i]);
             }
         }
-        
+
+        /// <summary>
+        /// 通过组名或者标签释放多个资源
+        /// </summary>
+        /// <param name="groupNameOrLabel"></param>
+        public static async void ReleaseResGroup(string groupNameOrLabel)
+        {
+            
+            List<string> names = null;
+#if UNITY_EDITOR
+            names = GetAllResouceAssetsByFolder<Object>(groupNameOrLabel);
+#endif
+            if (names == null||names.Count<=0)
+            {
+                var resouceLocationsHandle =
+                    Addressables.LoadResourceLocationsAsync(groupNameOrLabel);
+                await resouceLocationsHandle.Task;
+                var resouceLocations = resouceLocationsHandle.Result;
+                names = new List<string>();
+                foreach (var resouceLocation in resouceLocations)
+                {
+                    names.Add(resouceLocation.PrimaryKey);
+                }
+            }
+            
+            
+            ReleaseRes(names);
+        }
+
         /// <summary>
         /// 异步加载场景,如果要对加载完毕的场景做操作,请用await写
         /// 如果要手动释放,请保留好这个SceneInstance释放的时候需要它
@@ -281,16 +312,15 @@ namespace HM
             }
 
 
-           
 #if UNITY_EDITOR
             if (!HasAssets(sceneName))
             {
-              var scene=  EditorSceneManager.LoadSceneInPlayMode(sceneName,new LoadSceneParameters());
-              return scene;
+                var scene = EditorSceneManager.LoadSceneInPlayMode(sceneName, new LoadSceneParameters());
+                return scene;
             }
 
 #endif
-            
+
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             AddToLoadingSceneMap(sceneName);
             await op.Task;
@@ -322,7 +352,7 @@ namespace HM
             {
                 return LoadedSceneMap[sceneName].Scene;
             }
-            
+
 #if UNITY_EDITOR
             if (!HasAssets(sceneName))
             {
@@ -330,7 +360,6 @@ namespace HM
                 return scene;
             }
 #endif
-            
 
 
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
@@ -357,7 +386,6 @@ namespace HM
 #if UNITY_EDITOR
             if (!HasAssets(scenePath))
             {
-               
                 return;
             }
 #endif
@@ -382,7 +410,6 @@ namespace HM
 #if UNITY_EDITOR
             if (!HasAssets(scene.name))
             {
-               
                 return;
             }
 #endif
@@ -423,6 +450,29 @@ namespace HM
             {
                 LoadingSceneMap[res] = false;
             }
+        }
+
+        private static List<string> GetAllResouceAssetsByFolder<T>(string folderPath) where T : UnityEngine.Object
+        {
+#if UNITY_EDITOR
+            if (AssetDatabase.IsValidFolder(folderPath))
+            {
+                Debug.Log(typeof(T).Name);
+                var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}", new[] {folderPath});
+                List<string> list = new List<string>();
+                for (int i = 0; i < guids.Length; i++)
+                {
+                    list.Add(AssetDatabase.GUIDToAssetPath(guids[i]));
+                }
+
+                return list;
+            }
+            else
+            {
+                return null;
+            }
+#endif
+            return null;
         }
 
         #region ============================资源更新相关==================================================================
@@ -472,21 +522,21 @@ namespace HM
 
                 return; //正在更新
             }
-            
+
             NeedUpdateKeys.Clear();
             _updateStatus = AsyncOperationStatus.None;
             _updateCb += updateCb;
             _progressValue = 0;
-            
+
 #if UNITY_EDITOR
             _updateStatus = AsyncOperationStatus.Succeeded;
             _resultMessage = "不需要更新资源";
             DispatchUpdateCallback();
             return;
-            
+
 #endif
 
-          
+
             await UpdateWork();
         }
 
