@@ -14,7 +14,7 @@ namespace HM
         [Header("测试资源服务器分发地址")]
         public string TestRemoteLoadPath = "http://[PrivateIpAddress]/Test/[BuildTarget]";
         [Header("资源加密类型,具体的加密提供类请见IDataConverter及其基类")]
-        public AssetsEncryptType MyAssetsEncryptType = AssetsEncryptType.AET_AESStreamProcessor;
+        public AssetsEncryptType MyAssetsEncryptType = AssetsEncryptType.AET_AESStreamProcessorWithSeek;
         
     }
 }

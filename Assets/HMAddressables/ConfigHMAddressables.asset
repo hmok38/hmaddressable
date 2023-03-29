@@ -16,3 +16,4 @@ MonoBehaviour:
   - Assets/Samples/Test/RES
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
+  MyAssetsEncryptType: 3
