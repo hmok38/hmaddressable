@@ -1,0 +1,38 @@
+
+4来源渠道channel"	字符串*user_setOnce0
+9登录账户id
+account_id"	字符串*user_setOnce0
+.区服id	server_id"	字符串*user_set0
+6角色昵称	nick_name"	字符串*user_setOnce0
+1公会信息union_id"	对象组*user_set0
+7注册时间register_time"时间*user_setOnce0
+;首次登录时间first_login"时间*user_setOnce0
+>首次付费时间first_pay_time"时间*user_setOnce0
+6	最后登录时间
+last_login"时间*user_set0
+;
+累计登录天数acc_login_count"数值*user_add0
+3累计付费金额acc_pay"数值*user_add0
+9累计充值次数acc_pay_count"数值*user_add0
+>累计观看广告次数total_ad_num"数值*user_add0
+?累计观看广告时长total_ad_time"数值*user_add0
+@累积世界发言次数world_chat_num"数值*user_add0
+@累积联盟发言次数union_chat_num"数值*user_add0
+9联盟捐赠数union_donate_num"数值*user_add0
+/剩余金币	gold_left"数值*user_set0
+2剩余钻石diamond_left"数值*user_set0
+G宝箱栏战斗宝箱总个数box_battle_left"数值*user_set0
+3账号等级account_level"数值*user_set0
+3通行证等级
+pass_level"数值*user_set0
+?上阵英雄信息hero_battle_info"	对象组*user_set0
+?上阵单位信息unit_battle_info"	对象组*user_set0
+;解锁英雄个数hero_unlock_num"数值*user_set0
+;解锁单位个数unit_unlock_num"数值*user_set0
+2道具信息	item_info"	对象组*user_set0
+1竞技场胜率win_rate"数值*user_set0
+1竞技场杯数cup_rate"数值*user_set0
+6主玩法最高连胜max_win"数值*user_set0
+7主玩法最高连败max_lose"数值*user_set0
+6 当前竞技场排名ranking"数值*user_set0
+6!coop最大波数coop_max_num"数值*user_set0

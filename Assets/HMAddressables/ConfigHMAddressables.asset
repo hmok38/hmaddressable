@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ConfigHMAddressables
   m_EditorClassIdentifier: 
   AseetsPaths:
-  - Assets/Samples/Test/RES
+  - Assets/TestBundle
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
   MyAssetsEncryptType: 3
