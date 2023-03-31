@@ -11,7 +11,9 @@ public class BundleLoadTest : MonoBehaviour
     public UnityEngine.UI.Text _text;
     async void Start()
     {
-        beOver = false;
+        await UniTask.NextFrame();
+        HMRuntimeDialogHelper.DebugStopWatchInfo("开始");
+        beOver = false; 
         HMRuntimeDialogHelper.StartStopwatch();
       await  HMAddressableManager.UpdateAddressablesAllAssets(OnCb);
       HMRuntimeDialogHelper.DebugStopWatchInfo("升级完毕");
@@ -19,8 +21,8 @@ public class BundleLoadTest : MonoBehaviour
       HMRuntimeDialogHelper.DebugStopWatchInfo($"配置表加载完毕,配置表数量:{list.Count}");
       var list2=  await HMAddressableManager.LoadAssetsAsyncByGroup<TextAsset>("Assets/TestBundle/Code");
       HMRuntimeDialogHelper.DebugStopWatchInfo($"配置代码加载完毕,配置表数量:{list2.Count}");
-      var list3=  await HMAddressableManager.LoadAssetsAsyncByGroup<Texture2D>("Assets/TestBundle/sprite");
-      HMRuntimeDialogHelper.DebugStopWatchInfo($"配置代码加载完毕,配置表数量:{list3.Count}");
+      var list3=  await HMAddressableManager.LoadAsync<Texture2D>("Assets/TestBundle/sprite/中世纪3.png");
+      HMRuntimeDialogHelper.DebugStopWatchInfo($"配置代码加载完毕,sprite名:{list3.name}");
       beOver = true;
     }
 
