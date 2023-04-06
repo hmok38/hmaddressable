@@ -63,20 +63,20 @@ public class HMAddressableTest : MonoBehaviour
     }
 
 
-    private void UpdateCb(AsyncOperationStatus status, float progeress, string message)
+    private void UpdateCb(AsyncOperationStatus status, float progeress, string message,UpdateStatusCode arg3)
     {
         switch (status)
         {
             case AsyncOperationStatus.Failed:
-                Debug.LogError(message);
+                Debug.LogError($"errorCode={arg3}");
                 break;
             case AsyncOperationStatus.Succeeded:
-                Debug.Log($"更新成功{message}");
+                Debug.Log($"更新成功 Code={arg3}");
                 this.Capsule(true);
                 this.Sphere(true);
                 break;
             case AsyncOperationStatus.None:
-                Debug.Log($"正在下载,进度={progeress}");
+                Debug.Log($"正在下载,进度={progeress} Code={arg3}");
                 break;
         }
     }

@@ -25,8 +25,8 @@ public class BundleLoadTest : MonoBehaviour
       HMRuntimeDialogHelper.DebugStopWatchInfo($"配置代码加载完毕,sprite名:{list3.name}");
       beOver = true;
     }
-
-    private void OnCb(AsyncOperationStatus arg0, float arg1, string arg2)
+    
+    private void OnCb(AsyncOperationStatus arg0, float arg1, string arg2,UpdateStatusCode arg3)
     {
       HMRuntimeDialogHelper.DebugStopWatchInfo($"OnCB:{arg2}");
     }

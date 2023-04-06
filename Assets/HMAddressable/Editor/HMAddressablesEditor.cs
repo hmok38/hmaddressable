@@ -775,6 +775,20 @@ namespace HM.Editor
 
             AddressableAssetSettingsDefaultObject.Settings.profileSettings.SetValue(profileId,
                 AddressableAssetSettings.kRemoteLoadPath, ConfigHmAddressables.TestRemoteLoadPath);
+            
+            //修复AA包中AddressableAssetSettings类m_RemoteCatalogLoadPath.Id == null 和 m_RemoteCatalogBuildPath.Id == null 的bug
+            if (string.IsNullOrEmpty(AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogBuildPath.Id))
+            {
+                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogBuildPath=   new ProfileValueReference();
+                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogBuildPath.SetVariableByName(AddressableAssetSettingsDefaultObject.Settings,
+                    AddressableAssetSettings.kRemoteBuildPath);
+            }
+            if (string.IsNullOrEmpty(AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogLoadPath.Id))
+            {
+                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogLoadPath=   new ProfileValueReference();
+                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogLoadPath.SetVariableByName(AddressableAssetSettingsDefaultObject.Settings,
+                    AddressableAssetSettings.kRemoteLoadPath);
+            }
         }
 
         private static void CheckForContentUpdateRestructions()

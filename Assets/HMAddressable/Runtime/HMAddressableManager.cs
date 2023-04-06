@@ -6,6 +6,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.Events;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Cysharp.Threading.Tasks;
 
 #if UNITY_EDITOR
@@ -15,6 +16,7 @@ using UnityEditor.SceneManagement;
 
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
+using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
 namespace HM
@@ -54,10 +56,10 @@ namespace HM
                 return ResMap[resName] as T;
             }
 
-            // if (BeOtherDebug)
-            // {
-            //     Debug.Log($"准备直接加载资源:{resName} ");
-            // }
+            if (BeOtherDebug)
+            {
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"准备直接加载资源:{resName} ");
+            }
 
             T obj = null;
 
@@ -87,15 +89,16 @@ namespace HM
                 return ResMap[resName] as T;
             if (LoadingMap.ContainsKey(resName) && LoadingMap[resName])
             {
+               
                 await UniTask.WaitUntil(() => (!LoadingMap.ContainsKey(resName))||(!LoadingMap[resName]));
 
                 return ResMap[resName] as T;
             }
 
-            // if (BeOtherDebug)
-            // {
-            //     Debug.Log($"准备异步加载资源:{resName} ");
-            // }
+            if (BeOtherDebug)
+            {
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"准备异步加载资源:{resName} ");
+            }
 
             T obj = null;
 #if UNITY_EDITOR
@@ -206,10 +209,10 @@ namespace HM
             if (item.Key == null) return false;
             var operation = ResMap[item.Key];
             ResMap.Remove(item.Key);
-            // if (BeOtherDebug)
-            // {
-            //     Debug.Log($"释放资源:{operation.name}");
-            // }
+            if (BeOtherDebug)
+            {
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{operation.name}");
+            }
 #if UNITY_EDITOR
             if (!HasAssets(operation.name))
             {
@@ -234,10 +237,10 @@ namespace HM
                 ResMap.Remove(resName);
                 if (operation != null)
                 {
-                    // if (BeOtherDebug)
-                    // {
-                    //     Debug.Log($"释放资源:{resName}");
-                    // }
+                    if (BeOtherDebug)
+                    {
+                        HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{resName}");
+                    }
 #if UNITY_EDITOR
                     if (!HasAssets(resName))
                     {
@@ -464,7 +467,6 @@ namespace HM
 #if UNITY_EDITOR
             if (AssetDatabase.IsValidFolder(folderPath))
             {
-                Debug.Log(typeof(T).Name);
                 var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}", new[] {folderPath});
                 List<string> list = new List<string>();
                 for (int i = 0; i < guids.Length; i++)
@@ -501,11 +503,12 @@ namespace HM
 
         private static float _progressValue;
         private static long _totalDownloadSize;
+        private static UpdateStatusCode _updateStatusCode;
 
         /// <summary>
         /// 整体更新的回调
         /// </summary>
-        private static UnityAction<AsyncOperationStatus, float, string> _updateCb;
+        private static UnityAction<AsyncOperationStatus, float, string,UpdateStatusCode> _updateCb;
 
 
         private static List<string> _needUpdateCatalogs;
@@ -521,11 +524,11 @@ namespace HM
         ///  </summary>
         ///  <param name="updateCb"></param>
         public static async UniTask UpdateAddressablesAllAssets(
-            UnityAction<AsyncOperationStatus, float, string> updateCb)
+            UnityAction<AsyncOperationStatus, float, string,UpdateStatusCode> updateCb)
         {
             if (_updateStatus == AsyncOperationStatus.None)
             {
-                UnityEngine.Debug.LogError("正在更新所有资源,不能重复调用更新");
+                HMRuntimeDialogHelper.DebugStopWatchInfo("正在更新所有资源,不能重复调用更新");
 
                 return; //正在更新
             }
@@ -537,7 +540,8 @@ namespace HM
 
 #if UNITY_EDITOR
             _updateStatus = AsyncOperationStatus.Succeeded;
-            _resultMessage = "不需要更新资源";
+            _resultMessage = "";
+            _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
             DispatchUpdateCallback();
             return;
 
@@ -550,14 +554,12 @@ namespace HM
 
         static async UniTask UpdateWork()
         {
-            Debug.Log("Addressable.InitializeAsync");
+            HMRuntimeDialogHelper.DebugStopWatchInfo("Addressable.InitializeAsync");
 
             var initializeAsync = Addressables.InitializeAsync();
             await initializeAsync.Task;
             var cache = Caching.currentCacheForWriting;
-            //Debug.Log("下载缓存路径:" + cache.path);
-            //Debug.Log("下载覆盖路径" + UnityEngine.Application.persistentDataPath);
-            //Debug.Log("UpdateWork");
+            
             await CheckUpdateMainCatalog();
             if (!CheckCanGoOn()) return;
 
@@ -573,7 +575,7 @@ namespace HM
 
         static async UniTask CheckUpdateMainCatalog()
         {
-            //Debug.Log("CheckUpdateMainCatalog");
+            HMRuntimeDialogHelper.DebugStopWatchInfo("CheckUpdateMainCatalog");
             //检查是否需要更新
             try
             {
@@ -587,23 +589,25 @@ namespace HM
 
             while (!_checkMainCatalogOp.IsDone)
             {
-                _resultMessage = "正在检查资源列表";
+                _resultMessage = "";
+                _updateStatusCode = UpdateStatusCode.CHECKING_RESOURCE_LIST;
                 DispatchUpdateCallback();
                 await UniTask.NextFrame();
             }
 
-            //Debug.Log("CheckUpdateMainCatalog = " + _CheckMainCatalogOp.Status);
+            
             if (_checkMainCatalogOp.Status != AsyncOperationStatus.Succeeded)
             {
                 _updateStatus = AsyncOperationStatus.Failed;
-                _resultMessage = "检查资源列表时发生错误:" + _checkMainCatalogOp.OperationException.Message;
+                _resultMessage = _checkMainCatalogOp.OperationException.Message;
+                _updateStatusCode = UpdateStatusCode.ERROR_CHECKING_RESOURCE_LIST;
                 Addressables.Release(_checkMainCatalogOp);
                 return;
             }
 
             _needUpdateCatalogs = _checkMainCatalogOp.Result;
             var oldListStr = PlayerPrefs.GetString(PrefsName, ""); //取出旧的列表,避免升级中断导致的不再更新
-            //Debug.LogFormat("oldListStr = {0}", oldListStr);
+            
             if (!string.IsNullOrEmpty(oldListStr) && oldListStr.Length > 0)
             {
                 try
@@ -630,7 +634,7 @@ namespace HM
             if (_needUpdateCatalogs.Count > 0)
             {
                 var listS = Newtonsoft.Json.JsonConvert.SerializeObject(_needUpdateCatalogs);
-                //Debug.LogFormat("newListStr = {0}", listS);
+                
                 //保存进去,结束后,如果成功就删除,没成功就等待下次重新更新
                 PlayerPrefs.SetString(PrefsName, listS);
             }
@@ -642,15 +646,16 @@ namespace HM
 
             if (BeOtherDebug)
             {
-                Debug.Log($"需要更新的MainCatalog数量:{_needUpdateCatalogs.Count} " +
-                          $":{Newtonsoft.Json.JsonConvert.SerializeObject(_needUpdateCatalogs)}");
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的MainCatalog数量:{_needUpdateCatalogs.Count} " +
+                                          $":{Newtonsoft.Json.JsonConvert.SerializeObject(_needUpdateCatalogs)}");
             }
 
             if (_needUpdateCatalogs.Count <= 0)
             {
-                //Debug.Log("CheckUpdateMainCatalog: 不需要更新");
+                HMRuntimeDialogHelper.DebugStopWatchInfo("CheckUpdateMainCatalog: 不需要更新");
                 _updateStatus = AsyncOperationStatus.Succeeded;
-                _resultMessage = "不需要更新资源";
+                _resultMessage = "";
+                _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
                 _progressValue = 1;
                 Addressables.Release(_checkMainCatalogOp);
                 return;
@@ -662,7 +667,7 @@ namespace HM
 
         static async UniTask CheckNeedUpdateRecourceLocators()
         {
-            //Debug.Log("CheckNeedUpdateRecourceLocators");
+            HMRuntimeDialogHelper.DebugStopWatchInfo("CheckNeedUpdateRecourceLocators");
             try
             {
                 _updateCatalogsOp = Addressables.UpdateCatalogs(_needUpdateCatalogs, false);
@@ -675,15 +680,17 @@ namespace HM
             while (!_updateCatalogsOp.IsDone)
             {
                 await UniTask.NextFrame();
-                _resultMessage = "正在核对需要更新的资源内容";
+                _resultMessage = "";
+                _updateStatusCode = UpdateStatusCode.CHECKING_CONTENT_OF_UPDATING_RESOURCES;
                 DispatchUpdateCallback();
             }
 
-            Debug.LogFormat("CheckNeedUpdateRecourceLocators Status = {0}", _updateCatalogsOp.Status);
+            HMRuntimeDialogHelper.DebugStopWatchInfo($"CheckNeedUpdateRecourceLocators Status = {_updateCatalogsOp.Status}" );
             if (_updateCatalogsOp.Status != AsyncOperationStatus.Succeeded)
             {
                 _updateStatus = AsyncOperationStatus.Failed;
-                _resultMessage = "更新资源列表时发生错误:" + _updateCatalogsOp.OperationException.Message;
+                _resultMessage = _updateCatalogsOp.OperationException.Message;
+                _updateStatusCode = UpdateStatusCode.ERROR_UPDATING_RESOURCE_LIST;
                 Addressables.Release(_updateCatalogsOp);
                 return;
             }
@@ -695,14 +702,15 @@ namespace HM
 
             if (BeOtherDebug)
             {
-                //Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(NeedUpdateKeys));
-                Debug.Log($"需要更新的资源数量:{NeedUpdateKeys.Count}");
+               
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的资源数量:{NeedUpdateKeys.Count}");
             }
 
             if (NeedUpdateKeys.Count <= 0)
             {
                 _updateStatus = AsyncOperationStatus.Succeeded;
-                _resultMessage = "不需要更新资源";
+                _resultMessage = "";
+                _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
                 Addressables.Release(_updateCatalogsOp);
                 return;
             }
@@ -712,7 +720,7 @@ namespace HM
 
         private static async UniTask CheckNeedDownloadSize()
         {
-            //Debug.Log("CheckNeedDownloadSize");
+            
             try
             {
                 _sizeOpration = Addressables.GetDownloadSizeAsync(NeedUpdateKeys);
@@ -725,15 +733,17 @@ namespace HM
             while (!_sizeOpration.IsDone)
             {
                 await UniTask.NextFrame();
-                _resultMessage = "正在获取资源文件总大小";
+                _resultMessage = "";
+                _updateStatusCode = UpdateStatusCode.GETTING_TOTAL_SIZE_OF_RESOURCE_FILES;
                 DispatchUpdateCallback();
             }
 
-            Debug.LogFormat("CheckNeedDownloadSize Status = {0}", _sizeOpration.Status);
+            HMRuntimeDialogHelper.DebugStopWatchInfo($"CheckNeedDownloadSize Status = {_sizeOpration.Status}");
             if (_sizeOpration.Status == AsyncOperationStatus.Failed)
             {
                 _updateStatus = AsyncOperationStatus.Failed;
-                _resultMessage = "获取资源文件大小时发生错误:" + _sizeOpration.OperationException.Message;
+                _resultMessage = _sizeOpration.OperationException.Message;
+                _updateStatusCode = UpdateStatusCode.ERROR_GETTING_RESOURCE_FILE_SIZE;
                 Addressables.Release(_sizeOpration);
                 return;
             }
@@ -741,13 +751,14 @@ namespace HM
             _totalDownloadSize = _sizeOpration.Result;
             if (BeOtherDebug)
             {
-                Debug.Log($"需要更新的数据量:{_totalDownloadSize}");
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的数据量:{_totalDownloadSize}");
             }
 
             if (_totalDownloadSize <= 0)
             {
                 _updateStatus = AsyncOperationStatus.Succeeded;
-                _resultMessage = "检查到需要下载的资源大小为" + _totalDownloadSize;
+                _resultMessage =  $"{_totalDownloadSize}";
+                _updateStatusCode = UpdateStatusCode.DETECTED_SIZE_OF_RESOURCES_TO_DOWNLOAD;
                 Addressables.Release(_sizeOpration);
                 return;
             }
@@ -758,7 +769,7 @@ namespace HM
 
         static async UniTask DownLoadAssets()
         {
-            //Debug.Log("DownLoadAssets");
+            HMRuntimeDialogHelper.DebugStopWatchInfo("DownLoadAssets");
             try
             {
                 _downloadOp = Addressables.DownloadDependenciesAsync(NeedUpdateKeys, Addressables.MergeMode.Union);
@@ -768,32 +779,35 @@ namespace HM
                 // ignored
             }
 
-            Debug.Log("DownLoadAssets TotalSize = " + _downloadOp.GetDownloadStatus().TotalBytes);
+            HMRuntimeDialogHelper.DebugStopWatchInfo("DownLoadAssets TotalSize = " + _downloadOp.GetDownloadStatus().TotalBytes);
 
             while (_downloadOp.Status == AsyncOperationStatus.None && !_downloadOp.IsDone)
             {
                 await UniTask.NextFrame();
                 _progressValue = _downloadOp.GetDownloadStatus().Percent;
-                _resultMessage = $"下载资源中:{_downloadOp.GetDownloadStatus().DownloadedBytes}/{_totalDownloadSize}";
+                _resultMessage = $"{_downloadOp.GetDownloadStatus().DownloadedBytes}/{_totalDownloadSize}";
+                _updateStatusCode = UpdateStatusCode.DOWNLOADING_RESOURCES;
                 DispatchUpdateCallback();
             }
 
-            Debug.LogFormat("DownLoadAssets Status = {0}", _downloadOp.Status);
+            HMRuntimeDialogHelper.DebugStopWatchInfo($"DownLoadAssets Status = {_downloadOp.Status}" );
             if (BeOtherDebug)
             {
-                Debug.Log($"下载资源结束:{_downloadOp.GetDownloadStatus().DownloadedBytes}/{_totalDownloadSize}");
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"下载资源结束:{_downloadOp.GetDownloadStatus().DownloadedBytes}/{_totalDownloadSize}");
             }
 
             switch (_downloadOp.Status)
             {
                 case AsyncOperationStatus.Failed:
                     _updateStatus = AsyncOperationStatus.Failed;
-                    _resultMessage = "下载资源时发生错误:" + _downloadOp.OperationException.Message;
+                    _resultMessage = _downloadOp.OperationException.Message;
+                    _updateStatusCode = UpdateStatusCode.ERROR_DOWNLOADING_RESOURCES;
                     break;
                 case AsyncOperationStatus.Succeeded:
                     PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
                     _updateStatus = AsyncOperationStatus.Succeeded;
-                    _resultMessage = "下载资源完成!";
+                    _resultMessage = "";
+                    _updateStatusCode = UpdateStatusCode.FINISHED_DOWNLOADING_RESOURCES;
                     break;
             }
 
@@ -802,7 +816,7 @@ namespace HM
 
         private static void DispatchUpdateCallback()
         {
-            _updateCb?.Invoke(_updateStatus, _progressValue, _resultMessage);
+            _updateCb?.Invoke(_updateStatus, _progressValue, _resultMessage,_updateStatusCode);
         }
 
 

@@ -8,7 +8,13 @@ namespace HM
     public class HMRuntimeDialogHelper : MonoBehaviour
     {
         private static System.Diagnostics.Stopwatch _stopwatch = new Stopwatch();
+        /// <summary>
+        /// 关闭日志的总开关,通过这个工具发出的日志都受控制
+        /// </summary>
         public static bool BeNeedDebug=true;
+        /// <summary>
+        /// 设置日志输出回调,如果设置了,那么就不在使用debug输出,而采用这个事件输出
+        /// </summary>
         public static UnityAction<string> LogAction;
 
        
