@@ -87,7 +87,7 @@ namespace HM
                 return ResMap[resName] as T;
             if (LoadingMap.ContainsKey(resName) && LoadingMap[resName])
             {
-                await UniTask.WaitUntil(() => !LoadingMap[resName]);
+                await UniTask.WaitUntil(() => (!LoadingMap.ContainsKey(resName))||(!LoadingMap[resName]));
 
                 return ResMap[resName] as T;
             }
@@ -589,7 +589,7 @@ namespace HM
             {
                 _resultMessage = "正在检查资源列表";
                 DispatchUpdateCallback();
-                await UniTask.Yield();
+                await UniTask.NextFrame();
             }
 
             //Debug.Log("CheckUpdateMainCatalog = " + _CheckMainCatalogOp.Status);
@@ -674,7 +674,7 @@ namespace HM
 
             while (!_updateCatalogsOp.IsDone)
             {
-                await UniTask.Yield();
+                await UniTask.NextFrame();
                 _resultMessage = "正在核对需要更新的资源内容";
                 DispatchUpdateCallback();
             }
@@ -695,7 +695,7 @@ namespace HM
 
             if (BeOtherDebug)
             {
-                Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(NeedUpdateKeys));
+                //Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(NeedUpdateKeys));
                 Debug.Log($"需要更新的资源数量:{NeedUpdateKeys.Count}");
             }
 
@@ -724,7 +724,7 @@ namespace HM
 
             while (!_sizeOpration.IsDone)
             {
-                await UniTask.Yield();
+                await UniTask.NextFrame();
                 _resultMessage = "正在获取资源文件总大小";
                 DispatchUpdateCallback();
             }
@@ -772,7 +772,7 @@ namespace HM
 
             while (_downloadOp.Status == AsyncOperationStatus.None && !_downloadOp.IsDone)
             {
-                await UniTask.Yield();
+                await UniTask.NextFrame();
                 _progressValue = _downloadOp.GetDownloadStatus().Percent;
                 _resultMessage = $"下载资源中:{_downloadOp.GetDownloadStatus().DownloadedBytes}/{_totalDownloadSize}";
                 DispatchUpdateCallback();

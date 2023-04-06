@@ -192,6 +192,7 @@ namespace HM.Editor
                     AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
                 AddressableAssetSettingsDefaultObject.Settings.BuildRemoteCatalog = true;
                 AddressableAssetSettingsDefaultObject.Settings.DisableCatalogUpdateOnStartup = true;
+                AddressableAssetSettingsDefaultObject.Settings.MaxConcurrentWebRequests = 100;
                 HMAACustomEncryptBuild builder = ScriptableObject.CreateInstance<HMAACustomEncryptBuild>();
 
                 if (!AssetDatabase.IsValidFolder("Assets/AddressableAssetsData"))
@@ -792,7 +793,6 @@ namespace HM.Editor
                 items.Add(entry.Key);
                 Debug.Log(entry.Key.AssetPath);
             }
-
             if (items.Count > 0)
             {
                 CreatContentUpdateGroup(AddressableAssetSettingsDefaultObject.Settings, items,
