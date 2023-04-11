@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -6,7 +5,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.Events;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Text;
 using Cysharp.Threading.Tasks;
 
 #if UNITY_EDITOR
@@ -16,7 +15,6 @@ using UnityEditor.SceneManagement;
 
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
-using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
 namespace HM
@@ -607,14 +605,21 @@ namespace HM
 
             _needUpdateCatalogs = _checkMainCatalogOp.Result;
             var oldListStr = PlayerPrefs.GetString(PrefsName, ""); //取出旧的列表,避免升级中断导致的不再更新
-            
+            if (BeOtherDebug)
+            {
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"oldListStr = {oldListStr}");
+            }
             if (!string.IsNullOrEmpty(oldListStr) && oldListStr.Length > 0)
             {
                 try
                 {
-                    var oldList = Newtonsoft.Json.JsonConvert.DeserializeObject<List<string>>(oldListStr);
+                    var oldList = StrToList(oldListStr); 
                     if (oldList != null)
                     {
+                        if (BeOtherDebug)
+                        {
+                            HMRuntimeDialogHelper.DebugStopWatchInfo($"解析oldList的数量 = {oldList.Count}");
+                        }
                         for (var i = 0; i < oldList.Count; i++)
                         {
                             var str = oldList[i];
@@ -633,13 +638,20 @@ namespace HM
 
             if (_needUpdateCatalogs.Count > 0)
             {
-                var listS = Newtonsoft.Json.JsonConvert.SerializeObject(_needUpdateCatalogs);
-                
+                var listS = ListToStr(_needUpdateCatalogs);
+                if (BeOtherDebug)
+                {
+                    HMRuntimeDialogHelper.DebugStopWatchInfo($"保存listS = {listS}");
+                }
                 //保存进去,结束后,如果成功就删除,没成功就等待下次重新更新
                 PlayerPrefs.SetString(PrefsName, listS);
             }
             else
             {
+                if (BeOtherDebug)
+                {
+                    HMRuntimeDialogHelper.DebugStopWatchInfo($"保存listS = 空");
+                }
                 PlayerPrefs.SetString(PrefsName, "");
             }
 
@@ -804,7 +816,13 @@ namespace HM
                     _updateStatusCode = UpdateStatusCode.ERROR_DOWNLOADING_RESOURCES;
                     break;
                 case AsyncOperationStatus.Succeeded:
+                   
                     PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
+                    
+                    if (BeOtherDebug)
+                    {
+                        HMRuntimeDialogHelper.DebugStopWatchInfo($"更新成功 值为:{  PlayerPrefs.GetString(PrefsName, "")}");
+                    }
                     _updateStatus = AsyncOperationStatus.Succeeded;
                     _resultMessage = "";
                     _updateStatusCode = UpdateStatusCode.FINISHED_DOWNLOADING_RESOURCES;
@@ -833,6 +851,29 @@ namespace HM
             }
 
             return true;
+        }
+
+        private static string ListToStr(List<string> listStr)
+        {
+            if (listStr.Count<=0)
+            {
+                return "";
+            }
+            StringBuilder a = new StringBuilder();
+            a.Append(listStr[0]);
+            for (int i = 1; i < listStr.Count; i++)
+            {
+                a.Append("|");
+                a.Append(listStr[i]);
+            }
+
+            return a.ToString();
+        }
+
+        private static List<string> StrToList(string str)
+        {
+           var listStr= str.Split('|');
+           return listStr.ToList();
         }
 
         #endregion
