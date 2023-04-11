@@ -12,7 +12,6 @@ using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
-using UnityEngine.ResourceManagement.Util;
 using Object = UnityEngine.Object;
 
 namespace HM.Editor
@@ -36,12 +35,12 @@ namespace HM.Editor
         /// 加密类型
         /// </summary>
         public static Type UseEncrypyType => DataConverterBase.GetEncryptType(ConfigHmAddressables.MyAssetsEncryptType);
-       
+
 
         /// <summary>
         /// 是否用加密加载
         /// </summary>
-        public static bool BeUseLoadEncrypt = UseEncrypyType!=null;
+        public static bool BeUseLoadEncrypt = UseEncrypyType != null;
 
         //=============================public=============================================
 
@@ -82,18 +81,12 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/****一键打出包资源(正式包)****")]
         public static void BuildAddressablesAssetsMenuItem()
         {
+            //清楚所有资源设置
             CleanAddressablesSettingsMenuItem();
-            //没有就创建
-            if (AddressableAssetSettingsDefaultObject.Settings == null)
-            {
-                BuildAddressablesSettingsMenuItem();
-            }
-            else
-            {
-                //更新组设置
-                SetStaticGroupSetting(ConfigHmAddressables);
-            }
-
+            //检查设置,没有就创建
+            CheckAndCreateSetting();
+            //更新组设置
+            SetGroupAndContextFromConfig(ConfigHmAddressables);
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(false);
@@ -103,17 +96,11 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/****一键打更新资源包(正式包)****")]
         public static void BuildUpdateMenuItem()
         {
-            //没有就创建
-            if (AddressableAssetSettingsDefaultObject.Settings == null)
-            {
-                BuildAddressablesSettingsMenuItem();
-            }
-            else
-            {
-                //更新组设置
-                SetUpdateGroupSetting(ConfigHmAddressables);
-            }
+            //检查设置,没有就创建
+            CheckAndCreateSetting();
 
+            //更新组设置
+            SetUpdateGroupSetting(ConfigHmAddressables);
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(false);
@@ -137,17 +124,11 @@ namespace HM.Editor
         public static void BuildAddressablesTestAssetsMenuItem()
         {
             CleanAddressablesSettingsMenuItem();
-            //没有就创建
-            if (AddressableAssetSettingsDefaultObject.Settings == null)
-            {
-                BuildAddressablesSettingsMenuItem();
-            }
-            else
-            {
-                //更新组设置
-                SetStaticGroupSetting(ConfigHmAddressables);
-            }
+            //检查设置,没有就创建
+            CheckAndCreateSetting();
 
+            //更新组设置
+            SetGroupAndContextFromConfig(ConfigHmAddressables);
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(true);
@@ -158,22 +139,14 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/********一键打更新资源包(测试包)********")]
         public static void BuildUpdateTestMenuItem()
         {
-            //没有就创建
-            if (AddressableAssetSettingsDefaultObject.Settings == null)
-            {
-                BuildAddressablesSettingsMenuItem();
-            }
-            else
-            {
-                //更新组设置-采用升级资源组配置
+            //检查设置,没有就创建
+            CheckAndCreateSetting();
 
-                SetUpdateGroupSetting(ConfigHmAddressables);
-            }
-
+            //更新组设置-采用升级资源组配置
+            SetUpdateGroupSetting(ConfigHmAddressables);
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(true);
-
             BuildUpdateAsset();
         }
 
@@ -182,65 +155,18 @@ namespace HM.Editor
         {
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/更新(创建)资源分组 <更新包阶段禁止使用>")]
+        [UnityEditor.MenuItem("HMAA资源管理/更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用>")]
         public static void BuildAddressablesSettingsMenuItem()
         {
-            if (AddressableAssetSettingsDefaultObject.Settings == null)
-            {
-                AddressableAssetSettingsDefaultObject.Settings = AddressableAssetSettings.Create(
-                    AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
-                    AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
-                AddressableAssetSettingsDefaultObject.Settings.BuildRemoteCatalog = true;
-                AddressableAssetSettingsDefaultObject.Settings.DisableCatalogUpdateOnStartup = true;
-                AddressableAssetSettingsDefaultObject.Settings.MaxConcurrentWebRequests = 100;
-                HMAACustomEncryptBuild builder = ScriptableObject.CreateInstance<HMAACustomEncryptBuild>();
-
-                if (!AssetDatabase.IsValidFolder("Assets/AddressableAssetsData"))
-                {
-                    AssetDatabase.CreateFolder("Assets", "AddressableAssetsData");
-                }
-
-                if (!AssetDatabase.IsValidFolder("Assets/AddressableAssetsData/DataBuilders"))
-                {
-                    AssetDatabase.CreateFolder("Assets/AddressableAssetsData", "DataBuilders");
-                }
-
-
-                AssetDatabase.CreateAsset(builder, "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset");
-                AssetDatabase.SaveAssets();
-
-                // IDataBuilder builder
-                //     = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
-                //             "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset") as
-                //         IDataBuilder;
-                AddressableAssetSettingsDefaultObject.Settings.DataBuilders.Add(builder);
-                UnityEditor.EditorUtility.SetDirty(builder);
-                UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
-
-                EditorUtility.FocusProjectWindow();
-            }
-
-            SetStaticGroupSetting(ConfigHmAddressables);
-            Debug.Log("更新 资源分组(没有就创建) 完毕,请根据需要 去处理重复依赖");
+            //检查设置,没有就创建
+            CheckAndCreateSetting();
+            SetGroupAndContextFromConfig(ConfigHmAddressables);
+            //设置配置表选项
+            SetProfiles();
+            SetActiveProfiles(false);
+            Debug.Log("更新 资源分组(没有就创建) 并处理重复依赖 完毕");
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/处理重复依赖,不清理之前的重复依赖组 <更新包阶段禁止使用>")]
-        public static void CheckAndFixBundleDupeDependenciesMenuItem()
-        {
-            Debug.Log("处理重复依赖将其独立出来-不清理之前的重复依赖组:  开始");
-            CheckAndFixDupDependencies();
-            Debug.Log("处理重复依赖将其独立出来-不清理之前的重复依赖组:  完成");
-        }
-
-        [UnityEditor.MenuItem("HMAA资源管理/处理重复依赖-清理之前的重复依赖组 <更新包阶段禁止使用>")]
-        public static void CheckAndFixBundleDupeDependenciesClearMenuItem()
-        {
-            Debug.Log("处理重复依赖将其独立出来-清理之前的重复依赖组:  开始");
-            //删除重复依赖组,并重新分析自定义组的关系;
-            DeleteDupDependenciesGroup();
-            CheckAndFixDupDependencies();
-            Debug.Log("处理重复依赖将其独立出来-清理之前的重复依赖组:  完成");
-        }
 
         [UnityEditor.MenuItem(
             "HMAA资源管理/========================以下为谨慎选项<除非发包,否则禁止使用>==============================")]
@@ -282,20 +208,61 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/测试")]
         public static void Test()
         {
-            var has = Directory.Exists("ServerData");
-            Debug.Log(has);
+            // var helper = new CalculateAddressHelper();
+            // helper.CheckForDuplicateDependencies(AddressableAssetSettingsDefaultObject.Settings);
+
+            SetGroupAndContextFromConfig(ConfigHmAddressables);
+        }
+
+        [UnityEditor.MenuItem("HMAA资源管理/测试2")]
+        public static void Test2()
+        {
         }
 
         //-------------------------private------------------------------------------------
+        /// <summary>
+        /// 创建设置Addressables的设置文件
+        /// </summary>
+        private static void CheckAndCreateSetting()
+        {
+            if (AddressableAssetSettingsDefaultObject.Settings == null)
+            {
+                AddressableAssetSettingsDefaultObject.Settings = AddressableAssetSettings.Create(
+                    AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
+                    AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
+                AddressableAssetSettingsDefaultObject.Settings.BuildRemoteCatalog = true;
+                AddressableAssetSettingsDefaultObject.Settings.DisableCatalogUpdateOnStartup = true;
+                AddressableAssetSettingsDefaultObject.Settings.MaxConcurrentWebRequests = 100;
+                HMAACustomEncryptBuild builder = ScriptableObject.CreateInstance<HMAACustomEncryptBuild>();
+
+                if (!AssetDatabase.IsValidFolder("Assets/AddressableAssetsData"))
+                {
+                    AssetDatabase.CreateFolder("Assets", "AddressableAssetsData");
+                }
+
+                if (!AssetDatabase.IsValidFolder("Assets/AddressableAssetsData/DataBuilders"))
+                {
+                    AssetDatabase.CreateFolder("Assets/AddressableAssetsData", "DataBuilders");
+                }
+
+
+                AssetDatabase.CreateAsset(builder, "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset");
+                AssetDatabase.SaveAssets();
+
+
+                AddressableAssetSettingsDefaultObject.Settings.DataBuilders.Add(builder);
+                UnityEditor.EditorUtility.SetDirty(builder);
+                UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
+
+                EditorUtility.FocusProjectWindow();
+            }
+        }
 
         private static void BuildAsset()
         {
             AddressableAssetSettings settings
                 = AddressableAssetSettingsDefaultObject.Settings;
 
-
-            //检查依赖关系
-            CheckAndFixBundleDupeDependenciesClearMenuItem();
 
             if (UseEncrypyType != null)
             {
@@ -307,7 +274,7 @@ namespace HM.Editor
 
                 settings.ActivePlayerDataBuilderIndex
                     = settings.DataBuilders.IndexOf((ScriptableObject) builder);
-                Debug.Log($"打包器选用:{builder.Name}");
+                Debug.Log($"打出包资源打包器选用:{builder.Name}");
             }
             else
             {
@@ -319,25 +286,25 @@ namespace HM.Editor
 
                 settings.ActivePlayerDataBuilderIndex
                     = settings.DataBuilders.IndexOf((ScriptableObject) builder);
-                Debug.Log($"打包器选用:{builder.Name}");
+                Debug.Log($"打出包资源打包器选用:{builder.Name}");
             }
 
 
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
 
             if (!string.IsNullOrEmpty(result.Error))
-                Debug.LogError("打包错误:" + result.Error);
+                Debug.LogError("打出包资源错误:" + result.Error);
 
             else
             {
-                Debug.Log("打包完成");
+                Debug.Log("打出包资源完成");
             }
         }
 
         private static void BuildUpdateAsset()
         {
             //检查依赖关系-升级包不能检查依赖关系,因为新的依赖关系组会发布成本地包
-            // CheckAndFixDupDependencies();
+
 
             string assetPath = Path.Combine(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
                 PlatformMappingService.GetPlatformPathSubFolder());
@@ -361,7 +328,11 @@ namespace HM.Editor
             Debug.Log("更新资源包 打包完成");
         }
 
-        private static void SetStaticGroupSetting(HMAddressablesConfig config)
+        /// <summary>
+        /// 设置和刷新组设置(从头设置,清理掉以前所有的设置后)(根据配置表)
+        /// </summary>
+        /// <param name="config"></param>
+        private static void SetGroupAndContextFromConfig(HMAddressablesConfig config)
         {
             if (!AssetDatabase.IsValidFolder(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder))
             {
@@ -370,7 +341,7 @@ namespace HM.Editor
             }
 
 
-            if (config.AseetsPaths == null || config.AseetsPaths.Length <= 0)
+            if (config.LocalAseetsPaths.Length <= 0 && config.RemoteAseetsPaths.Length <= 0)
             {
                 Debug.LogError($"未设置需要打包的资源路径,请检查{ConfigPath}的设置");
                 ShowAndSelectConfigMenuItem();
@@ -379,9 +350,15 @@ namespace HM.Editor
 
             var groupInfos = new List<GroupInfo>();
 
-            foreach (var assetsPath in config.AseetsPaths)
+            //根据配置表获取并创建资源目录结构数据
+            foreach (var assetsPath in config.LocalAseetsPaths)
             {
-                GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos);
+                GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos, null, true);
+            }
+
+            foreach (var assetsPath in config.RemoteAseetsPaths)
+            {
+                GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos, null, false);
             }
 
             if (groupInfos.Count <= 0)
@@ -391,23 +368,133 @@ namespace HM.Editor
                 return;
             }
 
-            CreateAndClearGroupBySelectFolder(groupInfos);
+            //根据配置表 创建和清理 组
+            CreateAndClearGroup(groupInfos);
+            //添加资源到组内
             SetAssetsToGroup(groupInfos);
+
+            //处理重复依赖的外部资源
+            var helper2 = new CalculateAddressHelper();
+            helper2.CheckForDuplicateDependencies(AddressableAssetSettingsDefaultObject.Settings, groupInfos);
+
+            //删除空组
             DeleteEmptyGroup();
+            //清理空引用
             ClearGroupMissingReferences();
+            //设置组的模式
+            SetGroupSchema(groupInfos);
         }
 
+
+        /// <summary>
+        /// 打更新包时的 设置升级组设置
+        /// </summary>
+        /// <param name="config"></param>
+        private static void SetUpdateGroupSetting(HMAddressablesConfig config)
+        {
+            if (!AssetDatabase.IsValidFolder(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder))
+            {
+                Debug.LogError($"没找到数据文件,不能设置升级包,请恢复代码");
+                return;
+            }
+
+            if (config.LocalAseetsPaths.Length <= 0 && config.RemoteAseetsPaths.Length <= 0)
+            {
+                Debug.LogError($"未设置需要打包的资源路径,请检查{ConfigPath}的设置");
+                ShowAndSelectConfigMenuItem();
+                return;
+            }
+
+            var groupInfos = new List<GroupInfo>();
+
+            //根据配置表获取并创建资源目录结构数据
+            foreach (var assetsPath in config.LocalAseetsPaths)
+            {
+                GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos, null, true);
+            }
+
+            foreach (var assetsPath in config.RemoteAseetsPaths)
+            {
+                GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos, null, false);
+            }
+
+            if (groupInfos.Count <= 0)
+            {
+                Debug.LogError($"未设置需要打包的资源路径,请检查{ConfigPath}的设置");
+                ShowAndSelectConfigMenuItem();
+                return;
+            }
+
+            CreateAndClearGroup(groupInfos, true);
+            SetAssetsToGroup(groupInfos, true);
+            //不处理依赖
+            
+            DeleteEmptyGroup();
+            ClearGroupMissingReferences();
+            //不处理组模式Schema
+            
+        }
+
+        /// <summary>
+        /// 设置组的模式
+        /// </summary>
+        /// <param name="allGroupInfos"></param>
+        private static void SetGroupSchema(List<GroupInfo> allGroupInfos)
+        {
+            for (int i = 0; i < AddressableAssetSettingsDefaultObject.Settings.groups.Count; i++)
+            {
+                var tempGroup = AddressableAssetSettingsDefaultObject.Settings.groups[i];
+                //重复引用组设置为本地静态资源祖
+                if (tempGroup.name.IndexOf("Duplicate Asset Isolation") >= 0)
+                {
+                    SetStaticAndLocalGroupSchema(tempGroup);
+                    continue;
+                }
+                else if (tempGroup.name.IndexOf("Built In Data") >= 0)
+                {
+                    continue;
+                }
+
+                var groupInfo = allGroupInfos.Find(x => x.Group == tempGroup);
+                if (groupInfo != null)
+                {
+                    if (groupInfo.BeLocalGroup)
+                    {
+                        SetStaticAndLocalGroupSchema(tempGroup);
+                    }
+                    else
+                    {
+                        SetCanChangerAndRemoteGroupSchema(tempGroup);
+                    }
+                }
+                else
+                {
+                    Debug.Log($"组{tempGroup.Name} 没有找到 数据信息,请查证,但以设置为本地资源");
+                    SetStaticAndLocalGroupSchema(tempGroup);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 根据目录将资源添加到组内
+        /// </summary>
+        /// <param name="groupInfos"></param>
+        /// <param name="beUpdateAssets"></param>
         private static void SetAssetsToGroup(List<GroupInfo> groupInfos, bool beUpdateAssets = false)
         {
+            //先移除所有非特殊组的资源
             foreach (var groupInfo in groupInfos)
             {
-                if (!groupInfo.Group.name.Equals("Built In Data") && !groupInfo.Group.name.Contains("Content Update") &&
-                    groupInfo.Group.entries.Count > 0)
+                if (!groupInfo.Group.name.Equals("Built In Data")
+                    && groupInfo.Group.entries.Count > 0)
                 {
-                    //如果是打更新包,重复依赖组的不删除,因为打更新资源包的时候不再处理重复依赖关系
-                    if (beUpdateAssets && groupInfo.Group.name.Contains("Duplicate Asset Isolation"))
+                    if (beUpdateAssets)
                     {
-                        continue;
+                        //如果是打更新包,重复依赖组的不删除,因为打更新资源包的时候不再处理重复依赖关系
+                        //升级组也不能移除,因为可能是之前的升级组
+                        if (groupInfo.Group.name.Contains("Duplicate Asset Isolation") ||
+                            groupInfo.Group.name.Contains("Content Update"))
+                            continue;
                     }
 
                     //先移除 除特殊组合更新组的 所有资源
@@ -424,7 +511,8 @@ namespace HM.Editor
             {
                 //不对特殊组处理
                 if (groupInfo.Group.name.Equals("Built In Data") ||
-                    groupInfo.Group.name.Contains("Content Update")) continue;
+                    groupInfo.Group.name.Contains("Content Update"))
+                    continue;
 
                 var strs = AssetDatabase.FindAssets("", new[] {groupInfo.Path});
                 //Debug.Log($"{groupInfo.groupName}的要添加的资源为:{strs.Length}");
@@ -455,12 +543,17 @@ namespace HM.Editor
 
                     //Debug.Log("添加了: "+fileInfo.Name );
                     //不是文件夹才添加,且不在 升级组 里面
-                  var tmp=  AddressableAssetSettingsDefaultObject.Settings.CreateOrMoveEntry(assetGuid, groupInfo.Group);
-                  tmp.SetLabel(groupInfo.Path, true,true);
+                    var tmp = AddressableAssetSettingsDefaultObject.Settings.CreateOrMoveEntry(assetGuid,
+                        groupInfo.Group);
+                    tmp.SetLabel(groupInfo.Path, true, true);
                 }
             }
         }
 
+        /// <summary>
+        /// 设置组为本地资源组
+        /// </summary>
+        /// <param name="group"></param>
         private static void SetStaticAndLocalGroupSchema(AddressableAssetGroup group)
         {
             var updateGroupSchema = group.GetSchema<ContentUpdateGroupSchema>();
@@ -493,6 +586,10 @@ namespace HM.Editor
             UnityEditor.EditorUtility.FocusProjectWindow();
         }
 
+        /// <summary>
+        /// 设置组为远程资源组
+        /// </summary>
+        /// <param name="group"></param>
         private static void SetCanChangerAndRemoteGroupSchema(AddressableAssetGroup group)
         {
             var updateGroupSchema = group.GetSchema<ContentUpdateGroupSchema>();
@@ -519,37 +616,71 @@ namespace HM.Editor
                 //没办法了,变量没公开,只好用反射调用
                 EditPrivateValue(bundledAssetGroupSchema, "AssetBundleProviderType", va);
             }
-           
 
 
             UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
             UnityEditor.EditorUtility.FocusProjectWindow();
         }
 
+        /// <summary>
+        /// 编辑其他类的私有变量
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="valueName"></param>
+        /// <param name="value"></param>
         private static void EditPrivateValue(object obj, string valueName, object value)
         {
             var x = obj.GetType().GetProperty(valueName);
             x.SetValue(obj, value);
         }
 
-        private static void GetAllSubFolderAndCreateGroupInfo(string folder, ref List<GroupInfo> groupInfos)
+        /// <summary>
+        /// 获得某个文件夹的所有子文件夹,并创建组信息
+        /// </summary>
+        /// <param name="folder"></param>
+        /// <param name="groupInfos"></param>
+        /// <param name="parentGroupInfo"></param>
+        /// <param name="beLocalGroup"></param>
+        private static void GetAllSubFolderAndCreateGroupInfo(string folder, ref List<GroupInfo> groupInfos,
+            GroupInfo parentGroupInfo, bool beLocalGroup)
         {
             if (!AssetDatabase.IsValidFolder(folder)) return;
-            var baseInfo = CreateGroupInfo(folder);
+            var baseInfo = CreateGroupInfo(folder, parentGroupInfo, beLocalGroup);
             if (baseInfo != null)
             {
                 groupInfos.Add(baseInfo);
             }
 
+            var allAssetsGuids = AssetDatabase.FindAssets("", new[] {folder});
+            var folderDirInfo = new System.IO.DirectoryInfo(folder);
+            for (int i = 0; i < allAssetsGuids.Length; i++)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(allAssetsGuids[i]);
+                if (AssetDatabase.IsValidFolder(path)) continue;
+                var dic = new System.IO.DirectoryInfo(path);
+                if (dic.Parent.FullName == folderDirInfo.FullName)
+                {
+                    baseInfo.allAssetsInFolder.Add(path);
+                }
+            }
+
+
             var subFolders = AssetDatabase.GetSubFolders(folder);
             if (subFolders == null || subFolders.Length <= 0) return;
             foreach (var subFolder in subFolders)
             {
-                GetAllSubFolderAndCreateGroupInfo(subFolder, ref groupInfos);
+                GetAllSubFolderAndCreateGroupInfo(subFolder, ref groupInfos, baseInfo, beLocalGroup);
             }
         }
 
-        private static GroupInfo CreateGroupInfo(string groupPath)
+        /// <summary>
+        /// 创建组信息
+        /// </summary>
+        /// <param name="groupPath"></param>
+        /// <param name="parentGroupInfo"></param>
+        /// <param name="beLocalGroup"></param>
+        /// <returns></returns>
+        private static GroupInfo CreateGroupInfo(string groupPath, GroupInfo parentGroupInfo, bool beLocalGroup)
         {
             var groupName = GroupNameByPath(groupPath);
             if (string.IsNullOrEmpty(groupName))
@@ -558,7 +689,16 @@ namespace HM.Editor
             }
 
 
-            var info = new GroupInfo() {GroupName = groupName, Path = groupPath};
+            var info = new GroupInfo()
+            {
+                GroupName = groupName, Path = groupPath,
+                MyDirectoryInfo = new DirectoryInfo(groupPath),
+                MyParentGroupInfo = parentGroupInfo,
+
+                MyChildrenGroupInfos = new List<GroupInfo>(),
+                BeLocalGroup = beLocalGroup
+            };
+            if (parentGroupInfo != null) parentGroupInfo.MyChildrenGroupInfos.Add(info);
 
             return info;
         }
@@ -625,6 +765,12 @@ namespace HM.Editor
             }
         }
 
+        /// <summary>
+        /// 删除某个文件夹下所有资源
+        /// </summary>
+        /// <param name="folderPath"></param>
+        /// <param name="beDeleteSubFolder"></param>
+        /// <param name="predicate"></param>
         private static void DeleteAllSubAssetsByFolderPath(string folderPath, bool beDeleteSubFolder = false,
             System.Predicate<string> predicate = null)
         {
@@ -647,34 +793,6 @@ namespace HM.Editor
             AssetDatabase.SaveAssets();
         }
 
-        private static void DeleteDupDependenciesGroup()
-        {
-            DeleteAllSubAssetsByFolderPath(AddressableAssetSettingsDefaultObject.Settings.GroupFolder, false,
-                x => x.Contains("Duplicate Asset Isolation"));
-            ClearGroupMissingReferences();
-        }
-
-        private static void CheckAndFixDupDependencies()
-        {
-            UnityEditor.AddressableAssets.Build.AnalyzeRules.CheckBundleDupeDependencies a =
-                new UnityEditor.AddressableAssets.Build.AnalyzeRules.CheckBundleDupeDependencies();
-            a.FixIssues(AddressableAssetSettingsDefaultObject.Settings);
-            SetToDupDependenciesGroup();
-        }
-
-        private static void SetToDupDependenciesGroup()
-        {
-            var groups = AddressableAssetSettingsDefaultObject.Settings.groups;
-            for (int i = 0; i < groups.Count; i++)
-            {
-                var group = groups[i];
-                if (group.Name.Contains("Duplicate Asset Isolation"))
-                {
-                    SetStaticAndLocalGroupSchema(group);
-                }
-            }
-        }
-
         private static void DeleteEmptyGroup()
         {
             List<AddressableAssetGroup> needDeleteGroups = new List<AddressableAssetGroup>();
@@ -693,7 +811,12 @@ namespace HM.Editor
             }
         }
 
-        private static void CreateAndClearGroupBySelectFolder(List<GroupInfo> groupInfos,
+        /// <summary>
+        /// 清理和创建组
+        /// </summary>
+        /// <param name="groupInfos"></param>
+        /// <param name="beUpdateAssetGroup"></param>
+        private static void CreateAndClearGroup(List<GroupInfo> groupInfos,
             bool beUpdateAssetGroup = false)
         {
             //创建组(已经存在了就不用了)
@@ -724,25 +847,34 @@ namespace HM.Editor
                 }
             }
 
+
             //清理除 builtInGroup 组以外的不包含在groupInfos里面的组
             List<AddressableAssetGroup> needDeleteGroups = new List<AddressableAssetGroup>();
             for (int i = 0; i < AddressableAssetSettingsDefaultObject.Settings.groups.Count; i++)
             {
                 var group = AddressableAssetSettingsDefaultObject.Settings.groups[i];
-                if (group != null && !group.name.Equals("Built In Data") && !group.name.Contains("Content Update") &&
-                    !groupInfos.Exists(x => x.Group == group))
+
+
+                if (groupInfos.Exists(x => x.Group == group)) continue; //包含的组就不用删除
+
+                //打升级包的时候,builtInData/Content Update/Duplicate Asset Isolation组都不能删除
+                if (beUpdateAssetGroup)
                 {
-                    if (beUpdateAssetGroup)
+                    if (group != null
+                        && !group.name.Equals("Built In Data")
+                        && !group.name.Contains("Content Update")
+                        && !group.name.Contains("Duplicate Asset Isolation"))
                     {
-                        //升级包不能删除之前的重复引用组
-                        if (!group.name.Contains("Duplicate Asset Isolation"))
-                        {
-                            needDeleteGroups.Add(group);
-                        }
+                        needDeleteGroups.Add(group); //其他的都删除掉
                     }
-                    else
+                }
+                else
+                {
+                    //不是升级的时候,除了Built In Data其他的都删除掉,重复依赖组后面重新处理
+                    if (group != null
+                        && !group.name.Equals("Built In Data"))
                     {
-                        needDeleteGroups.Add(group);
+                        needDeleteGroups.Add(group); //其他的都删除掉
                     }
                 }
             }
@@ -753,6 +885,9 @@ namespace HM.Editor
             }
         }
 
+        /// <summary>
+        /// 设置配置文件
+        /// </summary>
         private static void SetProfiles()
         {
             if (AddressableAssetSettingsDefaultObject.Settings == null)
@@ -775,18 +910,21 @@ namespace HM.Editor
 
             AddressableAssetSettingsDefaultObject.Settings.profileSettings.SetValue(profileId,
                 AddressableAssetSettings.kRemoteLoadPath, ConfigHmAddressables.TestRemoteLoadPath);
-            
+
             //修复AA包中AddressableAssetSettings类m_RemoteCatalogLoadPath.Id == null 和 m_RemoteCatalogBuildPath.Id == null 的bug
             if (string.IsNullOrEmpty(AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogBuildPath.Id))
             {
-                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogBuildPath=   new ProfileValueReference();
-                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogBuildPath.SetVariableByName(AddressableAssetSettingsDefaultObject.Settings,
+                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogBuildPath = new ProfileValueReference();
+                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogBuildPath.SetVariableByName(
+                    AddressableAssetSettingsDefaultObject.Settings,
                     AddressableAssetSettings.kRemoteBuildPath);
             }
+
             if (string.IsNullOrEmpty(AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogLoadPath.Id))
             {
-                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogLoadPath=   new ProfileValueReference();
-                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogLoadPath.SetVariableByName(AddressableAssetSettingsDefaultObject.Settings,
+                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogLoadPath = new ProfileValueReference();
+                AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogLoadPath.SetVariableByName(
+                    AddressableAssetSettingsDefaultObject.Settings,
                     AddressableAssetSettings.kRemoteLoadPath);
             }
         }
@@ -807,6 +945,7 @@ namespace HM.Editor
                 items.Add(entry.Key);
                 Debug.Log(entry.Key.AssetPath);
             }
+
             if (items.Count > 0)
             {
                 CreatContentUpdateGroup(AddressableAssetSettingsDefaultObject.Settings, items,
@@ -844,7 +983,7 @@ namespace HM.Editor
                 //没办法了,变量没公开,只好用反射调用
                 EditPrivateValue(schema, "AssetBundleProviderType", va);
             }
-            
+
             UnityEditor.EditorUtility.SetDirty(contentGroup);
             UnityEditor.EditorUtility.SetDirty(schema);
             UnityEditor.EditorUtility.SetDirty(staiSchema);
@@ -895,35 +1034,6 @@ namespace HM.Editor
             return foundExisting;
         }
 
-        private static void SetUpdateGroupSetting(HMAddressablesConfig config)
-        {
-            if (!AssetDatabase.IsValidFolder(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder))
-            {
-                Debug.LogError($"没找到数据文件,不能设置升级包,请恢复代码");
-                return;
-            }
-
-
-            var groupInfos = new List<GroupInfo>();
-
-            foreach (var assetsPath in config.AseetsPaths)
-            {
-                GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos);
-            }
-
-            if (groupInfos.Count <= 0)
-            {
-                Debug.LogError($"未设置需要打包的资源路径,请检查{ConfigPath}的设置");
-                ShowAndSelectConfigMenuItem();
-                return;
-            }
-
-
-            CreateAndClearGroupBySelectFolder(groupInfos, true);
-            SetAssetsToGroup(groupInfos, true);
-            DeleteEmptyGroup();
-            ClearGroupMissingReferences();
-        }
 
         private static void SetActiveProfiles(bool beTest = false)
         {
@@ -937,14 +1047,18 @@ namespace HM.Editor
                 AddressableAssetSettingsDefaultObject.Settings.profileSettings.GetProfileId(
                     beTest ? "TestProfile" : "Default");
         }
+    }
 
-        class GroupInfo
-        {
-            public string Path;
-            public string GroupName;
-            public AddressableAssetGroup Group;
-        }
-        
-        
+    public class GroupInfo
+    {
+        public string Path;
+        public string GroupName;
+        public System.IO.DirectoryInfo MyDirectoryInfo;
+        public GroupInfo MyParentGroupInfo;
+        public List<GroupInfo> MyChildrenGroupInfos;
+        public AddressableAssetGroup Group;
+        public bool BeLocalGroup;
+        public List<string> allAssetsInFolder = new List<string>();
+        public AddressableAssetGroup DuplicateAssetIsolationGroup;
     }
 }

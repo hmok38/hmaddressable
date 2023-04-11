@@ -7,8 +7,10 @@ namespace HM
     public class HMAddressablesConfig : ScriptableObject
     {
         
-        [Header("要打包的目录")]
-        public string[] AseetsPaths=new []{"Assets/Bundles"} ;
+        [Header("要包含在APP中的资源目录")]
+        public string[] LocalAseetsPaths=new []{"Assets/Bundles"} ;
+        [Header("要远程下载的资源目录")]
+        public string[] RemoteAseetsPaths=new string[]{} ;
         [Header("正式资源服务器分发地址")]
         public string RemoteLoadPath = "http://[PrivateIpAddress]/[BuildTarget]";
         [Header("测试资源服务器分发地址")]
