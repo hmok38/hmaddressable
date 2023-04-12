@@ -853,7 +853,7 @@ namespace HM
             return true;
         }
 
-        private static string ListToStr(List<string> listStr)
+        public static string ListToStr(List<string> listStr)
         {
             if (listStr.Count<=0)
             {
@@ -870,8 +870,9 @@ namespace HM
             return a.ToString();
         }
 
-        private static List<string> StrToList(string str)
+        public static List<string> StrToList(string str)
         {
+            if (string.IsNullOrEmpty(str)) return new List<string>();
            var listStr= str.Split('|');
            return listStr.ToList();
         }
