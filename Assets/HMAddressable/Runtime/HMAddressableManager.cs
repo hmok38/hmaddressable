@@ -30,7 +30,7 @@ namespace HM
         private static GZipDataStreamProc test3=new GZipDataStreamProc();
         private static AESStreamProcessorWithSeek test4=new AESStreamProcessorWithSeek();
         //-------防止代码裁剪的类
-        private const string PrefsName = "ADDRESSABLES_NEEDUPDATE";
+        private const string PrefsName = "ADDRESSABLES_NEEDUPDATE_NEW";
 
         static readonly Dictionary<string, Object> ResMap =
             new Dictionary<string, Object>();
@@ -623,9 +623,13 @@ namespace HM
                         for (var i = 0; i < oldList.Count; i++)
                         {
                             var str = oldList[i];
-                            if (!_needUpdateCatalogs.Contains(str)) //没有包含的就一起添加进来
+                            if (!_needUpdateCatalogs.Contains(str)&&!str.Contains("[")) //没有包含的就一起添加进来
                             {
                                 _needUpdateCatalogs.Add(str);
+                            }
+                            if (BeOtherDebug)
+                            {
+                                HMRuntimeDialogHelper.DebugStopWatchInfo($"str中包含旧版本数据记录,清理此数据 = {str}");
                             }
                         }
                     }
