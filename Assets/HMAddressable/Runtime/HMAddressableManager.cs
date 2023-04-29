@@ -72,11 +72,20 @@ namespace HM
             if (obj == null)
             {
                 var operation = Addressables.LoadAssetAsync<T>(resName);
+                AddToLoadingMap(resName);
                 operation.WaitForCompletion();
                 obj = operation.Result;
             }
 
-            ResMap.Add(resName, obj);
+            if (!ResMap.ContainsKey(resName))
+            {
+                ResMap.Add(resName, obj);
+            }
+            else
+            {
+                ResMap[resName] = obj;
+            }
+         
             RemoveFromLoadingMap(resName);
             return ResMap[resName] as T;
         }
