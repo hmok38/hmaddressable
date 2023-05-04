@@ -29,6 +29,7 @@ namespace HM
         private static AESStreamProcessor test2=new AESStreamProcessor();
         private static GZipDataStreamProc test3=new GZipDataStreamProc();
         private static AESStreamProcessorWithSeek test4=new AESStreamProcessorWithSeek();
+        private static AssetBundleProvider test5=new AssetBundleProvider();
         //-------防止代码裁剪的类
         private const string PrefsName = "ADDRESSABLES_NEEDUPDATE_NEW";
 
