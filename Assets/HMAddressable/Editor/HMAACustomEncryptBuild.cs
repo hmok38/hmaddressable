@@ -199,21 +199,9 @@ namespace HM.Editor.HMAddressable.Editor
                 m_CreatedProviderIds.Add(bundleProviderId);
                 var bundleProviderType = schema.AssetBundleProviderType.Value;
                 
-                //大于0就是有类型
-                if (schema.DataStreamProcessorType>0 )
-                {
-                    var type = new SerializedType();
-                    type.Value = HMAddressablesConfig.GetEncrypyType(schema.DataStreamProcessorType);
-                    var bundleProviderData = ObjectInitializationData.CreateSerializedInitializationData(bundleProviderType, bundleProviderId,type);
-                    m_ResourceProviderData.Add(bundleProviderData);
-                }
-                else
-                {
-                    var bundleProviderData = ObjectInitializationData.CreateSerializedInitializationData(bundleProviderType, bundleProviderId);  
-                    m_ResourceProviderData.Add(bundleProviderData);
-                }
                 
-              
+                var bundleProviderData = ObjectInitializationData.CreateSerializedInitializationData(bundleProviderType, bundleProviderId);  
+                m_ResourceProviderData.Add(bundleProviderData);
                
             }
         }
@@ -1140,13 +1128,13 @@ namespace HM.Editor.HMAddressable.Editor
                 //加密打包的话
                var schema= assetGroup.GetSchema<BundledAssetGroupSchema>();
 
-               if (schema != null&&schema.DataStreamProcessorType>0)
+               if (schema != null&& HMAddressablesConfig.GetEncrypyType(schema.AssetBundleProviderType.Value) !=null)
                {
                    using (var src = new FileStream(srcPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1024 * 1204, FileOptions.Asynchronous))
                    {
                        using (var dst = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.Write, 1024 * 1204, FileOptions.Asynchronous))
                        {
-                           var dsp = Activator.CreateInstance(HMAddressablesConfig.GetEncrypyType(schema.DataStreamProcessorType)) as DataConverterBase;
+                           var dsp = Activator.CreateInstance(HMAddressablesConfig.GetEncrypyType(schema.AssetBundleProviderType.Value)) as DataConverterBase;
                            using (var writeStr = dsp.CreateWriteStream(dst, ""))
                                src.CopyTo(writeStr);
                        }

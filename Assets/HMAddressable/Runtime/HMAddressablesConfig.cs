@@ -15,6 +15,7 @@ namespace HM
         public string RemoteLoadPath = "http://[PrivateIpAddress]/[BuildTarget]";
         [Header("测试资源服务器分发地址")]
         public string TestRemoteLoadPath = "http://[PrivateIpAddress]/Test/[BuildTarget]";
+        
         [Header("及升级组都会默认使用此加密,如某些组不需要加密可去组设置进行调整")]
         [Header("默认资源加密类型,新创建组或重复引用组")]
         [Header("=================================")]
@@ -22,38 +23,34 @@ namespace HM
         public EncrypyType MyDefaultAssetsEncryptType = EncrypyType.AESStreamProcessorWithSeek;
 
         
-       
         /// <summary>
-        /// 加密类型
+        /// 获得默认的资源供应器
         /// </summary>
-        /// <param name="typeInt"></param>
         /// <returns></returns>
-        public static Type GetEncrypyType(EncrypyType typeEnum)
+        public  Type GetMyDefaultAssetBundleProvider()
         {
-            return GetEncrypyType((int)typeEnum);
-        }
-        /// <summary>
-        /// 加密类型
-        /// </summary>
-        /// <param name="typeInt"></param>
-        /// <returns></returns>
-        public static Type GetEncrypyType(int typeInt)
-        {
-            switch (typeInt)
+            switch (MyDefaultAssetsEncryptType)
             {
-                case 0:
-                    return null;
-                case 1:
-                    return typeof(AESStreamProcessor);
-                case 2:
-                    return typeof(GZipDataStreamProc);
-                case 3:
-                    return typeof(AESStreamProcessorWithSeek);
+                case EncrypyType.AESStreamProcessorWithSeek: return typeof(HMAAEncrypt_AssetBundleProvider);
             }
 
             return null;
         }
-        
+       
+        /// <summary>
+        /// 根据资源供应器确定加密类
+        /// </summary>
+        /// <param name="typeInt"></param>
+        /// <returns></returns>
+        public static Type GetEncrypyType(Type assetBundleProviderType)
+        {
+            if (assetBundleProviderType == typeof(HMAAEncrypt_AssetBundleProvider))
+            {
+                return typeof( AESStreamProcessorWithSeek);
+            }
+
+            return null;
+        }
         
     }
 

@@ -15,7 +15,7 @@ using Debug = UnityEngine.Debug;
 
 namespace HM
 {
-    [DisplayName("HMAAEncrypt_AssetBundleProvider")]
+    [DisplayName("Seek加密")]
     public class HMAAEncrypt_AssetBundleProvider: AssetBundleProvider
     {
         public DataConverterBase DataStreamProcessor { get; set; }
@@ -43,21 +43,13 @@ namespace HM
         {
             if (!base.Initialize(id, data))
                 return false;
-            Debug.Log($"HMAAEncrypt_AssetBundleProvider Initialize:{data}");
-            if (!string.IsNullOrEmpty(data))
-            {
-                var dsType = JsonUtility.FromJson<SerializedType>(data);
-                if (dsType.Value != null)
-                {
-                    DataStreamProcessor = Activator.CreateInstance(dsType.Value) as DataConverterBase;
-                    Debug.Log($"DataStreamProcessor = {DataStreamProcessor != null}");
-                }
-                else
-                {
-                    Debug.Log($" dsType.Value为空 DataStreamProcessor= {DataStreamProcessor != null}");
-                }
-            }
+            Debug.Log($"{this.GetType().Name} Initialized");
 
+            var encrypyType = HMAddressablesConfig.GetEncrypyType(this.GetType());
+            if (encrypyType!=null)
+            {
+                DataStreamProcessor=Activator.CreateInstance(encrypyType) as DataConverterBase;
+            }
             return true;
         }
 
