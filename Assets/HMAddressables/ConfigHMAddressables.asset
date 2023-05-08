@@ -17,4 +17,4 @@ MonoBehaviour:
   RemoteAseetsPaths: []
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
-  MyAssetsEncryptType: 3
+  MyDefaultAssetsEncryptType: 3
