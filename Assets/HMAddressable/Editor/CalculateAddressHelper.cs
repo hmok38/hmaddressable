@@ -57,8 +57,9 @@ namespace HM.Editor.HMAddressable.Editor
         [NonSerialized] internal List<CheckDupeResult> m_ResultsData;
 
 
-        public void CheckForDuplicateDependencies(AddressableAssetSettings settings,List<GroupInfo> myGroupInfos)
+        public void CheckForDuplicateDependencies(AddressableAssetSettings settings,List<GroupInfo> myGroupInfos,out List<AddressableAssetGroup> newCreatGroups)
         {
+            newCreatGroups = new List<AddressableAssetGroup>();
             if (!BuildUtility.CheckModifiedScenesAndAskToSave())
             {
                 Debug.LogError("Cannot run Analyze with unsaved scenes");
@@ -98,6 +99,7 @@ namespace HM.Editor.HMAddressable.Editor
                        if (parentGroup.DuplicateAssetIsolationGroup == null)
                        {
                            parentGroup.DuplicateAssetIsolationGroup= CreatDGroup(settings, parentGroup.Group.Name);
+                           newCreatGroups.Add( parentGroup.DuplicateAssetIsolationGroup);
                        }
                        var tmp=   settings.CreateOrMoveEntry(AssetDatabase.AssetPathToGUID(assetPathKeyValue.Key), parentGroup.DuplicateAssetIsolationGroup,false, false);
                        tmp.SetLabel(parentGroup.Path, true, true);
@@ -107,6 +109,7 @@ namespace HM.Editor.HMAddressable.Editor
                        if (duplicateGroup == null)
                        {
                            duplicateGroup = CreatDGroup(settings,null);
+                           newCreatGroups.Add(duplicateGroup);
                        }
                      var tmp=  settings.CreateOrMoveEntry(AssetDatabase.AssetPathToGUID(assetPathKeyValue.Key),duplicateGroup,false, false);
                        tmp.SetLabel(duplicateGroup.name, true, true);
@@ -114,7 +117,7 @@ namespace HM.Editor.HMAddressable.Editor
                        
                   
                }
-                // BuildImplicitDuplicatedAssetsSet(checkDupeResults);
+               
 
             }
             else

@@ -198,11 +198,12 @@ namespace HM.Editor.HMAddressable.Editor
             {
                 m_CreatedProviderIds.Add(bundleProviderId);
                 var bundleProviderType = schema.AssetBundleProviderType.Value;
-             
-                if (HMAddressablesEditor.UseEncrypyType!=null)
+                
+                //大于0就是有类型
+                if (schema.DataStreamProcessorType>0 )
                 {
                     var type = new SerializedType();
-                    type.Value = HMAddressablesEditor.UseEncrypyType;
+                    type.Value = HMAddressablesConfig.GetEncrypyType(schema.DataStreamProcessorType);
                     var bundleProviderData = ObjectInitializationData.CreateSerializedInitializationData(bundleProviderType, bundleProviderId,type);
                     m_ResourceProviderData.Add(bundleProviderData);
                 }
@@ -1117,7 +1118,7 @@ namespace HM.Editor.HMAddressable.Editor
             return buildTasks;
         }
 
-        static void MoveFileToDestinationWithTimestampIfDifferent(string srcPath, string destPath, IBuildLogger log)
+        static void MoveFileToDestinationWithTimestampIfDifferent(AddressableAssetGroup assetGroup,string srcPath, string destPath, IBuildLogger log)
         {
             Debug.Log("用的就是我 MoveFileToDestinationWithTimestampIfDifferent");
             if (srcPath == destPath)
@@ -1137,19 +1138,27 @@ namespace HM.Editor.HMAddressable.Editor
                 else if (File.Exists(destPath))
                     File.Delete(destPath);
                 //加密打包的话
-                if (HMAddressablesEditor.UseEncrypyType!=null) {
-                    using (var src = new FileStream(srcPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1024 * 1204, FileOptions.Asynchronous))
-                    {
-                        using (var dst = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.Write, 1024 * 1204, FileOptions.Asynchronous))
-                        {
-                            var dsp = Activator.CreateInstance(HMAddressablesEditor.UseEncrypyType) as DataConverterBase;
-                            using (var writeStr = dsp.CreateWriteStream(dst, ""))
-                                src.CopyTo(writeStr);
-                        }
-                    }
-                } else {
-                    File.Move(srcPath, destPath);
-                }
+               var schema= assetGroup.GetSchema<BundledAssetGroupSchema>();
+
+               if (schema != null&&schema.DataStreamProcessorType>0)
+               {
+                   using (var src = new FileStream(srcPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1024 * 1204, FileOptions.Asynchronous))
+                   {
+                       using (var dst = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.Write, 1024 * 1204, FileOptions.Asynchronous))
+                       {
+                           var dsp = Activator.CreateInstance(HMAddressablesConfig.GetEncrypyType(schema.DataStreamProcessorType)) as DataConverterBase;
+                           using (var writeStr = dsp.CreateWriteStream(dst, ""))
+                               src.CopyTo(writeStr);
+                       }
+                   }
+                   
+               }
+               else
+               {
+                   File.Move(srcPath, destPath);
+               }
+                
+              
             }
         }
 
@@ -1243,7 +1252,7 @@ namespace HM.Editor.HMAddressable.Editor
                     outputBundleNames[i] = StripHashFromBundleLocation(outputBundleNames[i]);
 
                 bundleRenameMap.Add(builtBundleNames[i], outputBundleNames[i]);
-                MoveFileToDestinationWithTimestampIfDifferent(srcPath, targetPath, Log);
+                MoveFileToDestinationWithTimestampIfDifferent(assetGroup,srcPath, targetPath, Log);
                 AddPostCatalogUpdatesInternal(assetGroup, postCatalogUpdateCallbacks, dataEntry, targetPath, registry);
 
                 if (addrResult != null)

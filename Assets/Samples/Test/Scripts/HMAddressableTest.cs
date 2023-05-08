@@ -72,8 +72,7 @@ public class HMAddressableTest : MonoBehaviour
                 break;
             case AsyncOperationStatus.Succeeded:
                 Debug.Log($"更新成功 Code={arg3}");
-                this.Capsule(true);
-                this.Sphere(true);
+              
                 break;
             case AsyncOperationStatus.None:
                 Debug.Log($"正在下载,进度={progeress} Code={arg3}");
@@ -92,13 +91,14 @@ public class HMAddressableTest : MonoBehaviour
         if (beListTest)
         {
             beListTest = false;
-            ListTest();
+            this.Capsule(true);
+           
         }
 
         if (beListReleaseTest)
         {
             beListReleaseTest = false;
-            ListReleaseObjTest();
+            this.Sphere(true);
         }
         
         if (beTest)

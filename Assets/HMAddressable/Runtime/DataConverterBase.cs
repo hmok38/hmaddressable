@@ -80,13 +80,13 @@ namespace HM
         }
         public override Stream CreateReadStream(Stream input, string id)
         {
-           // Debug.Log("创建加密读数据");
+            Debug.Log("AESStreamProcessor 创建加密读数据");
             return new CryptoStream(input, Algorithm.CreateDecryptor(Algorithm.Key, Algorithm.IV), CryptoStreamMode.Read);
         }
 
         public override Stream CreateWriteStream(Stream input, string id)
         {
-            //Debug.Log("创建加密写数据");
+            Debug.Log("AESStreamProcessor 创建加密写数据");
             return new CryptoStream(input, Algorithm.CreateEncryptor(Algorithm.Key, Algorithm.IV), CryptoStreamMode.Write);
         }
     }
@@ -95,11 +95,13 @@ namespace HM
     {
         public override Stream CreateReadStream(Stream input, string id)
         {
+            Debug.Log("GZipDataStreamProc 创建加密读数据");
             return new System.IO.Compression.GZipStream(input, System.IO.Compression.CompressionMode.Decompress);
         }
 
         public override Stream CreateWriteStream(Stream input, string id)
         {
+            Debug.Log("GZipDataStreamProcs 创建加密写数据");
             return new System.IO.Compression.GZipStream(input, System.IO.Compression.CompressionMode.Compress);
         }
     }
@@ -110,13 +112,13 @@ namespace HM
         byte[] salt = new byte[16] {0x01, 0x02, 0x01, 0x05, 0x10, 0xAA, 0xBB, 0xCC, 0xDD, 0xF1, 0xF2, 0xF3, 0xF4, 0xF4, 0xE5, 0xE6};
         public override Stream CreateReadStream(Stream input, string id)
         {
-            //Debug.Log(id);
+            Debug.Log("AESStreamProcessorWithSeek 创建加密读数据");
             return new SeekableAesStream(input, password, salt);
         }
 
         public override Stream CreateWriteStream(Stream input, string id)
         {
-            //Debug.Log(id);
+            Debug.Log("AESStreamProcessorWithSeek 创建加密写数据");
             return new SeekableAesStream(input, password, salt);
         }
     }
