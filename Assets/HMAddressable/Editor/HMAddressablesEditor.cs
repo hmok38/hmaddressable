@@ -499,6 +499,12 @@ namespace HM.Editor
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
             
             
+            //设置HMAAEncrypt_AssetBundleProvider
+            var va = bundledAssetGroupSchema.AssetBundleProviderType;
+            va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
+            //没办法了,变量没公开,只好用反射调用
+            EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
+            
             
             if (beNeedSetEncryptType)
             {
@@ -528,7 +534,14 @@ namespace HM.Editor
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 AddressableAssetSettings.kRemoteLoadPath);
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
-
+            
+            //设置HMAAEncrypt_AssetBundleProvider
+            var va = bundledAssetGroupSchema.AssetBundleProviderType;
+            va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
+            //没办法了,变量没公开,只好用反射调用
+            EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
+            
+            
             if (beNeedSetEncryptType)
             {
                 //通过反射保存私有变量的值
@@ -879,6 +892,11 @@ namespace HM.Editor
             staiSchema.StaticContent = false;
             settings.MoveEntries(items, contentGroup);
             
+            //设置HMAAEncrypt_AssetBundleProvider
+            var va = schema.AssetBundleProviderType;
+            va.Value = typeof(HMAAEncrypt_AssetBundleProvider);
+            //没办法了,变量没公开,只好用反射调用
+            EditPrivateValue(schema, "m_AssetBundleProviderType", va);
             
             //升级组必定要加密
         
