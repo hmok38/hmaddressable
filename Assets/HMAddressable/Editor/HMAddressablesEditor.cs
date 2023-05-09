@@ -73,8 +73,8 @@ namespace HM.Editor
             
             //检查设置,没有就创建
             CheckAndCreateSetting();
-            //更新组设置
-            UpdateGroupAndContextFromConfig(ConfigHmAddressables);
+            //创建和更新组设置
+            CreatAndUpdateGroupAndContextFromConfig(ConfigHmAddressables);
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(false);
@@ -87,7 +87,7 @@ namespace HM.Editor
             //检查设置,没有就创建
             CheckAndCreateSetting();
 
-            //更新组设置
+            //设置设计组设置
             SetUpdateGroupSetting(ConfigHmAddressables);
             //设置配置表选项
             SetProfiles();
@@ -116,7 +116,7 @@ namespace HM.Editor
             CheckAndCreateSetting();
 
             //更新组设置
-            UpdateGroupAndContextFromConfig(ConfigHmAddressables);
+            CreatAndUpdateGroupAndContextFromConfig(ConfigHmAddressables);
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(true);
@@ -149,7 +149,7 @@ namespace HM.Editor
             //检查设置,没有就创建
             CheckAndCreateSetting();
             //更新组及组内容
-            UpdateGroupAndContextFromConfig(ConfigHmAddressables);
+            CreatAndUpdateGroupAndContextFromConfig(ConfigHmAddressables);
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(false);
@@ -299,7 +299,7 @@ namespace HM.Editor
         /// 刷新组设置(不更新旧组的加密设置)
         /// </summary>
         /// <param name="config"></param>
-        private static void UpdateGroupAndContextFromConfig(HMAddressablesConfig config)
+        private static void CreatAndUpdateGroupAndContextFromConfig(HMAddressablesConfig config)
         {
             if (!AssetDatabase.IsValidFolder(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder))
             {
@@ -334,7 +334,7 @@ namespace HM.Editor
                 ShowAndSelectConfigMenuItem();
                 return;
             }
-
+            SaveAllGroupProvider();
             //根据配置表 创建和清理 组
             CreateAndClearGroup(groupInfos);
             //添加资源到组内
@@ -349,7 +349,7 @@ namespace HM.Editor
             {
                 SetStaticAndLocalGroupSchema(newCreatGroups[i],true);
             }
-            
+            ResetGroupProvider();
             //删除空组
             DeleteEmptyGroup();
             //清理空引用
@@ -972,6 +972,61 @@ namespace HM.Editor
         {
             var x = obj.GetType().GetField(valueName,BindingFlags.Instance | BindingFlags.GetField | BindingFlags.NonPublic | BindingFlags.ExactBinding);
             x.SetValue(obj, value);
+        }
+
+        private static Dictionary<string, Type> groupProviderMaps = new Dictionary<string, Type>();
+        /// <summary>
+        /// 保存组的供应器设置
+        /// </summary>
+        private static void SaveAllGroupProvider()
+        {
+            groupProviderMaps.Clear();
+            if(AddressableAssetSettingsDefaultObject.Settings==null)return;
+
+            var groups = AddressableAssetSettingsDefaultObject.Settings.groups;
+            for (int i = 0; i < groups.Count; i++)
+            {
+                var group = groups[i];
+                var scheme = group.GetSchema<BundledAssetGroupSchema>();
+                if (scheme != null)
+                {
+                    groupProviderMaps.Add(group.name,scheme.AssetBundleProviderType.Value);
+                }
+            }
+            
+        }
+        
+        /// <summary>
+        /// 恢复组的GroupProvider
+        /// </summary>
+        private static void ResetGroupProvider()
+        {
+            if(AddressableAssetSettingsDefaultObject.Settings==null)return;
+            var groups = AddressableAssetSettingsDefaultObject.Settings.groups;
+            for (int i = 0; i < groups.Count; i++)
+            {
+                var group = groups[i];
+                var scheme = group.GetSchema<BundledAssetGroupSchema>();
+                if (scheme != null)
+                {
+                    if (groupProviderMaps.TryGetValue(group.name, out var provoderType))
+                    {
+                        //设置HMAAEncrypt_AssetBundleProvider
+                        var va = scheme.AssetBundleProviderType;
+                        va.Value = provoderType;
+                        //没办法了,变量没公开,只好用反射调用
+                        EditPrivateValue(scheme, "m_AssetBundleProviderType", va);
+                    }
+                    else
+                    {
+                        //设置HMAAEncrypt_AssetBundleProvider
+                        var va = scheme.AssetBundleProviderType;
+                        va.Value = ConfigHmAddressables.GetMyDefaultAssetBundleProvider();
+                        //没办法了,变量没公开,只好用反射调用
+                        EditPrivateValue(scheme, "m_AssetBundleProviderType", va);
+                    }
+                }
+            }
         }
     }
 

@@ -26,12 +26,13 @@ namespace HM
     {
         //-------防止代码裁剪的类
         private static HMAAEncrypt_AssetBundleProvider test=new HMAAEncrypt_AssetBundleProvider();
+        private static HMAAEncrypt_AssetBundleProvider_AES test6=new HMAAEncrypt_AssetBundleProvider_AES();
+        private static HMAAEncrypt_AssetBundleProvider_AESWithSeek test7=new HMAAEncrypt_AssetBundleProvider_AESWithSeek();
         private static AESStreamProcessor test2=new AESStreamProcessor();
-        private static GZipDataStreamProc test3=new GZipDataStreamProc();
         private static AESStreamProcessorWithSeek test4=new AESStreamProcessorWithSeek();
         private static AssetBundleProvider test5=new AssetBundleProvider();
         //-------防止代码裁剪的类
-        private const string PrefsName = "ADDRESSABLES_NEEDUPDATE_NEW";
+        private const string PrefsName = "ADDRESSABLES_NEEDUPDATE_NEWV3";
 
         static readonly Dictionary<string, Object> ResMap =
             new Dictionary<string, Object>();

@@ -15,7 +15,7 @@ using Debug = UnityEngine.Debug;
 
 namespace HM
 {
-    [DisplayName("Seek加密")]
+    [DisplayName("不加密")]
     public class HMAAEncrypt_AssetBundleProvider: AssetBundleProvider
     {
         public DataConverterBase DataStreamProcessor { get; set; }

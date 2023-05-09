@@ -24,17 +24,19 @@ namespace HM
 
         
         /// <summary>
-        /// 获得默认的资源供应器
+        /// 获得默认的资源供应器类型
         /// </summary>
         /// <returns></returns>
         public  Type GetMyDefaultAssetBundleProvider()
         {
             switch (MyDefaultAssetsEncryptType)
             {
-                case EncrypyType.AESStreamProcessorWithSeek: return typeof(HMAAEncrypt_AssetBundleProvider);
+                case EncrypyType.AESStreamProcessor: return typeof(HMAAEncrypt_AssetBundleProvider_AES);
+               // case EncrypyType.GZipDataStreamProc: return typeof(HMAAEncrypt_AssetBundleProvider_GZip);
+                case EncrypyType.AESStreamProcessorWithSeek: return typeof(HMAAEncrypt_AssetBundleProvider_AESWithSeek);
+                default:return typeof(HMAAEncrypt_AssetBundleProvider);
             }
 
-            return null;
         }
        
         /// <summary>
@@ -44,7 +46,15 @@ namespace HM
         /// <returns></returns>
         public static Type GetEncrypyType(Type assetBundleProviderType)
         {
-            if (assetBundleProviderType == typeof(HMAAEncrypt_AssetBundleProvider))
+            if (assetBundleProviderType == typeof(HMAAEncrypt_AssetBundleProvider_AES))
+            {
+                return typeof( AESStreamProcessor);
+            }
+            // if (assetBundleProviderType == typeof(HMAAEncrypt_AssetBundleProvider_GZip))
+            // {
+            //     return typeof( GZipDataStreamProc);
+            // }
+            if (assetBundleProviderType == typeof(HMAAEncrypt_AssetBundleProvider_AESWithSeek))
             {
                 return typeof( AESStreamProcessorWithSeek);
             }
@@ -58,7 +68,7 @@ namespace HM
     {
         None=0,
         AESStreamProcessor=1,
-        GZipDataStreamProc=2,
+       // GZipDataStreamProc=2,
         AESStreamProcessorWithSeek=3
     }
         
