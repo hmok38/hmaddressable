@@ -92,6 +92,10 @@ namespace HM.Editor
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(false);
+            
+            //检查静态组升级设置,设立升级组
+            CheckForContentUpdateRestructions();
+            
             BuildUpdateAsset();
         }
 
@@ -135,6 +139,10 @@ namespace HM.Editor
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(true);
+            
+            //检查静态组升级设置,设立升级组
+            CheckForContentUpdateRestructions();
+            
             BuildUpdateAsset();
         }
 
@@ -155,7 +163,13 @@ namespace HM.Editor
             SetActiveProfiles(false);
             Debug.Log("\"更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定\" 完毕");
         }
-
+        [UnityEditor.MenuItem("HMAA资源管理/检查资源升级并设置升级组 <发布阶段禁止使用> 使用配置表默认加密设置 可以修改")]
+        public static void CheckForContentUpdateRestructionsMenuItem()
+        {
+            //检查静态组升级设置,设立升级组
+            CheckForContentUpdateRestructions();
+            Debug.Log("\"更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定\" 完毕");
+        }
 
         [UnityEditor.MenuItem(
             "HMAA资源管理/========================以下为谨慎选项<除非发包,否则禁止使用>==============================")]
@@ -267,7 +281,7 @@ namespace HM.Editor
                 Debug.Log("打出包资源完成");
             }
         }
-
+        
         private static void BuildUpdateAsset()
         {
             //检查依赖关系-升级包不能检查依赖关系,因为新的依赖关系组会发布成本地包
@@ -284,8 +298,7 @@ namespace HM.Editor
                 return;
             }
 
-            // //检查静态组升级设置,设立升级组
-            CheckForContentUpdateRestructions();
+           
 
 
             //打资源包
@@ -852,7 +865,15 @@ namespace HM.Editor
             string assetPath = Path.Combine(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
                 PlatformMappingService.GetPlatformPathSubFolder());
             var path = Path.Combine(assetPath, "addressables_content_state.bin");
-
+            
+            
+            var obj = AssetDatabase.LoadAssetAtPath<Object>(path);
+            if (obj == null)
+            {
+                Debug.Log("还没打第一次的资源包:" + path);
+                return;
+            }
+            
             var modifiedEntries =
                 ContentUpdateScript.GatherModifiedEntriesWithDependencies(
                     AddressableAssetSettingsDefaultObject.Settings,
@@ -871,7 +892,7 @@ namespace HM.Editor
             }
             else
             {
-                Debug.Log("没有发现需要更新的静态资源包");
+                Debug.Log("没有发现需要更新的静态资源包,或之前已经 检查资源升级并设置升级组");
             }
         }
 

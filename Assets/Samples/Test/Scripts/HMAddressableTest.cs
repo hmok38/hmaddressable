@@ -6,9 +6,7 @@ using HM;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.ResourceManagement.ResourceLocations;
 using Debug = UnityEngine.Debug;
-using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 //多个资源列表加载和分开加载是一样的耗时
@@ -28,6 +26,7 @@ public class HMAddressableTest : MonoBehaviour
         #if !UNITY_EDITOR
          Addressables.InitializeAsync();
          #endif
+        
     }
 
     async void Wait()
@@ -72,7 +71,8 @@ public class HMAddressableTest : MonoBehaviour
                 break;
             case AsyncOperationStatus.Succeeded:
                 Debug.Log($"更新成功 Code={arg3}");
-              
+                this.Capsule(true);
+                this.Sphere(true);
                 break;
             case AsyncOperationStatus.None:
                 Debug.Log($"正在下载,进度={progeress} Code={arg3}");
@@ -91,14 +91,13 @@ public class HMAddressableTest : MonoBehaviour
         if (beListTest)
         {
             beListTest = false;
-            this.Capsule(true);
-           
+            ListTest();
         }
 
         if (beListReleaseTest)
         {
             beListReleaseTest = false;
-            this.Sphere(true);
+            ListReleaseObjTest();
         }
         
         if (beTest)
