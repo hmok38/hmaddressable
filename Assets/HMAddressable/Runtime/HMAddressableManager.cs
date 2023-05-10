@@ -551,6 +551,7 @@ namespace HM
             _updateStatus = AsyncOperationStatus.Succeeded;
             _resultMessage = "";
             _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
+            PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
             DispatchUpdateCallback();
             return;
 
@@ -684,6 +685,7 @@ namespace HM
                 _resultMessage = "";
                 _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
                 _progressValue = 1;
+                PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
                 Addressables.Release(_checkMainCatalogOp);
                 return;
             }
@@ -738,6 +740,7 @@ namespace HM
                 _updateStatus = AsyncOperationStatus.Succeeded;
                 _resultMessage = "";
                 _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
+                PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
                 Addressables.Release(_updateCatalogsOp);
                 return;
             }
@@ -786,6 +789,7 @@ namespace HM
                 _updateStatus = AsyncOperationStatus.Succeeded;
                 _resultMessage =  $"{_totalDownloadSize}";
                 _updateStatusCode = UpdateStatusCode.DETECTED_SIZE_OF_RESOURCES_TO_DOWNLOAD;
+                PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
                 Addressables.Release(_sizeOpration);
                 return;
             }
