@@ -674,8 +674,7 @@ namespace HM
 
             if (BeOtherDebug)
             {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的MainCatalog数量:{_needUpdateCatalogs.Count} " +
-                                          $":{Newtonsoft.Json.JsonConvert.SerializeObject(_needUpdateCatalogs)}");
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的MainCatalog数量:{_needUpdateCatalogs.Count} " );
             }
 
             if (_needUpdateCatalogs.Count <= 0)
