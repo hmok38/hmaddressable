@@ -568,7 +568,7 @@ namespace HM
 
             var initializeAsync = Addressables.InitializeAsync();
             await initializeAsync.Task;
-            var cache = Caching.currentCacheForWriting;
+         
             
             await CheckUpdateMainCatalog();
             if (!CheckCanGoOn()) return;
@@ -615,79 +615,13 @@ namespace HM
                 return;
             }
 
-            _needUpdateCatalogs = _checkMainCatalogOp.Result;
-            var oldListStr = PlayerPrefs.GetString(PrefsName, ""); //取出旧的列表,避免升级中断导致的不再更新
-            if (BeOtherDebug)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"oldListStr = {oldListStr}");
-            }
-            if (!string.IsNullOrEmpty(oldListStr) && oldListStr.Length > 0)
-            {
-                try
-                {
-                    var oldList = StrToList(oldListStr); 
-                    if (oldList != null)
-                    {
-                        if (BeOtherDebug)
-                        {
-                            HMRuntimeDialogHelper.DebugStopWatchInfo($"解析oldList的数量 = {oldList.Count}");
-                        }
-                        for (var i = 0; i < oldList.Count; i++)
-                        {
-                            var str = oldList[i];
-                            if (!_needUpdateCatalogs.Contains(str)&&!str.Contains("[")) //没有包含的就一起添加进来
-                            {
-                                _needUpdateCatalogs.Add(str);
-                            }
-                            if (BeOtherDebug)
-                            {
-                                HMRuntimeDialogHelper.DebugStopWatchInfo($"str中包含旧版本数据记录,清理此数据 = {str}");
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    // ignored
-                }
-            }
-
-            if (_needUpdateCatalogs.Count > 0)
-            {
-                var listS = ListToStr(_needUpdateCatalogs);
-                if (BeOtherDebug)
-                {
-                    HMRuntimeDialogHelper.DebugStopWatchInfo($"保存listS = {listS}");
-                }
-                //保存进去,结束后,如果成功就删除,没成功就等待下次重新更新
-                PlayerPrefs.SetString(PrefsName, listS);
-            }
-            else
-            {
-                if (BeOtherDebug)
-                {
-                    HMRuntimeDialogHelper.DebugStopWatchInfo($"保存listS = 空");
-                }
-                PlayerPrefs.SetString(PrefsName, "");
-            }
-
-
+             _needUpdateCatalogs = _checkMainCatalogOp.Result;
+            
             if (BeOtherDebug)
             {
                 HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的MainCatalog数量:{_needUpdateCatalogs.Count} " );
             }
-
-            if (_needUpdateCatalogs.Count <= 0)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo("CheckUpdateMainCatalog: 不需要更新");
-                _updateStatus = AsyncOperationStatus.Succeeded;
-                _resultMessage = "";
-                _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
-                _progressValue = 1;
-                PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
-                Addressables.Release(_checkMainCatalogOp);
-                return;
-            }
+           
 
             Addressables.Release(_checkMainCatalogOp);
         }
@@ -698,7 +632,7 @@ namespace HM
             HMRuntimeDialogHelper.DebugStopWatchInfo("CheckNeedUpdateRecourceLocators");
             try
             {
-                _updateCatalogsOp = Addressables.UpdateCatalogs(_needUpdateCatalogs, false);
+                _updateCatalogsOp = Addressables.UpdateCatalogs(new []{"AddressablesMainContentCatalog"}, false);
             }
             catch
             {
@@ -712,7 +646,6 @@ namespace HM
                 _updateStatusCode = UpdateStatusCode.CHECKING_CONTENT_OF_UPDATING_RESOURCES;
                 DispatchUpdateCallback();
             }
-
             HMRuntimeDialogHelper.DebugStopWatchInfo($"CheckNeedUpdateRecourceLocators Status = {_updateCatalogsOp.Status}" );
             if (_updateCatalogsOp.Status != AsyncOperationStatus.Succeeded)
             {
