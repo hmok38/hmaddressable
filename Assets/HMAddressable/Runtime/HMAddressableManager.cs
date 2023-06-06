@@ -25,12 +25,17 @@ namespace HM
     public static class HMAddressableManager
     {
         //-------防止代码裁剪的类
-        private static HMAAEncrypt_AssetBundleProvider test=new HMAAEncrypt_AssetBundleProvider();
-        private static HMAAEncrypt_AssetBundleProvider_AES test6=new HMAAEncrypt_AssetBundleProvider_AES();
-        private static HMAAEncrypt_AssetBundleProvider_AESWithSeek test7=new HMAAEncrypt_AssetBundleProvider_AESWithSeek();
-        private static AESStreamProcessor test2=new AESStreamProcessor();
-        private static AESStreamProcessorWithSeek test4=new AESStreamProcessorWithSeek();
-        private static AssetBundleProvider test5=new AssetBundleProvider();
+        private static HMAAEncrypt_AssetBundleProvider test = new HMAAEncrypt_AssetBundleProvider();
+        private static HMAAEncrypt_AssetBundleProvider_AES test6 = new HMAAEncrypt_AssetBundleProvider_AES();
+
+        private static HMAAEncrypt_AssetBundleProvider_AESWithSeek test7 =
+            new HMAAEncrypt_AssetBundleProvider_AESWithSeek();
+
+        private static AESStreamProcessor test2 = new AESStreamProcessor();
+        private static AESStreamProcessorWithSeek test4 = new AESStreamProcessorWithSeek();
+
+        private static AssetBundleProvider test5 = new AssetBundleProvider();
+
         //-------防止代码裁剪的类
         private const string PrefsName = "ADDRESSABLES_NEEDUPDATE_NEWV3";
 
@@ -50,7 +55,6 @@ namespace HM
         /// <returns></returns>
         public static T Load<T>(string resName) where T : UnityEngine.Object
         {
-          
             if (ResMap.ContainsKey(resName))
             {
                 return ResMap[resName] as T;
@@ -87,7 +91,7 @@ namespace HM
             {
                 ResMap[resName] = obj;
             }
-         
+
             RemoveFromLoadingMap(resName);
             return ResMap[resName] as T;
         }
@@ -98,8 +102,7 @@ namespace HM
                 return ResMap[resName] as T;
             if (LoadingMap.ContainsKey(resName) && LoadingMap[resName])
             {
-               
-                await UniTask.WaitUntil(() => (!LoadingMap.ContainsKey(resName))||(!LoadingMap[resName]));
+                await UniTask.WaitUntil(() => (!LoadingMap.ContainsKey(resName)) || (!LoadingMap[resName]));
 
                 return ResMap[resName] as T;
             }
@@ -142,11 +145,11 @@ namespace HM
             UniTask<T>[] uniTasks = new UniTask<T>[resNames.Count];
             for (int i = 0; i < resNames.Count; i++)
             {
-                uniTasks[i]=( LoadAsync<T>(resNames[i]));
+                uniTasks[i] = (LoadAsync<T>(resNames[i]));
             }
 
-            var objs=  await UniTask.WhenAll(uniTasks);
-            
+            var objs = await UniTask.WhenAll(uniTasks);
+
             return objs.ToList();
         }
 
@@ -163,10 +166,10 @@ namespace HM
 #if UNITY_EDITOR
             names = GetAllResouceAssetsByFolder<T>(groupNameOrLabel);
 #endif
-            if (names == null||names.Count<=0)
+            if (names == null || names.Count <= 0)
             {
                 var resouceLocationsHandle =
-                    Addressables.LoadResourceLocationsAsync(groupNameOrLabel,typeof(T));
+                    Addressables.LoadResourceLocationsAsync(groupNameOrLabel, typeof(T));
                 await resouceLocationsHandle.Task;
                 var resouceLocations = resouceLocationsHandle.Result;
                 names = new List<string>();
@@ -285,12 +288,11 @@ namespace HM
         /// <param name="groupNameOrLabel"></param>
         public static async void ReleaseResGroup(string groupNameOrLabel)
         {
-            
             List<string> names = null;
 #if UNITY_EDITOR
             names = GetAllResouceAssetsByFolder<Object>(groupNameOrLabel);
 #endif
-            if (names == null||names.Count<=0)
+            if (names == null || names.Count <= 0)
             {
                 var resouceLocationsHandle =
                     Addressables.LoadResourceLocationsAsync(groupNameOrLabel);
@@ -302,8 +304,8 @@ namespace HM
                     names.Add(resouceLocation.PrimaryKey);
                 }
             }
-            
-            
+
+
             ReleaseRes(names);
         }
 
@@ -517,7 +519,7 @@ namespace HM
         /// <summary>
         /// 整体更新的回调
         /// </summary>
-        private static UnityAction<AsyncOperationStatus, float, string,UpdateStatusCode> _updateCb;
+        private static UnityAction<AsyncOperationStatus, float, string, UpdateStatusCode> _updateCb;
 
 
         private static List<string> _needUpdateCatalogs;
@@ -533,7 +535,7 @@ namespace HM
         ///  </summary>
         ///  <param name="updateCb"></param>
         public static async UniTask UpdateAddressablesAllAssets(
-            UnityAction<AsyncOperationStatus, float, string,UpdateStatusCode> updateCb)
+            UnityAction<AsyncOperationStatus, float, string, UpdateStatusCode> updateCb)
         {
             if (_updateStatus == AsyncOperationStatus.None)
             {
@@ -568,8 +570,8 @@ namespace HM
 
             var initializeAsync = Addressables.InitializeAsync();
             await initializeAsync.Task;
-         
-            
+
+
             await CheckUpdateMainCatalog();
             if (!CheckCanGoOn()) return;
 
@@ -587,14 +589,8 @@ namespace HM
         {
             HMRuntimeDialogHelper.DebugStopWatchInfo("CheckUpdateMainCatalog");
             //检查是否需要更新
-            try
-            {
-                _checkMainCatalogOp = Addressables.CheckForCatalogUpdates(false);
-            }
-            catch
-            {
-                // ignored
-            }
+
+            _checkMainCatalogOp = Addressables.CheckForCatalogUpdates(false);
 
 
             while (!_checkMainCatalogOp.IsDone)
@@ -605,7 +601,7 @@ namespace HM
                 await UniTask.NextFrame();
             }
 
-            
+
             if (_checkMainCatalogOp.Status != AsyncOperationStatus.Succeeded)
             {
                 _updateStatus = AsyncOperationStatus.Failed;
@@ -615,13 +611,13 @@ namespace HM
                 return;
             }
 
-             _needUpdateCatalogs = _checkMainCatalogOp.Result;
-            
+            _needUpdateCatalogs = _checkMainCatalogOp.Result;
+
             if (BeOtherDebug)
             {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的MainCatalog数量:{_needUpdateCatalogs.Count} " );
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的MainCatalog数量:{_needUpdateCatalogs.Count} ");
             }
-           
+
 
             Addressables.Release(_checkMainCatalogOp);
         }
@@ -630,14 +626,9 @@ namespace HM
         static async UniTask CheckNeedUpdateRecourceLocators()
         {
             HMRuntimeDialogHelper.DebugStopWatchInfo("CheckNeedUpdateRecourceLocators");
-            try
-            {
-                _updateCatalogsOp = Addressables.UpdateCatalogs(new []{"AddressablesMainContentCatalog"}, false);
-            }
-            catch
-            {
-                // ignored
-            }
+
+            _updateCatalogsOp = Addressables.UpdateCatalogs(new[] {"AddressablesMainContentCatalog"}, false);
+
 
             while (!_updateCatalogsOp.IsDone)
             {
@@ -646,7 +637,9 @@ namespace HM
                 _updateStatusCode = UpdateStatusCode.CHECKING_CONTENT_OF_UPDATING_RESOURCES;
                 DispatchUpdateCallback();
             }
-            HMRuntimeDialogHelper.DebugStopWatchInfo($"CheckNeedUpdateRecourceLocators Status = {_updateCatalogsOp.Status}" );
+
+            HMRuntimeDialogHelper.DebugStopWatchInfo(
+                $"CheckNeedUpdateRecourceLocators Status = {_updateCatalogsOp.Status}");
             if (_updateCatalogsOp.Status != AsyncOperationStatus.Succeeded)
             {
                 _updateStatus = AsyncOperationStatus.Failed;
@@ -663,7 +656,6 @@ namespace HM
 
             if (BeOtherDebug)
             {
-               
                 HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的资源数量:{NeedUpdateKeys.Count}");
             }
 
@@ -682,15 +674,8 @@ namespace HM
 
         private static async UniTask CheckNeedDownloadSize()
         {
-            
-            try
-            {
-                _sizeOpration = Addressables.GetDownloadSizeAsync(NeedUpdateKeys);
-            }
-            catch
-            {
-                // ignored
-            }
+            _sizeOpration = Addressables.GetDownloadSizeAsync(NeedUpdateKeys);
+
 
             while (!_sizeOpration.IsDone)
             {
@@ -719,7 +704,7 @@ namespace HM
             if (_totalDownloadSize <= 0)
             {
                 _updateStatus = AsyncOperationStatus.Succeeded;
-                _resultMessage =  $"{_totalDownloadSize}";
+                _resultMessage = $"{_totalDownloadSize}";
                 _updateStatusCode = UpdateStatusCode.DETECTED_SIZE_OF_RESOURCES_TO_DOWNLOAD;
                 PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
                 Addressables.Release(_sizeOpration);
@@ -733,16 +718,12 @@ namespace HM
         static async UniTask DownLoadAssets()
         {
             HMRuntimeDialogHelper.DebugStopWatchInfo("DownLoadAssets");
-            try
-            {
-                _downloadOp = Addressables.DownloadDependenciesAsync(NeedUpdateKeys, Addressables.MergeMode.Union);
-            }
-            catch
-            {
-                // ignored
-            }
 
-            HMRuntimeDialogHelper.DebugStopWatchInfo("DownLoadAssets TotalSize = " + _downloadOp.GetDownloadStatus().TotalBytes);
+            _downloadOp = Addressables.DownloadDependenciesAsync(NeedUpdateKeys, Addressables.MergeMode.Union);
+
+
+            HMRuntimeDialogHelper.DebugStopWatchInfo("DownLoadAssets TotalSize = " +
+                                                     _downloadOp.GetDownloadStatus().TotalBytes);
 
             while (_downloadOp.Status == AsyncOperationStatus.None && !_downloadOp.IsDone)
             {
@@ -753,10 +734,11 @@ namespace HM
                 DispatchUpdateCallback();
             }
 
-            HMRuntimeDialogHelper.DebugStopWatchInfo($"DownLoadAssets Status = {_downloadOp.Status}" );
+            HMRuntimeDialogHelper.DebugStopWatchInfo($"DownLoadAssets Status = {_downloadOp.Status}");
             if (BeOtherDebug)
             {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"下载资源结束:{_downloadOp.GetDownloadStatus().DownloadedBytes}/{_totalDownloadSize}");
+                HMRuntimeDialogHelper.DebugStopWatchInfo(
+                    $"下载资源结束:{_downloadOp.GetDownloadStatus().DownloadedBytes}/{_totalDownloadSize}");
             }
 
             switch (_downloadOp.Status)
@@ -767,13 +749,14 @@ namespace HM
                     _updateStatusCode = UpdateStatusCode.ERROR_DOWNLOADING_RESOURCES;
                     break;
                 case AsyncOperationStatus.Succeeded:
-                   
+
                     PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
-                    
+
                     if (BeOtherDebug)
                     {
-                        HMRuntimeDialogHelper.DebugStopWatchInfo($"更新成功 值为:{  PlayerPrefs.GetString(PrefsName, "")}");
+                        HMRuntimeDialogHelper.DebugStopWatchInfo($"更新成功 值为:{PlayerPrefs.GetString(PrefsName, "")}");
                     }
+
                     _updateStatus = AsyncOperationStatus.Succeeded;
                     _resultMessage = "";
                     _updateStatusCode = UpdateStatusCode.FINISHED_DOWNLOADING_RESOURCES;
@@ -785,7 +768,7 @@ namespace HM
 
         private static void DispatchUpdateCallback()
         {
-            _updateCb?.Invoke(_updateStatus, _progressValue, _resultMessage,_updateStatusCode);
+            _updateCb?.Invoke(_updateStatus, _progressValue, _resultMessage, _updateStatusCode);
         }
 
 
@@ -806,10 +789,11 @@ namespace HM
 
         public static string ListToStr(List<string> listStr)
         {
-            if (listStr.Count<=0)
+            if (listStr.Count <= 0)
             {
                 return "";
             }
+
             StringBuilder a = new StringBuilder();
             a.Append(listStr[0]);
             for (int i = 1; i < listStr.Count; i++)
@@ -824,8 +808,8 @@ namespace HM
         public static List<string> StrToList(string str)
         {
             if (string.IsNullOrEmpty(str)) return new List<string>();
-           var listStr= str.Split('|');
-           return listStr.ToList();
+            var listStr = str.Split('|');
+            return listStr.ToList();
         }
 
         #endregion

@@ -21,8 +21,11 @@ namespace HM
         [Header("=================================")]
         [Space(20)]
         public EncrypyType MyDefaultAssetsEncryptType = EncrypyType.AESStreamProcessorWithSeek;
-
         
+        [Header("重复依赖组放到远端?默认为false,放在本地")]
+        [Header("=================================")]
+        [Space(20)]
+        public bool DuplicateDependenciesGroupBeRemote;
         /// <summary>
         /// 获得默认的资源供应器类型
         /// </summary>

@@ -13,8 +13,10 @@ MonoBehaviour:
   m_Name: ConfigHMAddressables
   m_EditorClassIdentifier: 
   LocalAseetsPaths:
-  - Assets/Samples/Test/RES
-  RemoteAseetsPaths: []
+  - Assets/Samples/Test/RES/LocalRes
+  RemoteAseetsPaths:
+  - Assets/Samples/Test/RES/RemoteRes
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
   MyDefaultAssetsEncryptType: 3
+  DuplicateDependenciesGroupBeRemote: 1

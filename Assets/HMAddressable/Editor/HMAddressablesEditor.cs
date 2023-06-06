@@ -360,7 +360,8 @@ namespace HM.Editor
             //处理新创建的依赖组
             for (int i = 0; i < newCreatGroups.Count; i++)
             {
-                SetStaticAndLocalGroupSchema(newCreatGroups[i],true);
+                //重复依赖组按照配置表设定放到本地包或者远程包中
+                SetGroupSchema(newCreatGroups[i],true,!config.DuplicateDependenciesGroupBeRemote,true);
             }
             ResetGroupProvider();
             //删除空组
@@ -496,20 +497,19 @@ namespace HM.Editor
             }
         }
 
-        /// <summary>
-        /// 设置组为本地资源组
-        /// </summary>
-        /// <param name="group"></param>
-        private static void SetStaticAndLocalGroupSchema(AddressableAssetGroup group,bool beNeedSetEncryptType)
+        private static void SetGroupSchema(AddressableAssetGroup group, bool beNeedSetEncryptType,bool beLocal,bool beStaticContent)
         {
             var updateGroupSchema = group.GetSchema<ContentUpdateGroupSchema>();
-            updateGroupSchema.StaticContent = true;
-
+            updateGroupSchema.StaticContent = beLocal || (beStaticContent?true:false);
+            string buildPath =
+                beLocal ? AddressableAssetSettings.kLocalBuildPath : AddressableAssetSettings.kRemoteBuildPath;
             var bundledAssetGroupSchema = group.GetSchema<BundledAssetGroupSchema>();
             bundledAssetGroupSchema.BuildPath.SetVariableByName(group.Settings,
-                AddressableAssetSettings.kLocalBuildPath);
+                buildPath);
+            string loadPath =
+                beLocal ? AddressableAssetSettings.kLocalLoadPath : AddressableAssetSettings.kRemoteLoadPath;
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
-                AddressableAssetSettings.kLocalLoadPath);
+                loadPath);
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
             
             
@@ -524,46 +524,11 @@ namespace HM.Editor
                
             }
            
-
-
             UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
             UnityEditor.EditorUtility.FocusProjectWindow();
         }
-
-        /// <summary>
-        /// 设置组为远程资源组
-        /// </summary>
-        /// <param name="group"></param>
-        private static void SetCanChangerAndRemoteGroupSchema(AddressableAssetGroup group,bool beNeedSetEncryptType)
-        {
-            var updateGroupSchema = group.GetSchema<ContentUpdateGroupSchema>();
-            updateGroupSchema.StaticContent = false;
-
-            var bundledAssetGroupSchema = group.GetSchema<BundledAssetGroupSchema>();
-            bundledAssetGroupSchema.BuildPath.SetVariableByName(group.Settings,
-                AddressableAssetSettings.kRemoteBuildPath);
-            bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
-                AddressableAssetSettings.kRemoteLoadPath);
-            bundledAssetGroupSchema.UseAssetBundleCrc = false;
-            
-          
-            if (beNeedSetEncryptType)
-            {
-                //设置HMAAEncrypt_AssetBundleProvider
-                var va = bundledAssetGroupSchema.AssetBundleProviderType;
-                va.Value = ConfigHmAddressables.GetMyDefaultAssetBundleProvider();
-                //没办法了,变量没公开,只好用反射调用
-                EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
-            }
-
-
-            UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
-            UnityEditor.EditorUtility.FocusProjectWindow();
-        }
-
         
-        
-       
+
 
         /// <summary>
         /// 获得某个文件夹的所有子文件夹,并创建组信息
@@ -765,13 +730,17 @@ namespace HM.Editor
                         false, false, null, typeof(BundledAssetGroupSchema), typeof(ContentUpdateGroupSchema));
                     if (beUpdateAssetGroup)
                     {
+                       
                         //是升级包中出现的新组,那么就设置为远程包且为可变组
-                        SetCanChangerAndRemoteGroupSchema(groupInfo.Group,true);
+                        SetGroupSchema(groupInfo.Group, true, false, false);
                     }
                     else
                     {
-                        //不是升级包,那么就设置为本地的,
-                        SetStaticAndLocalGroupSchema(groupInfo.Group,true);
+                        bool beLocal = groupInfo.BeLocalGroup;
+                        
+                        //初始资源组,都打成静态包
+                        SetGroupSchema(groupInfo.Group, true, beLocal, true);
+                       
                     }
 
                     Debug.Log("创建" + groupInfo.GroupName);
@@ -895,7 +864,13 @@ namespace HM.Editor
                 Debug.Log("没有发现需要更新的静态资源包,或之前已经 检查资源升级并设置升级组");
             }
         }
-
+        
+        /// <summary>
+        /// 创建升级组
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <param name="items"></param>
+        /// <param name="groupName"></param>
         private static void CreatContentUpdateGroup(AddressableAssetSettings settings,
             List<AddressableAssetEntry> items, string groupName)
         {
@@ -904,8 +879,10 @@ namespace HM.Editor
             schema.BuildPath.SetVariableByName(settings, AddressableAssetSettings.kRemoteBuildPath);
             schema.LoadPath.SetVariableByName(settings, AddressableAssetSettings.kRemoteLoadPath);
             schema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackTogether;
-            var staiSchema = contentGroup.AddSchema<ContentUpdateGroupSchema>();
-            staiSchema.StaticContent = false;
+            schema.UseAssetBundleCrc = false;
+            
+            var contentUpdateSchema = contentGroup.AddSchema<ContentUpdateGroupSchema>();
+            contentUpdateSchema.StaticContent = false;
             settings.MoveEntries(items, contentGroup);
             
             
@@ -921,7 +898,7 @@ namespace HM.Editor
 
             UnityEditor.EditorUtility.SetDirty(contentGroup);
             UnityEditor.EditorUtility.SetDirty(schema);
-            UnityEditor.EditorUtility.SetDirty(staiSchema);
+            UnityEditor.EditorUtility.SetDirty(contentUpdateSchema);
 
             EditorUtility.FocusProjectWindow();
         }
