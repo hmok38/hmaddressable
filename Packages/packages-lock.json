@@ -22,12 +22,10 @@
       "url": "https://packages.unity.cn"
     },
     "com.unity.collab-proxy": {
-      "version": "1.17.2",
+      "version": "2.0.1",
       "depth": 0,
       "source": "registry",
-      "dependencies": {
-        "com.unity.services.core": "1.0.1"
-      },
+      "dependencies": {},
       "url": "https://packages.unity.cn"
     },
     "com.unity.ext.nunit": {
@@ -47,7 +45,7 @@
       "url": "https://packages.unity.cn"
     },
     "com.unity.ide.visualstudio": {
-      "version": "2.0.16",
+      "version": "2.0.17",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -63,7 +61,7 @@
       "url": "https://packages.unity.cn"
     },
     "com.unity.nuget.newtonsoft-json": {
-      "version": "3.0.2",
+      "version": "3.1.0",
       "depth": 0,
       "source": "registry",
       "dependencies": {},
@@ -74,15 +72,6 @@
       "depth": 1,
       "source": "registry",
       "dependencies": {},
-      "url": "https://packages.unity.cn"
-    },
-    "com.unity.services.core": {
-      "version": "1.0.1",
-      "depth": 1,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.modules.unitywebrequest": "1.0.0"
-      },
       "url": "https://packages.unity.cn"
     },
     "com.unity.test-framework": {

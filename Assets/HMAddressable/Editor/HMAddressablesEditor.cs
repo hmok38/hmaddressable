@@ -34,7 +34,7 @@ namespace HM.Editor
         //=============================public=============================================
 
         [UnityEditor.MenuItem(
-            @"HMAA资源管理/*************************************HMAddresablesAsset资源管理插件<点我读说明>************************")]
+            @"HMAA资源管理/*************************************HMAddresablesAsset资源管理插件<点我读说明>************************",false,0)]
         public static void Readme0()
         {
             Debug.Log(@"HMAddresablesAsset资源管理插件,它是基于UnityAddressablesAssets系统做得自动化打包管理工具,
@@ -49,7 +49,7 @@ namespace HM.Editor
         }
 
         [UnityEditor.MenuItem(
-            @"HMAA资源管理/========================打包选项<点我读说明>==============================")]
+            @"HMAA资源管理/========================打包选项<点我读说明>==============================",false,2)]
         public static void Readme2()
         {
             Debug.Log(@"使用方法:
@@ -58,7 +58,7 @@ namespace HM.Editor
 ");
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/***选择并显示配置表***")]
+        [UnityEditor.MenuItem("HMAA资源管理/***选择并显示配置表***",false,1)]
         public static void ShowAndSelectConfigMenuItem()
         {
             Selection.activeObject = AssetDatabase.LoadAssetAtPath(ConfigPath, typeof(HMAddressablesConfig));
@@ -67,7 +67,7 @@ namespace HM.Editor
             Debug.Log("已经选择并显示配置表");
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/****一键打出包资源(正式包)****")]
+        [UnityEditor.MenuItem("HMAA资源管理/****一键打出包资源(正式包)****",false,3)]
         public static void BuildAddressablesAssetsMenuItem()
         {
             
@@ -81,7 +81,7 @@ namespace HM.Editor
             BuildAsset();
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/****一键打更新资源包(正式包)****")]
+        [UnityEditor.MenuItem("HMAA资源管理/****一键打更新资源包(正式包)****",false,4)]
         public static void BuildUpdateMenuItem()
         {
             //检查设置,没有就创建
@@ -100,7 +100,7 @@ namespace HM.Editor
         }
 
         [UnityEditor.MenuItem(
-            @"HMAA资源管理/========================不影响线上的热更测试<点我读说明>============================")]
+            @"HMAA资源管理/========================不影响线上的热更测试<点我读说明>============================",false,5)]
         public static void Readme4()
         {
             Debug.Log(@"测试包可以配合git使用,用来不影响线上产品的同时 测试热更是否正常,测试方式:
@@ -112,7 +112,7 @@ namespace HM.Editor
 ");
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/********一键打出包资源(测试包)********")]
+        [UnityEditor.MenuItem("HMAA资源管理/********一键打出包资源(测试包)********",false,6)]
         public static void BuildAddressablesTestAssetsMenuItem()
         {
           
@@ -128,7 +128,7 @@ namespace HM.Editor
             BuildAsset();
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/********一键打更新资源包(测试包)********")]
+        [UnityEditor.MenuItem("HMAA资源管理/********一键打更新资源包(测试包)********",false,7)]
         public static void BuildUpdateTestMenuItem()
         {
             //检查设置,没有就创建
@@ -146,12 +146,12 @@ namespace HM.Editor
             BuildUpdateAsset();
         }
 
-        [UnityEditor.MenuItem(@"HMAA资源管理/====================独立配置<不需要可以无视>==========================")]
+        [UnityEditor.MenuItem(@"HMAA资源管理/====================独立配置<不需要可以无视>==========================",false,8)]
         public static void Readme3()
         {
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定")]
+        [UnityEditor.MenuItem("HMAA资源管理/更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定",false,9)]
         public static void BuildAddressablesSettingsMenuItem()
         {
             //检查设置,没有就创建
@@ -163,7 +163,7 @@ namespace HM.Editor
             SetActiveProfiles(false);
             Debug.Log("\"更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定\" 完毕");
         }
-        [UnityEditor.MenuItem("HMAA资源管理/检查资源升级并设置升级组 <发布阶段禁止使用> 使用配置表默认加密设置 可以修改")]
+        [UnityEditor.MenuItem("HMAA资源管理/检查资源升级并设置升级组 <发布阶段禁止使用> 使用配置表默认加密设置 可以修改",false,10)]
         public static void CheckForContentUpdateRestructionsMenuItem()
         {
             //检查静态组升级设置,设立升级组
@@ -172,13 +172,13 @@ namespace HM.Editor
         }
 
         [UnityEditor.MenuItem(
-            "HMAA资源管理/========================以下为谨慎选项<除非发包,否则禁止使用>==============================")]
+            "HMAA资源管理/========================以下为谨慎选项<除非发包,否则禁止使用>==============================",false,11)]
         public static void Readme()
         {
         }
 
        
-        [UnityEditor.MenuItem("HMAA资源管理/清理所有设置(谨慎):打包时会全部资源重新命名,之前发布的包体会更新不到资源")]
+        [UnityEditor.MenuItem("HMAA资源管理/清理所有设置(谨慎):打包时会全部资源重新命名,之前发布的包体会更新不到资源",false,12)]
         public static void CleanAddressablesSettingsMenuItem()
         {
             AssetDatabase.DeleteAsset(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder);
