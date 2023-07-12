@@ -494,6 +494,8 @@ namespace HM.Editor
                         groupInfo.Group);
                     tmp.SetLabel(groupInfo.Path, true, true);
                 }
+
+                EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
             }
         }
 
