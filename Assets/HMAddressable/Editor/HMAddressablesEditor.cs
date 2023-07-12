@@ -493,9 +493,11 @@ namespace HM.Editor
                     var tmp = AddressableAssetSettingsDefaultObject.Settings.CreateOrMoveEntry(assetGuid,
                         groupInfo.Group);
                     tmp.SetLabel(groupInfo.Path, true, true);
+                    EditorUtility.SetDirty(groupInfo.Group);
                 }
 
                 EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
+                UnityEditor.EditorUtility.FocusProjectWindow();
             }
         }
 
@@ -785,6 +787,7 @@ namespace HM.Editor
             {
                 AddressableAssetSettingsDefaultObject.Settings.RemoveGroup(needDeleteGroups[i]);
             }
+            UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
         }
 
         /// <summary>
