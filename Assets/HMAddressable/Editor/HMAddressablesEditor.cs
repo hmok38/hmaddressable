@@ -452,7 +452,8 @@ namespace HM.Editor
                     }
                 }
             }
-
+            EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
+            UnityEditor.EditorUtility.FocusProjectWindow();
             //重新添加到 非特殊组
             foreach (var groupInfo in groupInfos)
             {
@@ -709,6 +710,9 @@ namespace HM.Editor
             {
                 AddressableAssetSettingsDefaultObject.Settings.RemoveGroup(needDeleteGroups[i]);
             }
+            
+            UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
+            EditorUtility.FocusProjectWindow();
         }
 
         /// <summary>
@@ -732,6 +736,8 @@ namespace HM.Editor
                     groupInfo.Group = AddressableAssetSettingsDefaultObject.Settings.CreateGroup(groupInfo.GroupName,
                         false,
                         false, false, null, typeof(BundledAssetGroupSchema), typeof(ContentUpdateGroupSchema));
+                    
+                    UnityEditor.EditorUtility.SetDirty(groupInfo.Group);
                     if (beUpdateAssetGroup)
                     {
                        
@@ -750,7 +756,8 @@ namespace HM.Editor
                     Debug.Log("创建" + groupInfo.GroupName);
                 }
             }
-
+            UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
+            EditorUtility.FocusProjectWindow();
 
             //清理除 builtInGroup 组以外的不包含在groupInfos里面的组
             List<AddressableAssetGroup> needDeleteGroups = new List<AddressableAssetGroup>();
@@ -788,6 +795,7 @@ namespace HM.Editor
                 AddressableAssetSettingsDefaultObject.Settings.RemoveGroup(needDeleteGroups[i]);
             }
             UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
+            EditorUtility.FocusProjectWindow();
         }
 
         /// <summary>
