@@ -52,7 +52,7 @@ public class HMAddressableTest : MonoBehaviour
     }
 
 
-    async void Sphere(bool beSecond = false)
+     void Sphere(bool beSecond = false)
     {
         var prefab = HMAddressableManager.Load<GameObject>(spherePath);
 
@@ -143,7 +143,7 @@ public class HMAddressableTest : MonoBehaviour
            this.allObjs.Add(g);
         }
     }
-    private async void ListReleaseObjTest()
+    private  void ListReleaseObjTest()
     {
         List<string> list = new List<string>() {this.capsulePath, this.spherePath ,this.cylinderPath,this.cylinder2Path,this.CapsuleCopyPath};
         HMAddressableManager.ReleaseRes(list);
@@ -170,7 +170,7 @@ public class HMAddressableTest : MonoBehaviour
         }
        
     }
-    private async void ReleaseObjTest()
+    private  void ReleaseObjTest()
     {
        
         HMAddressableManager.ReleaseResGroup("Assets/Samples/Test/RES/Capsule");
@@ -178,7 +178,7 @@ public class HMAddressableTest : MonoBehaviour
         Debug.Log("卸载资源");
     }
 
-    private async void OnGUI()
+    private async  void OnGUI()
     {
         if (GUILayout.Button("加载list多个对象"))
         {
@@ -215,12 +215,12 @@ public class HMAddressableTest : MonoBehaviour
         if (GUILayout.Button("更新资源"))
         {
             //使用此接口进行统一的资源更新
-            HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
+           await HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
         }
 
         if (GUILayout.Button("载入单个资源"))
         {
-            HMAddressableManager.LoadAsync<GameObject>(capsulePath);
+            await  HMAddressableManager.LoadAsync<GameObject>(capsulePath);
         }
 
         if (GUILayout.Button("创建对象"))
@@ -246,7 +246,7 @@ public class HMAddressableTest : MonoBehaviour
 
         if (GUILayout.Button("加载场景"))
         {
-            HMAddressableManager.LoadSceneAsync("Assets/Samples/Test/RES/Scenes/BeLoadScene.unity");
+           await HMAddressableManager.LoadSceneAsync("Assets/Samples/Test/RES/Scenes/BeLoadScene.unity");
         }
     }
 }
