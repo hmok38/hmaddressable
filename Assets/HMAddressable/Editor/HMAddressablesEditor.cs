@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using HM.Editor.HMAddressable.Editor;
-
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
@@ -29,12 +28,13 @@ namespace HM.Editor
 
         private static HMAddressablesConfig ConfigHmAddressables =>
             AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(ConfigPath);
-        
-        
+
+
         //=============================public=============================================
 
         [UnityEditor.MenuItem(
-            @"HMAA资源管理/*************************************HMAddresablesAsset资源管理插件<点我读说明>************************",false,0)]
+            @"HMAA资源管理/*************************************HMAddresablesAsset资源管理插件<点我读说明>************************",
+            false, 0)]
         public static void Readme0()
         {
             Debug.Log(@"HMAddresablesAsset资源管理插件,它是基于UnityAddressablesAssets系统做得自动化打包管理工具,
@@ -49,7 +49,7 @@ namespace HM.Editor
         }
 
         [UnityEditor.MenuItem(
-            @"HMAA资源管理/========================打包选项<点我读说明>==============================",false,2)]
+            @"HMAA资源管理/========================打包选项<点我读说明>==============================", false, 2)]
         public static void Readme2()
         {
             Debug.Log(@"使用方法:
@@ -58,7 +58,7 @@ namespace HM.Editor
 ");
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/***选择并显示配置表***",false,1)]
+        [UnityEditor.MenuItem("HMAA资源管理/***选择并显示配置表***", false, 1)]
         public static void ShowAndSelectConfigMenuItem()
         {
             Selection.activeObject = AssetDatabase.LoadAssetAtPath(ConfigPath, typeof(HMAddressablesConfig));
@@ -67,10 +67,9 @@ namespace HM.Editor
             Debug.Log("已经选择并显示配置表");
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/****一键打出包资源(正式包)****",false,3)]
+        [UnityEditor.MenuItem("HMAA资源管理/****一键打出包资源(正式包)****", false, 3)]
         public static void BuildAddressablesAssetsMenuItem()
         {
-            
             //检查设置,没有就创建
             CheckAndCreateSetting();
             //创建和更新组设置
@@ -81,7 +80,7 @@ namespace HM.Editor
             BuildAsset();
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/****一键打更新资源包(正式包)****",false,4)]
+        [UnityEditor.MenuItem("HMAA资源管理/****一键打更新资源包(正式包)****", false, 4)]
         public static void BuildUpdateMenuItem()
         {
             //检查设置,没有就创建
@@ -92,15 +91,15 @@ namespace HM.Editor
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(false);
-            
+
             //检查静态组升级设置,设立升级组
             CheckForContentUpdateRestructions();
-            
+
             BuildUpdateAsset();
         }
 
         [UnityEditor.MenuItem(
-            @"HMAA资源管理/========================不影响线上的热更测试<点我读说明>============================",false,5)]
+            @"HMAA资源管理/========================不影响线上的热更测试<点我读说明>============================", false, 5)]
         public static void Readme4()
         {
             Debug.Log(@"测试包可以配合git使用,用来不影响线上产品的同时 测试热更是否正常,测试方式:
@@ -112,10 +111,9 @@ namespace HM.Editor
 ");
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/********一键打出包资源(测试包)********",false,6)]
+        [UnityEditor.MenuItem("HMAA资源管理/********一键打出包资源(测试包)********", false, 6)]
         public static void BuildAddressablesTestAssetsMenuItem()
         {
-          
             //检查设置,没有就创建
             CheckAndCreateSetting();
 
@@ -128,7 +126,7 @@ namespace HM.Editor
             BuildAsset();
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/********一键打更新资源包(测试包)********",false,7)]
+        [UnityEditor.MenuItem("HMAA资源管理/********一键打更新资源包(测试包)********", false, 7)]
         public static void BuildUpdateTestMenuItem()
         {
             //检查设置,没有就创建
@@ -139,19 +137,19 @@ namespace HM.Editor
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(true);
-            
+
             //检查静态组升级设置,设立升级组
             CheckForContentUpdateRestructions();
-            
+
             BuildUpdateAsset();
         }
 
-        [UnityEditor.MenuItem(@"HMAA资源管理/====================独立配置<不需要可以无视>==========================",false,8)]
+        [UnityEditor.MenuItem(@"HMAA资源管理/====================独立配置<不需要可以无视>==========================", false, 8)]
         public static void Readme3()
         {
         }
 
-        [UnityEditor.MenuItem("HMAA资源管理/更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定",false,9)]
+        [UnityEditor.MenuItem("HMAA资源管理/更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定", false, 9)]
         public static void BuildAddressablesSettingsMenuItem()
         {
             //检查设置,没有就创建
@@ -163,7 +161,8 @@ namespace HM.Editor
             SetActiveProfiles(false);
             Debug.Log("\"更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定\" 完毕");
         }
-        [UnityEditor.MenuItem("HMAA资源管理/检查资源升级并设置升级组 <发布阶段禁止使用> 使用配置表默认加密设置 可以修改",false,10)]
+
+        [UnityEditor.MenuItem("HMAA资源管理/检查资源升级并设置升级组 <发布阶段禁止使用> 使用配置表默认加密设置 可以修改", false, 10)]
         public static void CheckForContentUpdateRestructionsMenuItem()
         {
             //检查静态组升级设置,设立升级组
@@ -172,13 +171,13 @@ namespace HM.Editor
         }
 
         [UnityEditor.MenuItem(
-            "HMAA资源管理/========================以下为谨慎选项<除非发包,否则禁止使用>==============================",false,11)]
+            "HMAA资源管理/========================以下为谨慎选项<除非发包,否则禁止使用>==============================", false, 11)]
         public static void Readme()
         {
         }
 
-       
-        [UnityEditor.MenuItem("HMAA资源管理/清理所有设置(谨慎):打包时会全部资源重新命名,之前发布的包体会更新不到资源",false,12)]
+
+        [UnityEditor.MenuItem("HMAA资源管理/清理所有设置(谨慎):打包时会全部资源重新命名,之前发布的包体会更新不到资源", false, 12)]
         public static void CleanAddressablesSettingsMenuItem()
         {
             AssetDatabase.DeleteAsset(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder);
@@ -190,26 +189,12 @@ namespace HM.Editor
             Debug.Log("清理所有设置 完毕!已经删除Assets-AddressableAssetsData文件夹");
         }
 
-       // [UnityEditor.MenuItem("HMAA资源管理/测试")]
+        // [UnityEditor.MenuItem("HMAA资源管理/测试")]
         public static void Test()
         {
-          
         }
 
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         //-------------------------private------------------------------------------------
         /// <summary>
         /// 创建设置Addressables的设置文件
@@ -250,14 +235,13 @@ namespace HM.Editor
 
                 EditorUtility.FocusProjectWindow();
             }
-          
         }
 
         private static void BuildAsset()
         {
             AddressableAssetSettings settings
                 = AddressableAssetSettingsDefaultObject.Settings;
-            
+
             //打包
             IDataBuilder builder
                 = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
@@ -267,12 +251,11 @@ namespace HM.Editor
             settings.ActivePlayerDataBuilderIndex
                 = settings.DataBuilders.IndexOf((ScriptableObject) builder);
             Debug.Log($"打包器选用:{builder.Name}");
-            
-            
+
+
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
-            
-           
-            
+
+
             if (!string.IsNullOrEmpty(result.Error))
                 Debug.LogError("打出包资源错误:" + result.Error);
 
@@ -281,7 +264,7 @@ namespace HM.Editor
                 Debug.Log("打出包资源完成");
             }
         }
-        
+
         private static void BuildUpdateAsset()
         {
             //检查依赖关系-升级包不能检查依赖关系,因为新的依赖关系组会发布成本地包
@@ -298,8 +281,6 @@ namespace HM.Editor
                 return;
             }
 
-           
-
 
             //打资源包
 
@@ -314,6 +295,11 @@ namespace HM.Editor
         /// <param name="config"></param>
         private static void CreatAndUpdateGroupAndContextFromConfig(HMAddressablesConfig config)
         {
+            if (config.ForceRemoteAssetsToLocal)
+            {
+                Debug.LogError("注意:强制将所有资源打入本地组的开关已经开启(配置表设置),如是有意设置可以忽略本提示!");
+            }
+            
             if (!AssetDatabase.IsValidFolder(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder))
             {
                 BuildAddressablesSettingsMenuItem();
@@ -347,6 +333,7 @@ namespace HM.Editor
                 ShowAndSelectConfigMenuItem();
                 return;
             }
+
             SaveAllGroupProvider();
             //根据配置表 创建和清理 组
             CreateAndClearGroup(groupInfos);
@@ -355,22 +342,69 @@ namespace HM.Editor
 
             //处理重复依赖的外部资源
             var helper2 = new CalculateAddressHelper();
-            helper2.CheckForDuplicateDependencies(AddressableAssetSettingsDefaultObject.Settings, groupInfos,out var newCreatGroups);
-            
+            helper2.CheckForDuplicateDependencies(AddressableAssetSettingsDefaultObject.Settings, groupInfos,
+                out var newCreatGroups);
+
             //处理新创建的依赖组
             for (int i = 0; i < newCreatGroups.Count; i++)
             {
                 //重复依赖组按照配置表设定放到本地包或者远程包中
-                SetGroupSchema(newCreatGroups[i],true,!config.DuplicateDependenciesGroupBeRemote,true);
+                SetGroupSchema(newCreatGroups[i], true, !config.DuplicateDependenciesGroupBeRemote, true);
             }
+
             ResetGroupProvider();
+            //处理强制将远程资源打入本地
+            ForceRemoteAssetsToLocal(groupInfos);
             //删除空组
             DeleteEmptyGroup();
             //清理空引用
             ClearGroupMissingReferences();
-           
         }
 
+        /// <summary>
+        /// 根据配置,强制将远程组打入本地包,方便debug包测试
+        /// </summary>
+        private static void ForceRemoteAssetsToLocal(List<GroupInfo> groupInfos)
+        {
+            //打APK包的时候才会进行修改
+            for (int i = 0; i < AddressableAssetSettingsDefaultObject.Settings.groups.Count; i++)
+            {
+                var group = AddressableAssetSettingsDefaultObject.Settings.groups[i];
+                if(group.name.Contains("Built In Data"))continue;
+                //如果配置表开启了强制将远程包打入本地包,则强制修改为本地组
+                if (ConfigHmAddressables.ForceRemoteAssetsToLocal)
+                {
+                    SetGroupSchema(group, true, true, true);
+                }
+                //没开启的话,按照其设定修改组
+                else
+                {
+                    if (group.name.Contains("Duplicate Asset Isolation"))//重复依赖组
+                    {
+                        SetGroupSchema(group, true, !ConfigHmAddressables.DuplicateDependenciesGroupBeRemote, true);
+                    }
+                    else//文件夹组
+                    {
+                        //根据文件夹进行分类
+                        var groupInfo = groupInfos.Find(x => x.Group == group);
+                        if(groupInfo==null)Debug.Log(group.name+" 为空");
+                        if (groupInfo.BeLocalGroup)
+                        {
+                            SetGroupSchema(group, true, true, true);
+                        }
+                        else
+                        {
+                            SetGroupSchema(group, true, groupInfo.BeLocalGroup, true);
+                        }
+
+
+                    }
+                    
+                }
+            }
+
+           
+        }
 
         /// <summary>
         /// 打更新包时的 设置升级组设置
@@ -414,14 +448,13 @@ namespace HM.Editor
             CreateAndClearGroup(groupInfos, true);
             SetAssetsToGroup(groupInfos, true);
             //不处理依赖
-            
+
             DeleteEmptyGroup();
             ClearGroupMissingReferences();
             //不处理组模式Schema
-            
         }
 
-    
+
         /// <summary>
         /// 根据目录将资源添加到组内
         /// </summary>
@@ -452,6 +485,7 @@ namespace HM.Editor
                     }
                 }
             }
+
             EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
             UnityEditor.EditorUtility.FocusProjectWindow();
             //重新添加到 非特殊组
@@ -502,10 +536,11 @@ namespace HM.Editor
             }
         }
 
-        private static void SetGroupSchema(AddressableAssetGroup group, bool beNeedSetEncryptType,bool beLocal,bool beStaticContent)
+        private static void SetGroupSchema(AddressableAssetGroup group, bool beNeedSetEncryptType, bool beLocal,
+            bool beStaticContent)
         {
             var updateGroupSchema = group.GetSchema<ContentUpdateGroupSchema>();
-            updateGroupSchema.StaticContent = beLocal || (beStaticContent?true:false);
+            updateGroupSchema.StaticContent = beLocal || (beStaticContent ? true : false);
             string buildPath =
                 beLocal ? AddressableAssetSettings.kLocalBuildPath : AddressableAssetSettings.kRemoteBuildPath;
             var bundledAssetGroupSchema = group.GetSchema<BundledAssetGroupSchema>();
@@ -516,9 +551,8 @@ namespace HM.Editor
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 loadPath);
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
-            
-            
-          
+
+
             if (beNeedSetEncryptType)
             {
                 //设置HMAAEncrypt_AssetBundleProvider
@@ -526,13 +560,11 @@ namespace HM.Editor
                 va.Value = ConfigHmAddressables.GetMyDefaultAssetBundleProvider();
                 //没办法了,变量没公开,只好用反射调用
                 EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
-               
             }
-           
+
             UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
             UnityEditor.EditorUtility.FocusProjectWindow();
         }
-        
 
 
         /// <summary>
@@ -710,7 +742,7 @@ namespace HM.Editor
             {
                 AddressableAssetSettingsDefaultObject.Settings.RemoveGroup(needDeleteGroups[i]);
             }
-            
+
             UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
             EditorUtility.FocusProjectWindow();
         }
@@ -736,26 +768,25 @@ namespace HM.Editor
                     groupInfo.Group = AddressableAssetSettingsDefaultObject.Settings.CreateGroup(groupInfo.GroupName,
                         false,
                         false, false, null, typeof(BundledAssetGroupSchema), typeof(ContentUpdateGroupSchema));
-                    
+
                     UnityEditor.EditorUtility.SetDirty(groupInfo.Group);
                     if (beUpdateAssetGroup)
                     {
-                       
                         //是升级包中出现的新组,那么就设置为远程包且为可变组
                         SetGroupSchema(groupInfo.Group, true, false, false);
                     }
                     else
                     {
                         bool beLocal = groupInfo.BeLocalGroup;
-                        
+
                         //初始资源组,都打成静态包
                         SetGroupSchema(groupInfo.Group, true, beLocal, true);
-                       
                     }
 
                     Debug.Log("创建" + groupInfo.GroupName);
                 }
             }
+
             UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
             EditorUtility.FocusProjectWindow();
 
@@ -794,6 +825,7 @@ namespace HM.Editor
             {
                 AddressableAssetSettingsDefaultObject.Settings.RemoveGroup(needDeleteGroups[i]);
             }
+
             UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
             EditorUtility.FocusProjectWindow();
         }
@@ -847,15 +879,15 @@ namespace HM.Editor
             string assetPath = Path.Combine(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder,
                 PlatformMappingService.GetPlatformPathSubFolder());
             var path = Path.Combine(assetPath, "addressables_content_state.bin");
-            
-            
+
+
             var obj = AssetDatabase.LoadAssetAtPath<Object>(path);
             if (obj == null)
             {
                 Debug.Log("还没打第一次的资源包:" + path);
                 return;
             }
-            
+
             var modifiedEntries =
                 ContentUpdateScript.GatherModifiedEntriesWithDependencies(
                     AddressableAssetSettingsDefaultObject.Settings,
@@ -877,7 +909,7 @@ namespace HM.Editor
                 Debug.Log("没有发现需要更新的静态资源包,或之前已经 检查资源升级并设置升级组");
             }
         }
-        
+
         /// <summary>
         /// 创建升级组
         /// </summary>
@@ -893,21 +925,19 @@ namespace HM.Editor
             schema.LoadPath.SetVariableByName(settings, AddressableAssetSettings.kRemoteLoadPath);
             schema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackTogether;
             schema.UseAssetBundleCrc = false;
-            
+
             var contentUpdateSchema = contentGroup.AddSchema<ContentUpdateGroupSchema>();
             contentUpdateSchema.StaticContent = false;
             settings.MoveEntries(items, contentGroup);
-            
-            
+
+
             //更新组必须使用默认加密
             //设置HMAAEncrypt_AssetBundleProvider
             var va = schema.AssetBundleProviderType;
             va.Value = ConfigHmAddressables.GetMyDefaultAssetBundleProvider();
             //没办法了,变量没公开,只好用反射调用
             EditPrivateValue(schema, "m_AssetBundleProviderType", va);
-          
-      
-           
+
 
             UnityEditor.EditorUtility.SetDirty(contentGroup);
             UnityEditor.EditorUtility.SetDirty(schema);
@@ -972,7 +1002,7 @@ namespace HM.Editor
                 AddressableAssetSettingsDefaultObject.Settings.profileSettings.GetProfileId(
                     beTest ? "TestProfile" : "Default");
         }
-        
+
         /// <summary>
         /// 编辑其他类的私有变量
         /// </summary>
@@ -981,18 +1011,20 @@ namespace HM.Editor
         /// <param name="value"></param>
         private static void EditPrivateValue(object obj, string valueName, object value)
         {
-            var x = obj.GetType().GetField(valueName,BindingFlags.Instance | BindingFlags.GetField | BindingFlags.NonPublic | BindingFlags.ExactBinding);
+            var x = obj.GetType().GetField(valueName,
+                BindingFlags.Instance | BindingFlags.GetField | BindingFlags.NonPublic | BindingFlags.ExactBinding);
             x.SetValue(obj, value);
         }
 
         private static Dictionary<string, Type> groupProviderMaps = new Dictionary<string, Type>();
+
         /// <summary>
         /// 保存组的供应器设置
         /// </summary>
         private static void SaveAllGroupProvider()
         {
             groupProviderMaps.Clear();
-            if(AddressableAssetSettingsDefaultObject.Settings==null)return;
+            if (AddressableAssetSettingsDefaultObject.Settings == null) return;
 
             var groups = AddressableAssetSettingsDefaultObject.Settings.groups;
             for (int i = 0; i < groups.Count; i++)
@@ -1001,18 +1033,17 @@ namespace HM.Editor
                 var scheme = group.GetSchema<BundledAssetGroupSchema>();
                 if (scheme != null)
                 {
-                    groupProviderMaps.Add(group.name,scheme.AssetBundleProviderType.Value);
+                    groupProviderMaps.Add(group.name, scheme.AssetBundleProviderType.Value);
                 }
             }
-            
         }
-        
+
         /// <summary>
         /// 恢复组的GroupProvider
         /// </summary>
         private static void ResetGroupProvider()
         {
-            if(AddressableAssetSettingsDefaultObject.Settings==null)return;
+            if (AddressableAssetSettingsDefaultObject.Settings == null) return;
             var groups = AddressableAssetSettingsDefaultObject.Settings.groups;
             for (int i = 0; i < groups.Count; i++)
             {

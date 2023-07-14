@@ -19,4 +19,5 @@ MonoBehaviour:
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
   MyDefaultAssetsEncryptType: 3
-  DuplicateDependenciesGroupBeRemote: 1
+  DuplicateDependenciesGroupBeRemote: 0
+  ForceRemoteAssetsToLocal: 0

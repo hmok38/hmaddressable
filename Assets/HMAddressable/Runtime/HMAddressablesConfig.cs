@@ -26,6 +26,11 @@ namespace HM
         [Header("=================================")]
         [Space(20)]
         public bool DuplicateDependenciesGroupBeRemote;
+
+        [Header("强制将远程资源全部打入本地包(Debug测试整包)")] 
+        [Header("==================================")]
+        [Space(20)]
+        public bool ForceRemoteAssetsToLocal;
         /// <summary>
         /// 获得默认的资源供应器类型
         /// </summary>
