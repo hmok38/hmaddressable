@@ -195,7 +195,18 @@ namespace HM.Editor
         {
             SetDataBuilder();
         }
-
+        
+        /// <summary>
+        /// 设置为正式包资源
+        /// </summary>
+        /// <param name="beTest"></param>
+        public static void SetOnlineProfiles(bool beOnline)
+        {
+            //设置配置表选项
+            SetProfiles();
+            SetActiveProfiles(!beOnline);
+        }
+        
 
         //-------------------------private------------------------------------------------
         /// <summary>
