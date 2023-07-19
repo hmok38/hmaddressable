@@ -26,8 +26,7 @@ namespace HM.Editor
     {
         private const string ConfigPath = "Assets/HMAddressables/ConfigHMAddressables.asset";
 
-        private static HMAddressablesConfig ConfigHmAddressables =>
-            AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(ConfigPath);
+        public static HMAddressablesConfig ConfigHmAddressables => AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(ConfigPath);
 
 
         //=============================public=============================================
@@ -91,7 +90,7 @@ namespace HM.Editor
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(false);
-
+            SetDataBuilder();
             //检查静态组升级设置,设立升级组
             CheckForContentUpdateRestructions();
 
@@ -137,7 +136,7 @@ namespace HM.Editor
             //设置配置表选项
             SetProfiles();
             SetActiveProfiles(true);
-
+            SetDataBuilder();
             //检查静态组升级设置,设立升级组
             CheckForContentUpdateRestructions();
 
@@ -154,6 +153,7 @@ namespace HM.Editor
         {
             //检查设置,没有就创建
             CheckAndCreateSetting();
+            SetDataBuilder();
             //更新组及组内容
             CreatAndUpdateGroupAndContextFromConfig(ConfigHmAddressables);
             //设置配置表选项
@@ -167,6 +167,7 @@ namespace HM.Editor
         {
             //检查静态组升级设置,设立升级组
             CheckForContentUpdateRestructions();
+            SetDataBuilder();
             Debug.Log("\"更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定\" 完毕");
         }
 
@@ -189,9 +190,10 @@ namespace HM.Editor
             Debug.Log("清理所有设置 完毕!已经删除Assets-AddressableAssetsData文件夹");
         }
 
-        // [UnityEditor.MenuItem("HMAA资源管理/测试")]
+         [UnityEditor.MenuItem("HMAA资源管理/设置打包器_打安卓IOS前请调用", false, 13)]
         public static void Test()
         {
+            SetDataBuilder();
         }
 
 
@@ -236,8 +238,7 @@ namespace HM.Editor
                 EditorUtility.FocusProjectWindow();
             }
         }
-
-        private static void BuildAsset()
+        public static void SetDataBuilder()
         {
             AddressableAssetSettings settings
                 = AddressableAssetSettingsDefaultObject.Settings;
@@ -251,6 +252,10 @@ namespace HM.Editor
             settings.ActivePlayerDataBuilderIndex
                 = settings.DataBuilders.IndexOf((ScriptableObject) builder);
             Debug.Log($"打包器选用:{builder.Name}");
+        }
+        private static void BuildAsset()
+        {
+            SetDataBuilder();
 
 
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
