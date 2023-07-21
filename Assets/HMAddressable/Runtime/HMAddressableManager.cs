@@ -46,7 +46,28 @@ namespace HM
 
         private static Dictionary<string, SceneInstance> LoadedSceneMap = new Dictionary<string, SceneInstance>();
         private static Dictionary<string, bool> LoadingSceneMap = new Dictionary<string, bool>();
+        private static HMAddressablesConfig _HMAAConfig;
+        
+        /// <summary>
+        /// HMAA的配置表,位于Assets/HMAddressables/Resource/ConfigHMAddressables.asset
+        /// </summary>
+        public static HMAddressablesConfig HMAAConfig
+        {
+            get
+            {
+                if (_HMAAConfig == null)
+                {
+                    _HMAAConfig= Resources.Load<HMAddressablesConfig>("ConfigHMAddressables");
+                    if (_HMAAConfig == null)
+                    {
+                        HMRuntimeDialogHelper.DebugStopWatchInfo($"未加载到ConfigHMAddressables ");
+                    }
+                }
 
+                return _HMAAConfig;
+            }
+        }
+        
         /// <summary>
         /// 加载资源 同步加载,尽量使用异步加载
         /// </summary>
@@ -548,8 +569,17 @@ namespace HM
             _updateStatus = AsyncOperationStatus.None;
             _updateCb += updateCb;
             _progressValue = 0;
-
+            
+#if UNITY_ANDROID
+            if (HMAAConfig.UseGooglePlayAssetDelivery)
+            {
+                await  AndroidGooglePlayAssetDeliveryHelper.CopyGPADAssets(HMAAConfig.GooglePlayAssetDeliveryBundleNames);
+            }
+#endif
+            
 #if UNITY_EDITOR
+            
+            
             _updateStatus = AsyncOperationStatus.Succeeded;
             _resultMessage = "";
             _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
@@ -570,8 +600,9 @@ namespace HM
 
             var initializeAsync = Addressables.InitializeAsync();
             await initializeAsync.Task;
+            
 
-
+            
             await CheckUpdateMainCatalog();
             if (!CheckCanGoOn()) return;
 
