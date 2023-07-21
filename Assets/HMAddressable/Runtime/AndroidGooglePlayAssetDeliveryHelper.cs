@@ -15,7 +15,7 @@ namespace HM
         public static async UniTask<bool> CopyGPADAssets(List<string> assetpackNames)
         {
 #if UNITY_EDITOR || !UNITY_ANDROID
-         //return true;
+         return true;
 #endif
 
             var allAssetPackNames = assetpackNames;
