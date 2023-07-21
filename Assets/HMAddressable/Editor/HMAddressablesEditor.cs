@@ -345,13 +345,13 @@ namespace HM.Editor
             var bundleFilePath = bundleBuildResult.FilePath;
 
             var id = AssetDatabase.CreateFolder("Assets/" + usePlayAssetDeliveryName, name + ".androidpack");
-
-
             var folder = AssetDatabase.GUIDToAssetPath(id);
             CreatGPAD(folder, name);
             //Debug.Log($"folder={folder}");
             AssetDatabase.SaveAssets();
+           
 
+#if  UNITY_2021_1_OR_NEWER
             id = AssetDatabase.CreateFolder(folder, "src");
             folder = AssetDatabase.GUIDToAssetPath(id);
             //Debug.Log($"folder={folder}");
@@ -371,6 +371,22 @@ namespace HM.Editor
             var newPath = folder + $"/{name}";
             System.IO.File.Copy(bundleFilePath, newPath);
             Debug.Log($"拷贝完成:{newPath}");
+#else
+            
+            id = AssetDatabase.CreateFolder(folder, "assetpack");
+            folder = AssetDatabase.GUIDToAssetPath(id);
+            //Debug.Log($"folder={folder}");
+            AssetDatabase.SaveAssets();
+            var newPath = folder + $"/{name}";
+            System.IO.File.Copy(bundleFilePath, newPath);
+            Debug.Log($"拷贝完成:{newPath}");
+            
+#endif
+
+
+
+
+
         }
 
         private const string BuildGradleText =
