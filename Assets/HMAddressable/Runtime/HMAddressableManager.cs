@@ -588,7 +588,15 @@ namespace HM
             return;
 
 #endif
-
+            if (HMAAConfig.BeSkipUpdateCheck)
+            {
+                _updateStatus = AsyncOperationStatus.Succeeded;
+                _resultMessage = "";
+                _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
+                PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
+                DispatchUpdateCallback();
+                return;
+            }
 
             await UpdateWork();
         }
