@@ -530,14 +530,14 @@ namespace HM.Editor
                 //如果配置表开启了强制将远程包打入本地包,则强制修改为本地组
                 if (ConfigHmAddressables.ForceRemoteAssetsToLocal)
                 {
-                    SetGroupSchema(group, true, true, true);
+                    SetGroupSchema(group, false, true, true);
                 }
                 //没开启的话,按照其设定修改组
                 else
                 {
                     if (group.name.Contains("Duplicate Asset Isolation")) //重复依赖组
                     {
-                        SetGroupSchema(group, true, !ConfigHmAddressables.DuplicateDependenciesGroupBeRemote, true);
+                        SetGroupSchema(group, false, !ConfigHmAddressables.DuplicateDependenciesGroupBeRemote, true);
                     }
                     else //文件夹组
                     {
@@ -546,11 +546,11 @@ namespace HM.Editor
                         if (groupInfo == null) Debug.Log(group.name + " 为空");
                         if (groupInfo.BeLocalGroup)
                         {
-                            SetGroupSchema(group, true, true, true);
+                            SetGroupSchema(group, false, true, true);
                         }
                         else
                         {
-                            SetGroupSchema(group, true, groupInfo.BeLocalGroup, true);
+                            SetGroupSchema(group, false, groupInfo.BeLocalGroup, true);
                         }
                     }
                 }
