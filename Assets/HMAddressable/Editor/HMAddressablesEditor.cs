@@ -188,6 +188,12 @@ namespace HM.Editor
             {
                 Directory.Delete("ServerData", true);
             }
+            AssetDatabase.DeleteAsset("Assets/" + usePlayAssetDeliveryName);
+            ConfigHmAddressables.remoteInfo = "";
+            ConfigHmAddressables.GooglePlayAssetDeliveryBundleNames.Clear();
+            UnityEditor.EditorUtility.SetDirty(ConfigHmAddressables);
+            AssetDatabase.SaveAssets();
+            UnityEditor.EditorUtility.FocusProjectWindow();
 
             Debug.Log("清理所有设置 完毕!已经删除Assets-AddressableAssetsData文件夹");
         }

@@ -21,5 +21,7 @@ MonoBehaviour:
   MyDefaultAssetsEncryptType: 3
   DuplicateDependenciesGroupBeRemote: 0
   ForceRemoteAssetsToLocal: 0
-  useGooglePlayAssetDelivery: 0
+  useGooglePlayAssetDelivery: 1
   GooglePlayAssetDeliveryBundleNames: []
+  remoteInfo: 
+  BeSkipUpdateCheck: 0
