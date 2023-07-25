@@ -101,65 +101,73 @@ namespace HM
             await UniTask.NextFrame();
             //开始复制
 
-            HMRuntimeDialogHelper.DebugStopWatchInfo(
-                $"准备hash和json文件的创建,info= {HMAddressableManager.HMAAConfig.remoteInfo} ");
-            if (string.IsNullOrEmpty(HMAddressableManager.HMAAConfig.remoteInfo))
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"config中remoteInfo不存在,不创建 ");
-                return false;
-            }
-
-            string unityAddressablesPath = Path.Combine(Application.persistentDataPath, "com.unity.addressables");
-            if (!Directory.Exists(unityAddressablesPath))
-            {
-                Directory.CreateDirectory(unityAddressablesPath);
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"创建hash和json文件目录:{unityAddressablesPath} ");
-            }
-
-            var infos = HMAddressableManager.HMAAConfig.remoteInfo.Split('|');
-            var hash = infos[0];
-            var fileName = infos[1];
-
-            var jsonPath = Path.Combine(unityAddressablesPath, fileName + ".json");
-            var hashPath = Path.Combine(unityAddressablesPath, fileName + ".hash");
-            if (File.Exists(jsonPath) || File.Exists(hashPath))
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"以及有 json或者 hash文件了,跳过处理");
-                return true;
-            }
-
-
-            //读取
-            var settingPath = Path.Combine(Application.streamingAssetsPath, "aa");
-            settingPath = Path.Combine(settingPath, "settings.json");
-
-
-            using UnityWebRequest settingRequest = UnityWebRequest.Get(settingPath);
-            await settingRequest.SendWebRequest();
-
-            if (settingRequest.result == UnityWebRequest.Result.ConnectionError ||
-                settingRequest.result == UnityWebRequest.Result.ProtocolError ||
-                settingRequest.result == UnityWebRequest.Result.DataProcessingError)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"获取settings.json失败request:{settingPath} ");
-                return false;
-            }
-
-            if (settingRequest.downloadHandler == null)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"获取settings.json失败 settingRequest.downloadHandler==null");
-                return false;
-            }
-
-            if (string.IsNullOrEmpty(settingRequest.downloadHandler.text))
+            try
             {
                 HMRuntimeDialogHelper.DebugStopWatchInfo(
-                    $"获取settings.json失败 settingRequest.downloadHandler.text==null");
+                    $"准备hash和json文件的创建,info= {HMAddressableManager.HMAAConfig.remoteInfo} ");
+                if (string.IsNullOrEmpty(HMAddressableManager.HMAAConfig.remoteInfo))
+                {
+                    HMRuntimeDialogHelper.DebugStopWatchInfo($"config中remoteInfo不存在,不创建 ");
+                    return false;
+                }
+
+                string unityAddressablesPath = Path.Combine(Application.persistentDataPath, "com.unity.addressables");
+                if (!Directory.Exists(unityAddressablesPath))
+                {
+                    Directory.CreateDirectory(unityAddressablesPath);
+                    HMRuntimeDialogHelper.DebugStopWatchInfo($"创建hash和json文件目录:{unityAddressablesPath} ");
+                }
+
+                var infos = HMAddressableManager.HMAAConfig.remoteInfo.Split('|');
+                var hash = infos[0];
+                var fileName = infos[1];
+
+                var jsonPath = Path.Combine(unityAddressablesPath, fileName + ".json");
+                var hashPath = Path.Combine(unityAddressablesPath, fileName + ".hash");
+                if (File.Exists(jsonPath) || File.Exists(hashPath))
+                {
+                    HMRuntimeDialogHelper.DebugStopWatchInfo($"已经存在 json或者 hash文件了,跳过处理");
+                    return true;
+                }
+
+
+                //读取
+                var catalogPath = Path.Combine(Application.streamingAssetsPath, "aa");
+                catalogPath = Path.Combine(catalogPath, "catalog.json");
+
+
+                using UnityWebRequest catalogRequest = UnityWebRequest.Get(catalogPath);
+                await catalogRequest.SendWebRequest();
+
+                if (catalogRequest.result == UnityWebRequest.Result.ConnectionError ||
+                    catalogRequest.result == UnityWebRequest.Result.ProtocolError ||
+                    catalogRequest.result == UnityWebRequest.Result.DataProcessingError)
+                {
+                    HMRuntimeDialogHelper.DebugStopWatchInfo($"获取catalog.json失败request:{catalogPath} ");
+                    return false;
+                }
+
+                if (catalogRequest.downloadHandler == null)
+                {
+                    HMRuntimeDialogHelper.DebugStopWatchInfo($"获取catalog.json失败 catalogRequest.downloadHandler==null");
+                    return false;
+                }
+
+                if (string.IsNullOrEmpty(catalogRequest.downloadHandler.text))
+                {
+                    HMRuntimeDialogHelper.DebugStopWatchInfo(
+                        $"获取 catalog.json失败 catalogRequest.downloadHandler.text==null");
+                    return false;
+                }
+
+                File.WriteAllText(jsonPath, catalogRequest.downloadHandler.text);
+                File.WriteAllText(hashPath, hash);
+            }
+            catch (Exception e)
+            {
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"写入hash和json文件失败:error={e.Message}");
                 return false;
             }
-
-            File.WriteAllText(jsonPath, settingRequest.downloadHandler.text);
-            File.WriteAllText(hashPath, hash);
 
             HMRuntimeDialogHelper.DebugStopWatchInfo($"写入json和hash完成");
             return true;
