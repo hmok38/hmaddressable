@@ -20,15 +20,13 @@ namespace HM
 #endif
         public EncrypyType MyDefaultAssetsEncryptType = EncrypyType.AESStreamProcessorWithSeek;
 
-        
-        
+
 #if UNITY_2021_1_OR_NEWER
          [Space(20), Header("================================="), Header("重复依赖组放到远端?默认为false,放在本地")]
 #else
         [Header("重复依赖组放到远端?默认为false,放在本地"), Header("================================="), Space(40)]
 #endif
         public bool DuplicateDependenciesGroupBeRemote;
-
 
 
 #if UNITY_2021_1_OR_NEWER
@@ -38,8 +36,7 @@ namespace HM
 #endif
         public bool ForceRemoteAssetsToLocal;
 
-        
-        
+
 #if UNITY_2021_1_OR_NEWER
         [Space(40), Header("================================="),
          Header("是否使用谷歌PlayAssetDelivery分包 在谷歌发布大于150M以上的安装包时"),
@@ -56,7 +53,14 @@ namespace HM
         /// </summary>
         public bool UseGooglePlayAssetDelivery
         {
-            get => useGooglePlayAssetDelivery;
+            get
+            {
+#if !UNITY_ANDROID
+                return false;
+#endif
+                return useGooglePlayAssetDelivery;
+            }
+
             set
             {
                 if (value == useGooglePlayAssetDelivery) return;
@@ -79,8 +83,11 @@ namespace HM
         /// </summary>
         [HideInInspector] public List<string> GooglePlayAssetDeliveryBundleNames = new List<string>();
 
-        
-        
+        /// <summary>
+        /// 使用谷歌资源分发的远程文件信息,包含文件名和hash值,用来在持久化目录创建"catalog_2023.07.25.07.25.08.hash"和"catalog_2023.07.25.07.25.08.json",建立
+        /// </summary>
+        [HideInInspector] public string remoteInfo;
+
 #if UNITY_2021_1_OR_NEWER
         [Space(40), Header("================================="),
          Header("跳过检查更新,在运行时不进行更新操作,方便测试")]
