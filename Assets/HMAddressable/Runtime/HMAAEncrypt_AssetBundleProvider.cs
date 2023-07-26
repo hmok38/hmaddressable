@@ -16,7 +16,7 @@ using Debug = UnityEngine.Debug;
 namespace HM
 {
     [DisplayName("不加密")]
-    public class HMAAEncrypt_AssetBundleProvider: AssetBundleProvider
+    public class HMAAEncrypt_AssetBundleProvider : AssetBundleProvider
     {
         public DataConverterBase DataStreamProcessor { get; set; }
 
@@ -36,7 +36,7 @@ namespace HM
 
         public override Type GetDefaultType(IResourceLocation location)
         {
-            return typeof (IAssetBundleResource);
+            return typeof(IAssetBundleResource);
         }
 
         public override bool Initialize(string id, string data)
@@ -46,10 +46,11 @@ namespace HM
             Debug.Log($"{this.GetType().Name} Initialized");
 
             var encrypyType = HMAddressablesConfig.GetEncrypyType(this.GetType());
-            if (encrypyType!=null)
+            if (encrypyType != null)
             {
-                DataStreamProcessor=Activator.CreateInstance(encrypyType) as DataConverterBase;
+                DataStreamProcessor = Activator.CreateInstance(encrypyType) as DataConverterBase;
             }
+
             return true;
         }
 
@@ -64,7 +65,8 @@ namespace HM
                 throw new ArgumentNullException("location");
             if (asset == null)
             {
-                Debug.LogWarningFormat("Releasing null asset bundle from location {0}.  This is an indication that the bundle failed to load.",
+                Debug.LogWarningFormat(
+                    "Releasing null asset bundle from location {0}.  This is an indication that the bundle failed to load.",
                     location);
                 return;
             }
@@ -86,7 +88,7 @@ namespace HM
         }
     }
 
-    internal class HMAA_AssetBundleResource: IAssetBundleResource, IUpdateReceiver
+    internal class HMAA_AssetBundleResource : IAssetBundleResource, IUpdateReceiver
     {
         /// <summary>
         /// Options for where an AssetBundle can be loaded from.
@@ -121,8 +123,7 @@ namespace HM
 
         DataConverterBase m_dataProc;
 
-        [NonSerialized]
-        bool m_WebRequestCompletedCallbackCalled = false;
+        [NonSerialized] bool m_WebRequestCompletedCallbackCalled = false;
 
         int m_Retries;
         bool m_IsLoadingFromCache;
@@ -146,7 +147,8 @@ namespace HM
 
         public static String GetEncryptedAssetLocalPath(String internalId, HMAA_AssetBundleRequestOptions options)
         {
-            return Path.Combine(GetEncryptedCachePath(), internalId.GetHashCode().ToString() + "." + options == null? "000" : options.Hash);
+            return Path.Combine(GetEncryptedCachePath(),
+                internalId.GetHashCode().ToString() + "." + options == null ? "000" : options.Hash);
         }
 
         public static String GetEncryptedCachePath()
@@ -161,7 +163,8 @@ namespace HM
                 if (m_BytesToDownload == -1)
                 {
                     if (m_Options != null)
-                        m_BytesToDownload = m_Options.ComputeSize(m_ProvideHandle.Location, m_ProvideHandle.ResourceManager);
+                        m_BytesToDownload =
+                            m_Options.ComputeSize(m_ProvideHandle.Location, m_ProvideHandle.ResourceManager);
                     else
                         m_BytesToDownload = 0;
                 }
@@ -186,7 +189,8 @@ namespace HM
                     return UnityWebRequestAssetBundle.GetAssetBundle(url);
                 if (!string.IsNullOrEmpty(m_Options.Hash))
                 {
-                    CachedAssetBundle cachedBundle = new CachedAssetBundle(m_Options.BundleName, Hash128.Parse(m_Options.Hash));
+                    CachedAssetBundle cachedBundle =
+                        new CachedAssetBundle(m_Options.BundleName, Hash128.Parse(m_Options.Hash));
 #if ENABLE_CACHING
                     m_IsLoadingFromCache = Caching.IsVersionCached(cachedBundle);
                     if (m_Options.UseCrcForCachedBundle || !m_IsLoadingFromCache)
@@ -264,17 +268,18 @@ namespace HM
 
         float PercentComplete()
         {
-            return m_RequestOperation != null? m_RequestOperation.progress : 0.0f;
+            return m_RequestOperation != null ? m_RequestOperation.progress : 0.0f;
         }
 
         DownloadStatus GetDownloadStatus()
         {
             if (m_Options == null)
                 return default;
-            var status = new DownloadStatus() { TotalBytes = BytesToDownload, IsDone = PercentComplete() >= 1f };
+            var status = new DownloadStatus() {TotalBytes = BytesToDownload, IsDone = PercentComplete() >= 1f};
             if (BytesToDownload > 0)
             {
-                if (m_WebRequestQueueOperation != null && string.IsNullOrEmpty(m_WebRequestQueueOperation.WebRequest.error))
+                if (m_WebRequestQueueOperation != null &&
+                    string.IsNullOrEmpty(m_WebRequestQueueOperation.WebRequest.error))
                     m_DownloadedBytes = (long) (m_WebRequestQueueOperation.WebRequest.downloadedBytes);
                 else if (m_RequestOperation != null && m_RequestOperation is UnityWebRequestAsyncOperation operation &&
                          string.IsNullOrEmpty(operation.webRequest.error))
@@ -303,10 +308,10 @@ namespace HM
                     }
                     else
                     {
-                        var crc = m_Options == null? 0 : m_Options.Crc;
+                        var crc = m_Options == null ? 0 : m_Options.Crc;
                         var inputStream = new MemoryStream(m_downloadHandler.data, false);
                         String filePath = GetEncryptedAssetLocalPath(m_InternalId, m_Options);
-                        saveDownloadBundle(inputStream, filePath);
+                        SaveDownloadBundle(inputStream, filePath);
                         inputStream.Seek(0, SeekOrigin.Begin);
                         var dataStream = m_dataProc.CreateReadStream(inputStream, m_InternalId);
                         if (dataStream.CanSeek)
@@ -400,7 +405,8 @@ namespace HM
                 if (m_WebRequestQueueOperation == null)
                     return false;
                 else
-                    WebRequestQueue.WaitForRequestToBeActive(m_WebRequestQueueOperation, k_WaitForWebRequestMainThreadSleep);
+                    WebRequestQueue.WaitForRequestToBeActive(m_WebRequestQueueOperation,
+                        k_WaitForWebRequestMainThreadSleep);
             }
 
             //We don't want to wait for request op to complete if it's a LoadFromFileAsync. Only UWR will complete in a tight loop like this.
@@ -440,13 +446,15 @@ namespace HM
         /// <param name="handle">The container for AssetBundle loading information.</param>
         /// <param name="loadType">Specifies where an AssetBundle can be loaded from.</param>
         /// <param name="path">The file path or url where the AssetBundle is located.</param>
-        public static void GetLoadInfo(ProvideHandle handle, DataConverterBase dataProc, out LoadType loadType, out string path)
+        public static void GetLoadInfo(ProvideHandle handle, DataConverterBase dataProc, out LoadType loadType,
+            out string path)
         {
             GetLoadInfo(handle.Location, handle.ResourceManager, dataProc, out loadType, out path);
         }
 
-        internal static void GetLoadInfo(IResourceLocation location, ResourceManager resourceManager, DataConverterBase dataProc,
-        out LoadType loadType, out string path)
+        internal static void GetLoadInfo(IResourceLocation location, ResourceManager resourceManager,
+            DataConverterBase dataProc,
+            out LoadType loadType, out string path)
         {
             var options = location?.Data as HMAA_AssetBundleRequestOptions;
             if (options == null)
@@ -460,7 +468,7 @@ namespace HM
             // Debug.Log($"location={(location!=null?location.PrimaryKey:"空")} Application.platform={Application.platform} path={path} dataProc={dataProc!=null} ");
             if (Application.platform == RuntimePlatform.Android && path.StartsWith("jar:"))
             {
-                loadType = options.UseUnityWebRequestForLocalBundles? LoadType.Web : LoadType.Local;
+                loadType = options.UseUnityWebRequestForLocalBundles ? LoadType.Web : LoadType.Local;
                 if (dataProc != null)
                 {
                     // // if a path starts with jar:file, it is an android embeded resource. The resource is a local file but cannot be accessed by 
@@ -486,7 +494,7 @@ namespace HM
                 //Debug.Log($"安卓变了{loadType}==>LoadType.LocalDecrypt");
                 loadType = LoadType.LocalDecrypt;
             }
-            else if (dataProc != null && File.Exists(GetEncryptedAssetLocalPath(path, options))) // cached local path
+            else if (File.Exists(GetEncryptedAssetLocalPath(path, options))) // cached local path
             {
                 // Debug.Log($"安卓变了{loadType}==>LoadType.LocalDecryptCache");
                 loadType = LoadType.LocalDecryptCache;
@@ -503,11 +511,13 @@ namespace HM
             {
 #if !UNITY_2021_1_OR_NEWER
                 if (AsyncOperationHandle.IsWaitingForCompletion)
-                    CompleteBundleLoad(AssetBundle.LoadFromFile(m_TransformedInternalId, m_Options == null? 0 : m_Options.Crc));
+                    CompleteBundleLoad(AssetBundle.LoadFromFile(m_TransformedInternalId,
+                        m_Options == null ? 0 : m_Options.Crc));
                 else
 #endif
                 {
-                    m_RequestOperation = AssetBundle.LoadFromFileAsync(m_TransformedInternalId, m_Options == null? 0 : m_Options.Crc);
+                    m_RequestOperation = AssetBundle.LoadFromFileAsync(m_TransformedInternalId,
+                        m_Options == null ? 0 : m_Options.Crc);
                     AddCallbackInvokeIfDone(m_RequestOperation, LocalRequestOperationCompleted);
                 }
             }
@@ -516,7 +526,8 @@ namespace HM
                 m_WebRequestCompletedCallbackCalled = false;
                 var req = CreateWebRequest(m_TransformedInternalId);
 #if ENABLE_ASYNC_ASSETBUNDLE_UWR
-                ((DownloadHandlerAssetBundle)req.downloadHandler).autoLoadAssetBundle = !(m_ProvideHandle.Location is DownloadOnlyLocation);
+                ((DownloadHandlerAssetBundle)req.downloadHandler).autoLoadAssetBundle =
+ !(m_ProvideHandle.Location is DownloadOnlyLocation);
 #endif
                 req.disposeDownloadHandlerOnDispose = false;
 
@@ -529,24 +540,25 @@ namespace HM
             else if (loadType == LoadType.LocalDecrypt)
             {
                 //Debug.Log($"走的{loadType}");
-                var crc = m_Options == null? 0 : m_Options.Crc;
+                var crc = m_Options == null ? 0 : m_Options.Crc;
                 LoadWithDataProc(m_TransformedInternalId, crc);
                 AddCallbackInvokeIfDone(m_RequestOperation, LocalRequestOperationCompleted);
             }
             else if (loadType == LoadType.LocalDecryptCache)
             {
                 //Debug.Log($"走的{loadType}");
-                var crc = m_Options == null? 0 : m_Options.Crc;
+                var crc = m_Options == null ? 0 : m_Options.Crc;
                 LoadWithDataProc(GetEncryptedAssetLocalPath(m_TransformedInternalId, m_Options), crc);
                 AddCallbackInvokeIfDone(m_RequestOperation, LocalRequestOperationCompleted);
             }
             else
             {
                 Debug.Log(
-                    $"location={(m_ProvideHandle.Location != null? m_ProvideHandle.Location.PrimaryKey : "空")} Application.platform={Application.platform} path={m_TransformedInternalId} dataProc={m_dataProc != null} ");
+                    $"location={(m_ProvideHandle.Location != null ? m_ProvideHandle.Location.PrimaryKey : "空")} Application.platform={Application.platform} path={m_TransformedInternalId} dataProc={m_dataProc != null} ");
                 m_RequestOperation = null;
                 m_ProvideHandle.Complete<AssetBundleResource>(null, false,
-                    new RemoteProviderException(string.Format("Invalid path in AssetBundleProvider: '{0}'.", m_TransformedInternalId),
+                    new RemoteProviderException(
+                        string.Format("Invalid path in AssetBundleProvider: '{0}'.", m_TransformedInternalId),
                         m_ProvideHandle.Location));
                 m_Completed = true;
             }
@@ -571,7 +583,8 @@ namespace HM
         /// <inheritdoc/>
         public void Update(float unscaledDeltaTime)
         {
-            if (m_RequestOperation != null && m_RequestOperation is UnityWebRequestAsyncOperation operation && !operation.isDone)
+            if (m_RequestOperation != null && m_RequestOperation is UnityWebRequestAsyncOperation operation &&
+                !operation.isDone)
             {
                 if (m_LastDownloadedByteCount != operation.webRequest.downloadedBytes)
                 {
@@ -602,7 +615,8 @@ namespace HM
                 m_ProvideHandle.Complete(this, true, null);
             else
                 m_ProvideHandle.Complete<AssetBundleResource>(null, false,
-                    new RemoteProviderException(string.Format("Invalid path in AssetBundleProvider: '{0}'.", m_TransformedInternalId),
+                    new RemoteProviderException(
+                        string.Format("Invalid path in AssetBundleProvider: '{0}'.", m_TransformedInternalId),
                         m_ProvideHandle.Location));
             m_Completed = true;
         }
@@ -672,7 +686,7 @@ namespace HM
                     if (m_IsLoadingFromCache)
                     {
                         message =
-                                $"Web request failed to load from cache. The cached AssetBundle will be cleared from the cache and re-downloaded. Retrying...\n{uwrResult}";
+                            $"Web request failed to load from cache. The cached AssetBundle will be cleared from the cache and re-downloaded. Retrying...\n{uwrResult}";
                         Caching.ClearCachedVersion(m_Options.BundleName, Hash128.Parse(m_Options.Hash));
                         // When attempted to load from cache we always retry on first attempt and failed
                         if (m_Retries == 0)
@@ -697,7 +711,8 @@ namespace HM
                     }
                     else
                     {
-                        var exception = new RemoteProviderException($"Unable to load asset bundle from : {webReq.url}", m_ProvideHandle.Location,
+                        var exception = new RemoteProviderException($"Unable to load asset bundle from : {webReq.url}",
+                            m_ProvideHandle.Location,
                             uwrResult);
                         m_ProvideHandle.Complete<AssetBundleResource>(null, false, exception);
                         m_Completed = true;
@@ -748,7 +763,7 @@ namespace HM
 #endif
         }
 
-        void saveDownloadBundle(Stream stream, string path)
+        void SaveDownloadBundle(Stream stream, string path)
         {
             //Create the Directory if it does not exist
             if (!Directory.Exists(Path.GetDirectoryName(path)))
@@ -783,35 +798,42 @@ namespace HM
 
         private void LoadWithDataProc(String path, uint crc)
         {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-            //Debug.Log("开始走LoadWithDataProc");
             var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read);
-            //Debug.Log($"path={path}   LoadWithDataProc FileStream 耗时 ={stopwatch.ElapsedMilliseconds}");
-            var dataStream = m_dataProc.CreateReadStream(fileStream, m_ProvideHandle.Location.InternalId);
-            //Debug.Log($"path={path} LoadWithDataProc CreateReadStream 耗时 ={stopwatch.ElapsedMilliseconds}");
-            if (dataStream.CanSeek)
+            if (m_dataProc != null)
             {
-                //Debug.Log($"资源开始从内存中加载CanSeek:{path}+{ DateTime.Now.Ticks/10000L} dataStream.size{dataStream.Length}");
-                m_RequestOperation = AssetBundle.LoadFromStreamAsync(dataStream, crc);
+                var dataStream = m_dataProc.CreateReadStream(fileStream, m_ProvideHandle.Location.InternalId);
+                if (dataStream.CanSeek)
+                {
+                    m_RequestOperation = AssetBundle.LoadFromStreamAsync(dataStream, crc);
+                }
+                else
+                {
+                    var memStream = new MemoryStream();
+                    dataStream.CopyTo(memStream);
+                    dataStream.Flush();
+                    memStream.Position = 0;
+                    m_RequestOperation = AssetBundle.LoadFromStreamAsync(memStream, crc);
+                }
+
+                dataStream.Dispose();
             }
             else
             {
-                // Debug.Log("开始走LoadWithDataProc->这里");
-                //Slow path needed if stream is not seekable
-
-                var memStream = new MemoryStream();
-                dataStream.CopyTo(memStream);
-                //Debug.Log($"path={path} LoadWithDataProc copy数据操作耗时 ={stopwatch.ElapsedMilliseconds}");
-                dataStream.Flush();
-                dataStream.Dispose();
-                fileStream.Dispose();
-                stopwatch.Stop();
-                //Debug.Log($"path={path} LoadWithDataProc 刷新数据操作耗时 ={stopwatch.ElapsedMilliseconds}");
-                memStream.Position = 0;
-                //Debug.Log($"资源开始从内存中加载CanSeek:{path}+{ DateTime.Now.Ticks/10000L} ");
-                m_RequestOperation = AssetBundle.LoadFromStreamAsync(memStream, crc);
+                if (fileStream.CanSeek)
+                {
+                    m_RequestOperation = AssetBundle.LoadFromStreamAsync(fileStream, crc);
+                }
+                else
+                {
+                    var memStream = new MemoryStream();
+                    fileStream.CopyTo(memStream);
+                    fileStream.Flush();
+                    memStream.Position = 0;
+                    m_RequestOperation = AssetBundle.LoadFromStreamAsync(memStream, crc);
+                }
             }
+
+            fileStream.Dispose();
         }
     }
 
@@ -819,17 +841,17 @@ namespace HM
     /// Contains cache information to be used by the AssetBundleProvider
     /// </summary>
     [Serializable]
-    public class HMAA_AssetBundleRequestOptions: AssetBundleRequestOptions
+    public class HMAA_AssetBundleRequestOptions : AssetBundleRequestOptions
     {
         public override long ComputeSize(IResourceLocation location, ResourceManager resourceManager)
         {
-            var id = resourceManager == null? location.InternalId : resourceManager.TransformInternalId(location);
+            var id = resourceManager == null ? location.InternalId : resourceManager.TransformInternalId(location);
             if (!ResourceManagerConfig.IsPathRemote(id))
                 return 0;
             var locHash = Hash128.Parse(Hash);
 #if ENABLE_CACHING
             HMAAEncrypt_AssetBundleProvider assetBundleProvider =
-                    resourceManager.GetResourceProvider(null, location) as HMAAEncrypt_AssetBundleProvider;
+                resourceManager.GetResourceProvider(null, location) as HMAAEncrypt_AssetBundleProvider;
             if (assetBundleProvider != null & assetBundleProvider.DataStreamProcessor != null)
             {
                 // check encrypted bundle cache

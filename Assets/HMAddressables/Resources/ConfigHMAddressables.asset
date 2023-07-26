@@ -18,7 +18,7 @@ MonoBehaviour:
   - Assets/Samples/Test/RES/RemoteRes
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
-  MyDefaultAssetsEncryptType: 3
+  MyDefaultAssetsEncryptType: 0
   DuplicateDependenciesGroupBeRemote: 0
   ForceRemoteAssetsToLocal: 0
   useGooglePlayAssetDelivery: 1

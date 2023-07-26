@@ -9,3 +9,5 @@
 /*.sln
 /*.user
 /ServerData
+/AABDebugTool/app.apks
+/AABDebugTool/launcher-release.aab
