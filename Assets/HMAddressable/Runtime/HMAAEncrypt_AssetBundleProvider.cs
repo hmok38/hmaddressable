@@ -811,11 +811,11 @@ namespace HM
                     var memStream = new MemoryStream();
                     dataStream.CopyTo(memStream);
                     dataStream.Flush();
+                    dataStream.Dispose();
+                    fileStream.Dispose();
                     memStream.Position = 0;
                     m_RequestOperation = AssetBundle.LoadFromStreamAsync(memStream, crc);
                 }
-
-                dataStream.Dispose();
             }
             else
             {
@@ -828,12 +828,12 @@ namespace HM
                     var memStream = new MemoryStream();
                     fileStream.CopyTo(memStream);
                     fileStream.Flush();
+                    fileStream.Dispose();
                     memStream.Position = 0;
                     m_RequestOperation = AssetBundle.LoadFromStreamAsync(memStream, crc);
                 }
             }
 
-            fileStream.Dispose();
         }
     }
 
