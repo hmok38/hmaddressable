@@ -11,40 +11,46 @@ namespace HM
         [Header("要远程下载的资源目录")] public string[] RemoteAseetsPaths = new string[] { };
         [Header("正式资源服务器分发地址")] public string RemoteLoadPath = "http://[PrivateIpAddress]/[BuildTarget]";
         [Header("测试资源服务器分发地址")] public string TestRemoteLoadPath = "http://[PrivateIpAddress]/Test/[BuildTarget]";
+
+
 #if UNITY_2021_1_OR_NEWER
- [Space(40), Header("================================="), Header("默认资源加密类型,新创建组或重复引用组"),
-         Header("及升级组都会默认使用此加密,如某些组不需要加密可去组设置进行调整")]
+        [Space(40), Header("=============加密================"),
+         Header("及升级组都会默认使用此加密,如某些组不需要加密可去组设置进行调整"), Header("需要加密的文件夹名后缀")]
 #else
-        [Header("及升级组都会默认使用此加密,如某些组不需要加密可去组设置进行调整"), Header("默认资源加密类型,新创建组或重复引用组"),
-         Header("================================="), Space(40)]
+        [Header("需要加密的文件夹(资源组)"), Header("此文件夹(不包含子文件夹)生成的资源组需要加密,采用下面的加密方式"),
+         Header("============加密================="), Space(40)]
 #endif
+        public string[] EncryptAssetsGroup;
+
+
+        [Header("上述加密文件夹使用的资源加密类型")]
         public EncrypyType MyDefaultAssetsEncryptType = EncrypyType.AESStreamProcessorWithSeek;
 
 
 #if UNITY_2021_1_OR_NEWER
-         [Space(20), Header("================================="), Header("重复依赖组放到远端?默认为false,放在本地")]
+         [Space(20), Header("=========重复依赖组=============="), Header("重复依赖组放到远端?默认为false,放在本地")]
 #else
-        [Header("重复依赖组放到远端?默认为false,放在本地"), Header("================================="), Space(40)]
+        [Header("重复依赖组放到远端?默认为false,放在本地"), Header("===========重复依赖组=============="), Space(40)]
 #endif
         public bool DuplicateDependenciesGroupBeRemote;
 
 
 #if UNITY_2021_1_OR_NEWER
-        [Space(40), Header("================================="), Header("强制将远程资源全部打入本地包(Debug测试整包)")]
+        [Space(40), Header("==========Debug测试整包==============="), Header("强制将远程资源全部打入本地包(Debug测试整包)")]
 #else
-        [Header("强制将远程资源全部打入本地包(Debug测试整包)"), Header("================================="), Space(40)]
+        [Header("强制将远程资源全部打入本地包(Debug测试整包)"), Header("=============Debug测试整包============="), Space(40)]
 #endif
         public bool ForceRemoteAssetsToLocal;
 
 
 #if UNITY_2021_1_OR_NEWER
-        [Space(40), Header("================================="),
+        [Space(40), Header("===========GPAD================="),
          Header("是否使用谷歌PlayAssetDelivery分包 在谷歌发布大于150M以上的安装包时"),
          Header("会将设置为Remote的资源组作为分包打入AAB中,在做资源检查时,将这些资源复制安装到AA的持久化目录"),
          SerializeField]
 #else
         [SerializeField, Header("会将设置为Remote的资源组作为分包打入AAB中,在做资源检查时,将这些资源复制安装到AA的持久化目录"),
-         Header("是否使用谷歌PlayAssetDelivery分包 在谷歌发布大于150M以上的安装包时"), Header("================================="), Space(40)]
+         Header("是否使用谷歌PlayAssetDelivery分包 在谷歌发布大于150M以上的安装包时"), Header("=============GPAD=============="), Space(40)]
 #endif
         private bool useGooglePlayAssetDelivery;
 
@@ -89,11 +95,11 @@ namespace HM
         [HideInInspector] public string remoteInfo;
 
 #if UNITY_2021_1_OR_NEWER
-        [Space(40), Header("================================="),
+        [Space(40), Header("===========跳过更新================="),
          Header("跳过检查更新,在运行时不进行更新操作,方便测试")]
 #else
         [Header("跳过检查更新,在运行时不进行更新操作,方便测试"),
-         Header("================================="), Space(40)]
+         Header("=============跳过更新================"), Space(40)]
 #endif
         public bool BeSkipUpdateCheck;
 
@@ -110,6 +116,15 @@ namespace HM
                 case EncrypyType.AESStreamProcessorWithSeek: return typeof(HMAAEncrypt_AssetBundleProvider_AESWithSeek);
                 default: return typeof(HMAAEncrypt_AssetBundleProvider);
             }
+        }
+        
+        /// <summary>
+        /// 获得不加密的资源供应器类型
+        /// </summary>
+        /// <returns></returns>
+        public Type GetNonEncryptAssetBundleProvider()
+        {
+            return typeof(HMAAEncrypt_AssetBundleProvider);
         }
 
         /// <summary>
