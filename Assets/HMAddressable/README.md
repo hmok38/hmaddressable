@@ -103,3 +103,10 @@ by:黄敏
 3. 依赖 UniTask异步插件 请在PackageManage中点+号,选择git url
    输入: https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask 有时候会加载失败,多试几次
    实在不行就去 https://github.com/Cysharp/UniTask.git 下载unityPackage包
+
+---
+
+
+**更新记录**
+* <4.1.0版本>:加密与不加密组的设置可以在配置表中进行预先设置,不再/也不能额外在组设置中修改加密设置
+* <4.0.0版本>:安卓支持谷歌 Play Asset Delivery(GPAD)分包分发,大于150M的包体可以发布为.aab或者导出安卓工程,会将设置为远程组的资源组也打入一份到本地包中,随同主包一同发布.
