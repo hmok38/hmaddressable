@@ -1,0 +1,6 @@
+{
+  "fieldNames":['Id', 'stringV', 'intV', 'unitV', 'longV', 'doubleV', 'floatV', 'boolV', 'stringListV', 'intListV', 'doubleListV', 'floatListV', 'boolListV'],
+  "fieldTypes":['int', 'string', 'int', 'uint', 'long', 'double', 'float', 'bool', 'string[]', 'int[]', 'double[]', 'float[]', 'bool[]'],
+  "fieldDescriptions":['I大小,必须有Id', '字符串值', '整数值（数值超过范围不会溢出）', '整数值（数值超过范围不会溢出）', '长整形（数值超过范围不会溢出）', 'double值都会变成float值', 'float值', 'bool值', '字符串列表', 'int值列表', 'double列表会变成float列表', 'float列表', 'bool列表'],
+  "datas":[["0", "", "0", "4294967295", "0", "1.23", "0", "true", "[\"one\", \"two\", \"1,2\"]", "[1, 2, 3]", "[1.23, 2.31]", "null", "null"], ["1", "wh   ite2", "2147483647", "0", "922337203685477807", "0", "4.1", "false", "null", "null", "null", "[1.23, 2.31]", "[false, true]"]]
+}

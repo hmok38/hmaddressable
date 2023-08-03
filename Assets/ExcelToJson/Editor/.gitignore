@@ -1,0 +1,8 @@
+*.csproj
+/Excel2Json/GameConfig/excel_to_json/config_client
+/Excel2Json/GameConfig/excel_to_json/config_server
+/Excel2Json/GameConfig/excel_to_json/release_client
+/Excel2Json/GameConfig/excel_to_json/release_server
+/Excel2Json/GameConfig/excel_to_json/crypto
+/Excel2Json/GameConfig/excel_to_json/merge
+/Excel2Json/GameConfig/excel_to_json/tools/py37/xlrd
