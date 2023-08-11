@@ -22,7 +22,7 @@ public class ExcelToMiniJsonScripteObj : ScriptableObject
             return config;
         }
     }
-
+    [Header("Bat")]
     public string batPath = "../Tools/UnityTools/Excel2Json/GameConfig/excel_to_json/__export_unity_mini.bat";
     public string excelPath="../Excel";
     public string jsonOutPath="Assets/Bundles/ConfigMini";

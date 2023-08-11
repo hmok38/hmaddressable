@@ -24,28 +24,23 @@ public class ExcelToMiniJson : MonoBehaviour
     {
         DirectoryInfo dir = new DirectoryInfo(Application.dataPath).Parent;
         string batPath = Path.Combine(dir.FullName, ExcelToMiniJsonScripteObj.Instance.batPath);
+        if (!File.Exists(batPath))
+        {
+            Debug.LogError($"没有找到Bat文件:{batPath}");
+            return;
+        }
+        
         DirectoryInfo batRootPath = new DirectoryInfo(batPath);
         string excelPath = Path.Combine(dir.FullName, ExcelToMiniJsonScripteObj.Instance.excelPath);
+        if (!Directory.Exists(excelPath))
+        {
+            Debug.LogError($"没有找到excel表路径文件:{excelPath}");
+            return;
+        }
+        
         string jsonPath = Path.Combine(dir.FullName, ExcelToMiniJsonScripteObj.Instance.jsonOutPath);
         string csCodePath = Path.Combine(dir.FullName, ExcelToMiniJsonScripteObj.Instance.csCodeOutPath);
-        string pyPath =
-            @"D:\MyTestCode\HMAddressables\HMAddressablesProject\Tools\UnityTools\Excel2Json\GameConfig\excel_to_json\tools\py37\py37.exe ";
-
-        string pyCodePath =
-            @"D:\MyTestCode\HMAddressables\HMAddressablesProject\Tools\UnityTools\Excel2Json\GameConfig\excel_to_json\__export_unity_mini.py";
-        string arg =
-            $"{pyPath} {pyCodePath} '{excelPath}' '{jsonPath}' '{csCodePath}'";
-
-        // Debug.Log(arg);
-        // Process process = new Process();
-        // ProcessStartInfo startInfo = new ProcessStartInfo();
-        // startInfo.FileName = @"cmd.exe";
-        // startInfo.Arguments = arg; // list directory contents
-        // startInfo.WindowStyle = ProcessWindowStyle.Maximized; 
-        // //startInfo.RedirectStandardOutput = true; // redirect output
-        // //startInfo.UseShellExecute = false;
-        // process.StartInfo = startInfo;
-        // process.Start();
+    
 
 
         string rootCmd = dir.Root.Name.Split(':')[0] + ":";
@@ -62,6 +57,11 @@ public class ExcelToMiniJson : MonoBehaviour
             cmd
             //pauseCmd
         };
+
+        
+        
+        
+        
         Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(cmds));
         UnityEditor.EditorUtility.DisplayProgressBar("导出Excel", "准备导出", 0.1f);
 
@@ -90,6 +90,7 @@ public class ExcelToMiniJson : MonoBehaviour
         string output = p.StandardOutput.ReadToEnd();
         p.Close();
         var index = output.IndexOf("准备导出到MiniJson格式");
+        if(index>=0)
         output= output.Substring(index);
         UnityEditor.EditorUtility.DisplayProgressBar("导出Excel", "导出完毕,正在刷新资源", 0.9f);
         Debug.Log(output);
