@@ -83,9 +83,8 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/****一键打更新资源包(正式包)****", false, 4)]
         public static void BuildUpdateMenuItem()
         {
-            
             UpdateAASetting(false);
-            
+
             BuildUpdateAsset();
             SaveAssetAndRefresh();
         }
@@ -207,13 +206,13 @@ namespace HM.Editor
             //组设置(加密/不加密和远程/本地)
             SetAllGroupSchema();
         }
+
         /// <summary>
         /// 刷新更新资源设置
         /// </summary>
         /// <param name="beTest"></param>
         private static void UpdateAASetting(bool beTest)
         {
-            
             //检查设置,没有就创建
             CheckAndCreateSetting();
             //更新组设置-采用升级资源组配置
@@ -544,8 +543,21 @@ namespace HM.Editor
                 ShowAndSelectConfigMenuItem();
                 return;
             }
+            //创建本地及远程组的 DirectoryInfo 的列表
 
-            //打APK包的时候才会进行修改
+            var localDirectoryInfos = new List<DirectoryInfo>();
+            foreach (var path in ConfigHmAddressables.LocalAseetsPaths)
+            {
+                localDirectoryInfos.Add(new DirectoryInfo(path));
+            }
+
+            var remoteDirectoryInfos = new List<DirectoryInfo>();
+            foreach (var path in ConfigHmAddressables.RemoteAseetsPaths)
+            {
+                remoteDirectoryInfos.Add(new DirectoryInfo(path));
+            }
+
+            //打包的时候才会进行修改
             for (int i = 0; i < AddressableAssetSettingsDefaultObject.Settings.groups.Count; i++)
             {
                 var group = AddressableAssetSettingsDefaultObject.Settings.groups[i];
@@ -574,17 +586,20 @@ namespace HM.Editor
 
                     else //文件夹组
                     {
-                        //根据文件夹进行分类
-                        var groupInfo = groupInfos.Find(x => x.GroupName.Replace('/','-') == group.Name);
-                        if (groupInfo == null) Debug.Log(group.name + " 为空");
-                        if (groupInfo.BeLocalGroup)
-                        {
-                            SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group), true, true);
-                        }
-                        else
-                        {
-                            SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group), groupInfo.BeLocalGroup, true);
-                        }
+                        SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group),
+                            CheckGroupAssetsBeLocalGroup(group, localDirectoryInfos, remoteDirectoryInfos),
+                            true);
+                        // //根据文件夹进行分类
+                        // var groupInfo = groupInfos.Find(x => x.GroupName.Replace('/', '-') == group.Name);
+                        // if (groupInfo == null) Debug.Log(group.name + " 为空");
+                        // if (groupInfo.BeLocalGroup)
+                        // {
+                        //     SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group), true, true);
+                        // }
+                        // else
+                        // {
+                        //     SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group), groupInfo.BeLocalGroup, true);
+                        // }
                     }
                 }
             }
@@ -769,6 +784,7 @@ namespace HM.Editor
             GroupInfo parentGroupInfo, bool beLocalGroup)
         {
             if (!AssetDatabase.IsValidFolder(folder)) return;
+
             var baseInfo = CreateGroupInfo(folder, parentGroupInfo, beLocalGroup);
             if (baseInfo != null)
             {
@@ -1221,6 +1237,39 @@ namespace HM.Editor
             }
 
             return false;
+        }
+
+        private static DirectoryInfo assetFolderDirectoryInfo =
+            new DirectoryInfo(Application.dataPath);
+
+        private static bool CheckGroupAssetsBeLocalGroup(AddressableAssetGroup aagroup,
+            List<DirectoryInfo> localDirectoryInfos, List<DirectoryInfo> remoteDirectoryInfos)
+        {
+            if (aagroup.entries.Count <= 0) return true; //没有资源的话会被删除,可以随便返回什么
+            var entry = aagroup.entries.First();
+            if (entry == null) return true;
+            FileInfo entryDirectoryInfo = new FileInfo(entry.AssetPath);
+            //然后一层一层父物体向上找,在哪个列表(本地/远端)组找到就是它所属的
+
+            var parenDirectInfo = entryDirectoryInfo.Directory;
+            while (true)
+            {
+                if (parenDirectInfo == null || assetFolderDirectoryInfo.FullName.Equals(parenDirectInfo.FullName))
+                    throw new Exception($"错误:文件夹未在工程目录中 {entryDirectoryInfo.Directory.FullName}");
+                if (remoteDirectoryInfos.FindIndex(x => x.FullName.Equals(parenDirectInfo.FullName)) >= 0)
+                {
+                    return false;
+                }
+
+                if (localDirectoryInfos.FindIndex(x => x.FullName.Equals(parenDirectInfo.FullName)) >= 0)
+                {
+                    return true;
+                }
+
+                parenDirectInfo = parenDirectInfo.Parent;
+            }
+
+            return true;
         }
 
         private static bool BeAssetsInEncryptGroup(string assetPath)
