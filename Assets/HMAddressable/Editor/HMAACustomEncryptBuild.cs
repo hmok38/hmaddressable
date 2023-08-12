@@ -1033,27 +1033,7 @@ namespace HM.Editor.HMAddressable.Editor
                
                 WriteFile(remoteJsonBuildPath, jsonText, builderInput.Registry);
                 WriteFile(remoteHashBuildPath, contentHash, builderInput.Registry);
-                
-                //将远程资源的信息即"catalog_2023.07.25.06.42.40.json"和"catalog_2023.07.25.06.42.40.hash"的hash值以及文件名记录到config中,
-                //在运行时,拷贝到持久化目录
-
-                if (HMAddressablesEditor.ConfigHmAddressables.UseGooglePlayAssetDelivery)
-                {
-                    var remoteInfo = contentHash+"|catalog_" + builderInput.PlayerVersion;
-                    HMAddressablesEditor.ConfigHmAddressables.remoteInfo=remoteInfo;
-                    UnityEditor.EditorUtility.SetDirty(HMAddressablesEditor.ConfigHmAddressables);
-                    UnityEditor.AssetDatabase.SaveAssets();
-                    UnityEditor.EditorUtility.FocusProjectWindow();
-                    Debug.Log($"使用了谷歌分发:RemoteInfo={remoteInfo}");
-                }
-                else
-                {
-                    Debug.Log($"未使用了谷歌分发,清理remoteInfo");
-                    HMAddressablesEditor.ConfigHmAddressables.remoteInfo = "";
-                }
                
-                
-
                 dependencyHashes = new string[((int)ContentCatalogProvider.DependencyHashIndex.Count)];
                 dependencyHashes[(int)ContentCatalogProvider.DependencyHashIndex.Remote] = ResourceManagerRuntimeData.kCatalogAddress + "RemoteHash";
                 dependencyHashes[(int)ContentCatalogProvider.DependencyHashIndex.Cache] = ResourceManagerRuntimeData.kCatalogAddress + "CacheHash";

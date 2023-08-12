@@ -10,167 +10,167 @@ namespace HM
 {
     public static class AndroidGooglePlayAssetDeliveryHelper
     {
-        public static async UniTask<bool> CopyGPADAssets(List<string> assetpackNames)
-        {
-#if UNITY_EDITOR || !UNITY_ANDROID
-            return true;
-#endif
+        // public static async UniTask<bool> CopyGPADAssets(List<string> assetpackNames)
+        // {
+// #if UNITY_EDITOR || !UNITY_ANDROID
+            // return true;
+// #endif
 
-            var allAssetPackNames = assetpackNames;
-            HMRuntimeDialogHelper.DebugStopWatchInfo($"准备GPAD资源的复制,共:{allAssetPackNames.Count} 组");
-            string ebPath = Path.Combine(Application.persistentDataPath, "eb");
-            if (!Directory.Exists(ebPath))
-            {
-                Directory.CreateDirectory(ebPath);
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"创建AA资源目录:{ebPath} ");
-            }
-
-
-            for (int i = 0; i < allAssetPackNames.Count; i++)
-            {
-                var aaName = allAssetPackNames[i];
-
-                var aaPath = Path.Combine(ebPath, aaName);
-                if (File.Exists(aaPath))
-                {
-                    HMRuntimeDialogHelper.DebugStopWatchInfo($"资源已存在,跳过:{aaName} ");
-                    continue;
-                }
+            // var allAssetPackNames = assetpackNames;
+            // HMRuntimeDialogHelper.DebugStopWatchInfo($"准备GPAD资源的复制,共:{allAssetPackNames.Count} 组");
+            // string ebPath = Path.Combine(Application.persistentDataPath, "eb");
+            // if (!Directory.Exists(ebPath))
+            // {
+                // Directory.CreateDirectory(ebPath);
+                // HMRuntimeDialogHelper.DebugStopWatchInfo($"创建AA资源目录:{ebPath} ");
+            // }
 
 
-                var assetFileName = "HMAA" + aaName;
-                var assetApkName = "split_" + assetFileName;
+            // for (int i = 0; i < allAssetPackNames.Count; i++)
+            // {
+                // var aaName = allAssetPackNames[i];
 
-                //Application.streamingAssetsPath=  jar:file:///data/app/com.hmok.PadWithHMAA-1/base.apk!/assets
-                var assetStreamPath = Application.streamingAssetsPath.Replace("base.", assetApkName + ".");
-                assetStreamPath = Path.Combine(assetStreamPath, "assetpack");
-                assetStreamPath = Path.Combine(assetStreamPath, assetFileName);
-
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"准备获取GPAD包:{assetFileName} 路径 {assetStreamPath} ");
-                try
-                {
-                    using UnityWebRequest webRequest = UnityWebRequest.Get(assetStreamPath);
-                    await webRequest.SendWebRequest();
-
-                    if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
-                        webRequest.result == UnityWebRequest.Result.ProtocolError ||
-                        webRequest.result == UnityWebRequest.Result.DataProcessingError)
-                    {
-                        HMRuntimeDialogHelper.DebugStopWatchInfo($"获取GPAD包失败request:{assetStreamPath} ");
-                        return false;
-                    }
-
-                    if (webRequest.downloadHandler == null)
-                    {
-                        HMRuntimeDialogHelper.DebugStopWatchInfo($"获取GPAD包失败 webRequest.downloadHandler==null");
-                        return false;
-                    }
-
-                    if (webRequest.downloadHandler.data == null)
-                    {
-                        HMRuntimeDialogHelper.DebugStopWatchInfo($"获取GPAD包失败 webRequest.downloadHandler.data==null");
-                        return false;
-                    }
-
-                    HMRuntimeDialogHelper.DebugStopWatchInfo(
-                        $"准备写入 {assetFileName} 路径:{aaPath} result={webRequest.result}" +
-                        $"  大小:{(webRequest.downloadHandler.data.Length)}");
-
-                    var sm = new FileStream(aaPath, FileMode.OpenOrCreate);
-
-                    sm.Write(webRequest.downloadHandler.data, 0, webRequest.downloadHandler.data.Length);
-
-                    //await sm.WriteAsync(webRequest.downloadHandler.data, 0, webRequest.downloadHandler.data.Length);
-
-                    sm.Dispose();
-
-                    HMRuntimeDialogHelper.DebugStopWatchInfo($"写入到AA资源路径完成:{aaPath} ");
-                }
-                catch (Exception e)
-                {
-                    HMRuntimeDialogHelper.DebugStopWatchInfo($"处理GPAD包发生错误:{assetFileName} error={e.Message}");
-                    return false;
-                }
+                // var aaPath = Path.Combine(ebPath, aaName);
+                // if (File.Exists(aaPath))
+                // {
+                    // HMRuntimeDialogHelper.DebugStopWatchInfo($"资源已存在,跳过:{aaName} ");
+                    // continue;
+                // }
 
 
-                //await UniTask.NextFrame();
-            }
+                // var assetFileName = "HMAA" + aaName;
+                // var assetApkName = "split_" + assetFileName;
 
-            HMRuntimeDialogHelper.DebugStopWatchInfo($"结束所有GPAD资源的复制,共:{allAssetPackNames.Count} 组");
+                // //Application.streamingAssetsPath=  jar:file:///data/app/com.hmok.PadWithHMAA-1/base.apk!/assets
+                // var assetStreamPath = Application.streamingAssetsPath.Replace("base.", assetApkName + ".");
+                // assetStreamPath = Path.Combine(assetStreamPath, "assetpack");
+                // assetStreamPath = Path.Combine(assetStreamPath, assetFileName);
 
-            await UniTask.NextFrame();
-            //开始复制
+                // HMRuntimeDialogHelper.DebugStopWatchInfo($"准备获取GPAD包:{assetFileName} 路径 {assetStreamPath} ");
+                // try
+                // {
+                    // using UnityWebRequest webRequest = UnityWebRequest.Get(assetStreamPath);
+                    // await webRequest.SendWebRequest();
 
-            try
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo(
-                    $"准备hash和json文件的创建,info= {HMAddressableManager.HMAAConfig.remoteInfo} ");
-                if (string.IsNullOrEmpty(HMAddressableManager.HMAAConfig.remoteInfo))
-                {
-                    HMRuntimeDialogHelper.DebugStopWatchInfo($"config中remoteInfo不存在,不创建 ");
-                    return false;
-                }
+                    // if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
+                        // webRequest.result == UnityWebRequest.Result.ProtocolError ||
+                        // webRequest.result == UnityWebRequest.Result.DataProcessingError)
+                    // {
+                        // HMRuntimeDialogHelper.DebugStopWatchInfo($"获取GPAD包失败request:{assetStreamPath} ");
+                        // return false;
+                    // }
 
-                string unityAddressablesPath = Path.Combine(Application.persistentDataPath, "com.unity.addressables");
-                if (!Directory.Exists(unityAddressablesPath))
-                {
-                    Directory.CreateDirectory(unityAddressablesPath);
-                    HMRuntimeDialogHelper.DebugStopWatchInfo($"创建hash和json文件目录:{unityAddressablesPath} ");
-                }
+                    // if (webRequest.downloadHandler == null)
+                    // {
+                        // HMRuntimeDialogHelper.DebugStopWatchInfo($"获取GPAD包失败 webRequest.downloadHandler==null");
+                        // return false;
+                    // }
 
-                var infos = HMAddressableManager.HMAAConfig.remoteInfo.Split('|');
-                var hash = infos[0];
-                var fileName = infos[1];
+                    // if (webRequest.downloadHandler.data == null)
+                    // {
+                        // HMRuntimeDialogHelper.DebugStopWatchInfo($"获取GPAD包失败 webRequest.downloadHandler.data==null");
+                        // return false;
+                    // }
 
-                var jsonPath = Path.Combine(unityAddressablesPath, fileName + ".json");
-                var hashPath = Path.Combine(unityAddressablesPath, fileName + ".hash");
-                if (File.Exists(jsonPath) || File.Exists(hashPath))
-                {
-                    HMRuntimeDialogHelper.DebugStopWatchInfo($"已经存在 json或者 hash文件了,跳过处理");
-                    return true;
-                }
+                    // HMRuntimeDialogHelper.DebugStopWatchInfo(
+                        // $"准备写入 {assetFileName} 路径:{aaPath} result={webRequest.result}" +
+                        // $"  大小:{(webRequest.downloadHandler.data.Length)}");
+
+                    // var sm = new FileStream(aaPath, FileMode.OpenOrCreate);
+
+                    // sm.Write(webRequest.downloadHandler.data, 0, webRequest.downloadHandler.data.Length);
+
+                    // //await sm.WriteAsync(webRequest.downloadHandler.data, 0, webRequest.downloadHandler.data.Length);
+
+                    // sm.Dispose();
+
+                    // HMRuntimeDialogHelper.DebugStopWatchInfo($"写入到AA资源路径完成:{aaPath} ");
+                // }
+                // catch (Exception e)
+                // {
+                    // HMRuntimeDialogHelper.DebugStopWatchInfo($"处理GPAD包发生错误:{assetFileName} error={e.Message}");
+                    // return false;
+                // }
 
 
-                //读取
-                var catalogPath = Path.Combine(Application.streamingAssetsPath, "aa");
-                catalogPath = Path.Combine(catalogPath, "catalog.json");
+                // //await UniTask.NextFrame();
+            // }
+
+            // HMRuntimeDialogHelper.DebugStopWatchInfo($"结束所有GPAD资源的复制,共:{allAssetPackNames.Count} 组");
+
+            // await UniTask.NextFrame();
+            // //开始复制
+
+            // try
+            // {
+                // HMRuntimeDialogHelper.DebugStopWatchInfo(
+                    // $"准备hash和json文件的创建,info= {HMAddressableManager.HMAAConfig.remoteInfo} ");
+                // if (string.IsNullOrEmpty(HMAddressableManager.HMAAConfig.remoteInfo))
+                // {
+                    // HMRuntimeDialogHelper.DebugStopWatchInfo($"config中remoteInfo不存在,不创建 ");
+                    // return false;
+                // }
+
+                // string unityAddressablesPath = Path.Combine(Application.persistentDataPath, "com.unity.addressables");
+                // if (!Directory.Exists(unityAddressablesPath))
+                // {
+                    // Directory.CreateDirectory(unityAddressablesPath);
+                    // HMRuntimeDialogHelper.DebugStopWatchInfo($"创建hash和json文件目录:{unityAddressablesPath} ");
+                // }
+
+                // var infos = HMAddressableManager.HMAAConfig.remoteInfo.Split('|');
+                // var hash = infos[0];
+                // var fileName = infos[1];
+
+                // var jsonPath = Path.Combine(unityAddressablesPath, fileName + ".json");
+                // var hashPath = Path.Combine(unityAddressablesPath, fileName + ".hash");
+                // if (File.Exists(jsonPath) || File.Exists(hashPath))
+                // {
+                    // HMRuntimeDialogHelper.DebugStopWatchInfo($"已经存在 json或者 hash文件了,跳过处理");
+                    // return true;
+                // }
 
 
-                using UnityWebRequest catalogRequest = UnityWebRequest.Get(catalogPath);
-                await catalogRequest.SendWebRequest();
+                // //读取
+                // var catalogPath = Path.Combine(Application.streamingAssetsPath, "aa");
+                // catalogPath = Path.Combine(catalogPath, "catalog.json");
 
-                if (catalogRequest.result == UnityWebRequest.Result.ConnectionError ||
-                    catalogRequest.result == UnityWebRequest.Result.ProtocolError ||
-                    catalogRequest.result == UnityWebRequest.Result.DataProcessingError)
-                {
-                    HMRuntimeDialogHelper.DebugStopWatchInfo($"获取catalog.json失败request:{catalogPath} ");
-                    return false;
-                }
 
-                if (catalogRequest.downloadHandler == null)
-                {
-                    HMRuntimeDialogHelper.DebugStopWatchInfo($"获取catalog.json失败 catalogRequest.downloadHandler==null");
-                    return false;
-                }
+                // using UnityWebRequest catalogRequest = UnityWebRequest.Get(catalogPath);
+                // await catalogRequest.SendWebRequest();
 
-                if (string.IsNullOrEmpty(catalogRequest.downloadHandler.text))
-                {
-                    HMRuntimeDialogHelper.DebugStopWatchInfo(
-                        $"获取 catalog.json失败 catalogRequest.downloadHandler.text==null");
-                    return false;
-                }
+                // if (catalogRequest.result == UnityWebRequest.Result.ConnectionError ||
+                    // catalogRequest.result == UnityWebRequest.Result.ProtocolError ||
+                    // catalogRequest.result == UnityWebRequest.Result.DataProcessingError)
+                // {
+                    // HMRuntimeDialogHelper.DebugStopWatchInfo($"获取catalog.json失败request:{catalogPath} ");
+                    // return false;
+                // }
 
-                File.WriteAllText(jsonPath, catalogRequest.downloadHandler.text);
-                File.WriteAllText(hashPath, hash);
-            }
-            catch (Exception e)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"写入hash和json文件失败:error={e.Message}");
-                return false;
-            }
+                // if (catalogRequest.downloadHandler == null)
+                // {
+                    // HMRuntimeDialogHelper.DebugStopWatchInfo($"获取catalog.json失败 catalogRequest.downloadHandler==null");
+                    // return false;
+                // }
 
-            HMRuntimeDialogHelper.DebugStopWatchInfo($"写入json和hash完成");
-            return true;
-        }
+                // if (string.IsNullOrEmpty(catalogRequest.downloadHandler.text))
+                // {
+                    // HMRuntimeDialogHelper.DebugStopWatchInfo(
+                        // $"获取 catalog.json失败 catalogRequest.downloadHandler.text==null");
+                    // return false;
+                // }
+
+                // File.WriteAllText(jsonPath, catalogRequest.downloadHandler.text);
+                // File.WriteAllText(hashPath, hash);
+            // }
+            // catch (Exception e)
+            // {
+                // HMRuntimeDialogHelper.DebugStopWatchInfo($"写入hash和json文件失败:error={e.Message}");
+                // return false;
+            // }
+
+            // HMRuntimeDialogHelper.DebugStopWatchInfo($"写入json和hash完成");
+            // return true;
+        // }
     }
 }

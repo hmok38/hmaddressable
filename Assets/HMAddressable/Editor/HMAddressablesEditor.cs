@@ -159,12 +159,9 @@ namespace HM.Editor
             {
                 Directory.Delete("ServerData", true);
             }
-
-            AssetDatabase.DeleteAsset("Assets/" + usePlayAssetDeliveryName);
-            ConfigHmAddressables.remoteInfo = "";
-            ConfigHmAddressables.GooglePlayAssetDeliveryBundleNames.Clear();
-            UnityEditor.EditorUtility.SetDirty(ConfigHmAddressables);
+            
             AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
             UnityEditor.EditorUtility.FocusProjectWindow();
 
             Debug.Log("清理所有设置 完毕!已经删除Assets-AddressableAssetsData文件夹");
@@ -291,133 +288,15 @@ namespace HM.Editor
             Debug.Log($"打包器选用:{builder.Name}");
         }
 
-        private static void ClearUsePlayAssetDeliveryBundles()
-        {
-            //清理使用谷歌资源分发的组列表
-            ConfigHmAddressables.GooglePlayAssetDeliveryBundleNames.Clear();
-            UnityEditor.EditorUtility.SetDirty(ConfigHmAddressables);
-        }
-
-        public const string usePlayAssetDeliveryName = "CustomAssetPacks";
-
         private static void SetUsePlayAssetDeliveryBundles(AddressablesPlayerBuildResult result)
         {
-            ClearUsePlayAssetDeliveryBundles();
-            //判断资源文件夹中是否有文件夹,有的话就清理掉
-            AssetDatabase.DeleteAsset("Assets/" + usePlayAssetDeliveryName);
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-            EditorUtility.FocusProjectWindow();
-            AssetDatabase.Refresh();
             if (!ConfigHmAddressables.UseGooglePlayAssetDelivery) return;
 #if UNITY_ANDROID
-            List<AddressablesPlayerBuildResult.BundleBuildResult> remoteBundle =
-                new List<AddressablesPlayerBuildResult.BundleBuildResult>();
-            for (int i = 0; i < result.AssetBundleBuildResults.Count; i++)
-            {
-                var temp = result.AssetBundleBuildResults[i];
-
-                var group = temp.SourceAssetGroup;
-                var bundledAssetGroupSchema = group.GetSchema<BundledAssetGroupSchema>();
-                // Debug.Log(bundledAssetGroupSchema.LoadPath.GetName(group.Settings));
-                // Debug.Log(AddressableAssetSettings.kRemoteLoadPath);
-                var isRemoteGroup = bundledAssetGroupSchema.LoadPath.GetName(group.Settings) ==
-                                    AddressableAssetSettings.kRemoteLoadPath;
-
-                if (isRemoteGroup)
-                {
-                    Debug.Log(
-                        $"要分发的包 name:{temp.SourceAssetGroup.Name} Hash:{temp.Hash} " +
-                        $"InternalBundleName:{temp.InternalBundleName} path:{temp.FilePath}");
-                    ConfigHmAddressables.GooglePlayAssetDeliveryBundleNames.Add(temp.Hash);
-                    remoteBundle.Add(temp);
-                }
-            }
-
-            UnityEditor.EditorUtility.SetDirty(ConfigHmAddressables);
-            Debug.Log(
-                $"使用googlePlayAssetDevrily的资源数量: {ConfigHmAddressables.GooglePlayAssetDeliveryBundleNames.Count}");
-            if (ConfigHmAddressables.GooglePlayAssetDeliveryBundleNames.Count <= 0)
-            {
-                Debug.Log($"注意:没有需要处理的GPAD分组");
-                return;
-            }
-
-
-            AssetDatabase.CreateFolder("Assets", usePlayAssetDeliveryName);
-            for (int i = 0; i < remoteBundle.Count; i++)
-            {
-                CreateGPADBundle(remoteBundle[i]);
-            }
-
-            AssetDatabase.SaveAssets();
-            EditorUtility.FocusProjectWindow();
-            AssetDatabase.Refresh();
-            EditorUtility.FocusProjectWindow();
-            Debug.Log($"共拷贝资源数量:{remoteBundle.Count} 到{usePlayAssetDeliveryName}目录");
-
             Debug.Log(
                 "重要提示:要使用谷歌资源分包 需要在打包或者导出安卓工程时在<BuildSettings>设置BuildAppBundle(GooglePlay) 或 Export for App Bundle");
-
 #endif
         }
 
-        private static void CreateGPADBundle(AddressablesPlayerBuildResult.BundleBuildResult bundleBuildResult)
-        {
-            var name = "HMAA" + bundleBuildResult.Hash;
-            var bundleFilePath = bundleBuildResult.FilePath;
-
-            var id = AssetDatabase.CreateFolder("Assets/" + usePlayAssetDeliveryName, name + ".androidpack");
-            var folder = AssetDatabase.GUIDToAssetPath(id);
-            CreatGPAD(folder, name);
-            //Debug.Log($"folder={folder}");
-            AssetDatabase.SaveAssets();
-
-
-#if UNITY_2021_1_OR_NEWER
-            id = AssetDatabase.CreateFolder(folder, "src");
-            folder = AssetDatabase.GUIDToAssetPath(id);
-            //Debug.Log($"folder={folder}");
-            AssetDatabase.SaveAssets();
-            id = AssetDatabase.CreateFolder(folder, "main");
-            folder = AssetDatabase.GUIDToAssetPath(id);
-            //Debug.Log($"folder={folder}");
-            AssetDatabase.SaveAssets();
-            id = AssetDatabase.CreateFolder(folder, "assets");
-            folder = AssetDatabase.GUIDToAssetPath(id);
-            //Debug.Log($"folder={folder}");
-            AssetDatabase.SaveAssets();
-            id = AssetDatabase.CreateFolder(folder, "assetpack");
-            folder = AssetDatabase.GUIDToAssetPath(id);
-            //Debug.Log($"folder={folder}");
-            AssetDatabase.SaveAssets();
-            var newPath = folder + $"/{name}";
-            System.IO.File.Copy(bundleFilePath, newPath);
-            Debug.Log($"拷贝完成:{newPath}");
-#else
-
-            id = AssetDatabase.CreateFolder(folder, "assetpack");
-            folder = AssetDatabase.GUIDToAssetPath(id);
-            //Debug.Log($"folder={folder}");
-            AssetDatabase.SaveAssets();
-            var newPath = folder + $"/{name}";
-            System.IO.File.Copy(bundleFilePath, newPath);
-            Debug.Log($"拷贝完成:{newPath}");
-
-#endif
-        }
-
-        private const string BuildGradleText =
-            "apply plugin: 'com.android.asset-pack'" + "\nassetPack {\n    packName = \"<PackName>\"" +
-            "\n    dynamicDelivery {\n        deliveryType = \"install-time\"" + "\n    }\n}";
-
-        private static void CreatGPAD(string folder, string packName)
-        {
-            var buildText = BuildGradleText.Replace("<PackName>", packName);
-            var sw = File.CreateText(folder + "/build.gradle");
-            sw.Write(buildText);
-            sw.Close();
-        }
 
         private static void BuildAsset()
         {

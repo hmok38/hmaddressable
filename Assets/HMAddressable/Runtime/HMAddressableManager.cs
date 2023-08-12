@@ -570,13 +570,6 @@ namespace HM
             _updateCb += updateCb;
             _progressValue = 0;
             
-#if UNITY_ANDROID
-            if (HMAAConfig.UseGooglePlayAssetDelivery)
-            {
-                await  AndroidGooglePlayAssetDeliveryHelper.CopyGPADAssets(HMAAConfig.GooglePlayAssetDeliveryBundleNames);
-            }
-#endif
-            
 #if UNITY_EDITOR
             
             

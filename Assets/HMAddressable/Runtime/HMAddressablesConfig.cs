@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace HM
@@ -44,13 +43,12 @@ namespace HM
 
 
 #if UNITY_2021_1_OR_NEWER
-        [Space(40), Header("===========GPAD================="),
-         Header("是否使用谷歌PlayAssetDelivery分包 在谷歌发布大于150M以上的安装包时"),
-         Header("会将设置为Remote的资源组作为分包打入AAB中,在做资源检查时,将这些资源复制安装到AA的持久化目录"),
-         SerializeField]
+       [SerializeField, Space(40), Header("=============谷歌资源分发aab包=============="),
+         Header("使用谷歌资源PlayAssetDelivery资源分发"),Header("在谷歌发布大于150M以上的安装包时发布aab包"), Header("会将所有<本地资源组>作为分包打入aab包中")]
 #else
-        [SerializeField, Header("会将设置为Remote的资源组作为分包打入AAB中,在做资源检查时,将这些资源复制安装到AA的持久化目录"),
-         Header("是否使用谷歌PlayAssetDelivery分包 在谷歌发布大于150M以上的安装包时"), Header("=============GPAD=============="), Space(40)]
+
+        [SerializeField, Header("会将所有<本地资源组>作为分包打入aab包中"), Header("在谷歌发布大于150M以上的安装包时发布aab包"),
+         Header("使用谷歌资源PlayAssetDelivery资源分发"), Header("=============谷歌资源分发aab包=============="), Space(40)]
 #endif
         private bool useGooglePlayAssetDelivery;
 
@@ -71,28 +69,12 @@ namespace HM
             {
                 if (value == useGooglePlayAssetDelivery) return;
                 useGooglePlayAssetDelivery = value;
-                if (value)
-                {
-                    OnUseGooglePlayAssetDelivery();
-                }
+
+
+                OnUseGooglePlayAssetDelivery();
             }
         }
 
-        /// <summary>
-        /// 使用谷歌playAssetDelivery分包功能的编译符
-        /// </summary>
-        [HideInInspector, NonSerialized]
-        public const string UseGooglePlayAssetDeliveryDefineStr = "HMAAUSEGOOGLEPLAYASSETDELIVERY";
-
-        /// <summary>
-        /// 使用谷歌资源分发的分组列表,每次打包都会重置和重新记录
-        /// </summary>
-        [HideInInspector] public List<string> GooglePlayAssetDeliveryBundleNames = new List<string>();
-
-        /// <summary>
-        /// 使用谷歌资源分发的远程文件信息,包含文件名和hash值,用来在持久化目录创建"catalog_2023.07.25.07.25.08.hash"和"catalog_2023.07.25.07.25.08.json",建立
-        /// </summary>
-        [HideInInspector] public string remoteInfo;
 
 #if UNITY_2021_1_OR_NEWER
         [Space(40), Header("===========跳过更新================="),
@@ -117,7 +99,7 @@ namespace HM
                 default: return typeof(HMAAEncrypt_AssetBundleProvider);
             }
         }
-        
+
         /// <summary>
         /// 获得不加密的资源供应器类型
         /// </summary>
@@ -164,6 +146,8 @@ namespace HM
                 Debug.Log(
                     "要使用谷歌资源分包 需要在打包或者导出安卓工程时 在<BuildSettings>设置BuildAppBundle(GooglePlay) 或 Export for App Bundle");
             }
+
+            UnityEditor.PlayerSettings.Android.useAPKExpansionFiles = useGooglePlayAssetDelivery;
 #endif
         }
 
