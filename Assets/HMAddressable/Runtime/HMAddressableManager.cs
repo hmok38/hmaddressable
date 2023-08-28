@@ -47,7 +47,7 @@ namespace HM
         private static Dictionary<string, SceneInstance> LoadedSceneMap = new Dictionary<string, SceneInstance>();
         private static Dictionary<string, bool> LoadingSceneMap = new Dictionary<string, bool>();
         private static HMAddressablesConfig _HMAAConfig;
-        
+
         /// <summary>
         /// HMAA的配置表,位于Assets/HMAddressables/Resource/ConfigHMAddressables.asset
         /// </summary>
@@ -57,7 +57,7 @@ namespace HM
             {
                 if (_HMAAConfig == null)
                 {
-                    _HMAAConfig= Resources.Load<HMAddressablesConfig>("ConfigHMAddressables");
+                    _HMAAConfig = Resources.Load<HMAddressablesConfig>("ConfigHMAddressables");
                     if (_HMAAConfig == null)
                     {
                         HMRuntimeDialogHelper.DebugStopWatchInfo($"未加载到ConfigHMAddressables ");
@@ -67,7 +67,7 @@ namespace HM
                 return _HMAAConfig;
             }
         }
-        
+
         /// <summary>
         /// 加载资源 同步加载,尽量使用异步加载
         /// </summary>
@@ -149,8 +149,15 @@ namespace HM
                 obj = operation.Result;
             }
 
+            if (!ResMap.ContainsKey(resName))
+            {
+                ResMap.Add(resName, obj);
+            }
+            else
+            {
+                ResMap[resName] = obj;
+            }
 
-            ResMap.Add(resName, obj);
             RemoveFromLoadingMap(resName);
             return ResMap[resName] as T;
         }
@@ -569,10 +576,10 @@ namespace HM
             _updateStatus = AsyncOperationStatus.None;
             _updateCb += updateCb;
             _progressValue = 0;
-            
+
 #if UNITY_EDITOR
-            
-            
+
+
             _updateStatus = AsyncOperationStatus.Succeeded;
             _resultMessage = "";
             _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
@@ -601,9 +608,8 @@ namespace HM
 
             var initializeAsync = Addressables.InitializeAsync();
             await initializeAsync.Task;
-            
 
-            
+
             await CheckUpdateMainCatalog();
             if (!CheckCanGoOn()) return;
 

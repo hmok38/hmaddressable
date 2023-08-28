@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using HM.Editor.HMAddressable.Editor;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
@@ -15,6 +16,7 @@ using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
+using JsonConvert = Unity.Plastic.Newtonsoft.Json.JsonConvert;
 using Object = UnityEngine.Object;
 
 namespace HM.Editor
@@ -159,7 +161,7 @@ namespace HM.Editor
             {
                 Directory.Delete("ServerData", true);
             }
-            
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             UnityEditor.EditorUtility.FocusProjectWindow();
@@ -331,13 +333,66 @@ namespace HM.Editor
                 return;
             }
 
+            var contentStateDataPath = Path.Combine(assetPath, "addressables_content_state.bin");
+            var cacheDataOld = ContentUpdateScript.LoadContentState(contentStateDataPath);
 
             //打资源包
 
             ContentUpdateScript.BuildContentUpdate(AddressableAssetSettingsDefaultObject.Settings,
                 Path.Combine(assetPath, "addressables_content_state.bin"));
-            Debug.Log("更新资源包 打包完成");
+
+
+            var remoteCatalogBuildPath = AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogBuildPath.GetValue(
+                AddressableAssetSettingsDefaultObject.Settings);
+
+
+            var beChange = CheckBuildinShaderAsset(cacheDataOld, remoteCatalogBuildPath);
+            Debug.Log($"更新资源包 打包完成 {(beChange ? "" : "发生错误,请修复后 回退到打更新资源包之前")}");
         }
+
+        /// <summary>
+        /// 检查内置shader资源是否通过(不允许变更)
+        /// </summary>
+        /// <param name="oldContent"></param>
+        /// <param name="newContent"></param>
+        /// <returns></returns>
+        private static bool CheckBuildinShaderAsset(AddressablesContentState oldContent,
+            string outPath)
+        {
+            string findStr = "_unitybuiltinshaders_";
+            string oldName = "";
+            for (int i = 0; i < oldContent.cachedBundles.Length; i++)
+            {
+                var cache = oldContent.cachedBundles[i];
+                if (cache.bundleFileId.IndexOf(findStr) >= 0)
+                {
+                    oldName = cache.bundleFileId;
+                }
+            }
+
+            var jsonPath = Path.Combine(outPath, "catalog_" + oldContent.playerVersion + ".json");
+
+            var jsonTxt = File.ReadAllText(jsonPath);
+
+            var obj = JsonConvert.DeserializeObject<JsonClass>(jsonTxt);
+            var m_InternalIds = obj.m_InternalIds;
+
+            string newName = "";
+            for (int i = 0; i < m_InternalIds.Length; i++)
+            {
+                var cache = m_InternalIds[i];
+                if (cache != null && cache.IndexOf(findStr) >= 0)
+                {
+                    newName = cache;
+                }
+            }
+
+            Debug.LogError($"更新资源时发现错误:更新资源中有之前未使用过的内置Shader的材质球,导致内置shader资源组发生错误,请修改后还原打更新资源前再次更新资源" +
+                           "   旧buildInShader资源组为:" + oldName + "    新的为:" + newName);
+
+            return oldName.Equals(newName);
+        }
+
 
         private static List<GroupInfo> GetGroupInfosByFolder(HMAddressablesConfig config)
         {
@@ -1183,5 +1238,11 @@ namespace HM.Editor
         public bool BeLocalGroup;
         public List<string> allAssetsInFolder = new List<string>();
         public AddressableAssetGroup DuplicateAssetIsolationGroup;
+    }
+
+    public class JsonClass
+    {
+        public string m_LocatorId;
+        public string[] m_InternalIds;
     }
 }
