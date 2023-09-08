@@ -4,10 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using HM.Editor.HMAddressable.Editor;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
@@ -15,8 +12,7 @@ using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.ResourceProviders;
-using JsonConvert = Unity.Plastic.Newtonsoft.Json.JsonConvert;
+using JsonConvert = Newtonsoft.Json.JsonConvert;
 using Object = UnityEngine.Object;
 
 namespace HM.Editor
@@ -30,8 +26,14 @@ namespace HM.Editor
     {
         private const string ConfigPath = "Assets/HMAddressables/Resources/ConfigHMAddressables.asset";
 
-        public static HMAddressablesConfig ConfigHmAddressables =>
-            AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(ConfigPath);
+        public static HMAddressablesConfig ConfigHmAddressables
+        {
+            get
+            {
+                AssetDatabase.Refresh();
+                return AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(ConfigPath);
+            }
+        }
 
 
         //=============================public=============================================
