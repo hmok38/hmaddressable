@@ -131,19 +131,29 @@ namespace HM.Editor
         }
 
         [UnityEditor.MenuItem("HMAA资源管理/更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定", false, 9)]
-        public static void BuildAddressablesSettingsMenuItem()
+        private static void BuildAddressablesSettingsMenuItem()
+        {
+            BuildAddressablesSettingsMenuItem(false);
+        }
+
+        public static void BuildAddressablesSettingsMenuItem(bool beTest)
         {
             //设置
-            RefreshAASetting(false);
+            RefreshAASetting(beTest);
             Debug.Log("\"更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定\" 完毕");
             //刷新显示
             SaveAssetAndRefresh();
         }
 
         [UnityEditor.MenuItem("HMAA资源管理/检查资源升级并设置升级组 <发布阶段禁止使用> ", false, 10)]
-        public static void CheckForContentUpdateRestructionsMenuItem()
+        private static void CheckForContentUpdateRestructionsMenuItem()
         {
-            UpdateAASetting(false);
+            CheckForContentUpdateRestructionsMenuItem(false);
+        }
+
+        public static void CheckForContentUpdateRestructionsMenuItem(bool beTest)
+        {
+            UpdateAASetting(beTest);
             Debug.Log("\"更新(创建)资源分组并处理重复依赖 <更新包阶段禁止使用> 不会修改旧组的加密设定\" 完毕");
             SaveAssetAndRefresh();
         }
