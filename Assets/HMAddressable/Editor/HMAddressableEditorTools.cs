@@ -29,6 +29,7 @@ namespace HM.Editor
                 config = AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(newPath);
                 if (config == null)
                 {
+                    Debug.Log("HMAddressables/HMAddressablesConfig文件不存在,创建完毕");
                     if (!AssetDatabase.IsValidFolder("Assets/HMAddressables"))
                     {
                         AssetDatabase.CreateFolder("Assets", "HMAddressables");

@@ -30,8 +30,8 @@ namespace HM.Editor
         {
             get
             {
-                AssetDatabase.Refresh();
-                return AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(ConfigPath);
+
+                return HMAddressableManager.HMAAConfig;
             }
         }
 
@@ -67,7 +67,7 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/***选择并显示配置表***", false, 1)]
         public static void ShowAndSelectConfigMenuItem()
         {
-            Selection.activeObject = AssetDatabase.LoadAssetAtPath(ConfigPath, typeof(HMAddressablesConfig));
+            Selection.activeObject =ConfigHmAddressables;
             EditorGUIUtility.PingObject(Selection.activeObject);
             EditorUtility.FocusProjectWindow();
             Debug.Log("已经选择并显示配置表");
@@ -1013,6 +1013,9 @@ namespace HM.Editor
                     AddressableAssetSettingsDefaultObject.Settings,
                     AddressableAssetSettings.kRemoteLoadPath);
             }
+            
+            //设置请求Catlog文件的超时时间,大概300K左右
+            AddressableAssetSettingsDefaultObject.Settings.CatalogRequestsTimeout = 10;
         }
 
         private static void CheckForContentUpdateRestructions()

@@ -46,7 +46,7 @@ namespace HM
 
         private static Dictionary<string, SceneInstance> LoadedSceneMap = new Dictionary<string, SceneInstance>();
         private static Dictionary<string, bool> LoadingSceneMap = new Dictionary<string, bool>();
-        private static HMAddressablesConfig _HMAAConfig;
+        
 
         /// <summary>
         /// HMAA的配置表,位于Assets/HMAddressables/Resource/ConfigHMAddressables.asset
@@ -55,16 +55,8 @@ namespace HM
         {
             get
             {
-                if (_HMAAConfig == null)
-                {
-                    _HMAAConfig = Resources.Load<HMAddressablesConfig>("ConfigHMAddressables");
-                    if (_HMAAConfig == null)
-                    {
-                        HMRuntimeDialogHelper.DebugStopWatchInfo($"未加载到ConfigHMAddressables ");
-                    }
-                }
 
-                return _HMAAConfig;
+                return Resources.Load<HMAddressablesConfig>("ConfigHMAddressables");
             }
         }
 
