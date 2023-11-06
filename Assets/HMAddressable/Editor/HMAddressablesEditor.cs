@@ -25,14 +25,11 @@ namespace HM.Editor
     public class HMAddressablesEditor : MonoBehaviour
     {
         private const string ConfigPath = "Assets/HMAddressables/Resources/ConfigHMAddressables.asset";
+        private static bool hadWrong;
 
         public static HMAddressablesConfig ConfigHmAddressables
         {
-            get
-            {
-
-                return HMAddressableManager.HMAAConfig;
-            }
+            get { return HMAddressableManager.HMAAConfig; }
         }
 
 
@@ -67,7 +64,7 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/***选择并显示配置表***", false, 1)]
         public static void ShowAndSelectConfigMenuItem()
         {
-            Selection.activeObject =ConfigHmAddressables;
+            Selection.activeObject = ConfigHmAddressables;
             EditorGUIUtility.PingObject(Selection.activeObject);
             EditorUtility.FocusProjectWindow();
             Debug.Log("已经选择并显示配置表");
@@ -76,12 +73,15 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/****一键打出包资源(正式包)****", false, 3)]
         public static void BuildAddressablesAssetsMenuItem()
         {
+            hadWrong = false;
             //设置
             RefreshAASetting(false);
-            //打包
-            BuildAsset();
-            //刷新显示
-            SaveAssetAndRefresh();
+            if (!hadWrong)
+                //打包
+                BuildAsset();
+            if (!hadWrong)
+                //刷新显示
+                SaveAssetAndRefresh();
         }
 
         [UnityEditor.MenuItem("HMAA资源管理/****一键打更新资源包(正式包)****", false, 4)]
@@ -109,12 +109,15 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/********一键打出包资源(测试包)********", false, 6)]
         public static void BuildAddressablesTestAssetsMenuItem()
         {
+            hadWrong = false;
             //设置
             RefreshAASetting(true);
-            //打包
-            BuildAsset();
-            //刷新显示
-            SaveAssetAndRefresh();
+            if (!hadWrong)
+                //打包
+                BuildAsset();
+            if (!hadWrong)
+                //刷新显示
+                SaveAssetAndRefresh();
         }
 
         [UnityEditor.MenuItem("HMAA资源管理/********一键打更新资源包(测试包)********", false, 7)]
@@ -477,6 +480,50 @@ namespace HM.Editor
             ClearGroupMissingReferences();
         }
 
+        private static bool SetConfigsDefaultGroupInfo(List<GroupInfo> localGroupInfos)
+        {
+            if (localGroupInfos == null || localGroupInfos.Count <= 0)
+            {
+                Debug.LogError($"本地资源目录为空,请设置LocalAssetsPaths列表,并保证其至少有一个资源");
+
+                return false;
+            }
+
+            GroupInfo defaultGroupInfo = null;
+            AddressableAssetGroup defaultGroup = null;
+            for (int i = 0; i < localGroupInfos.Count; i++)
+            {
+                var group = AddressableAssetSettingsDefaultObject.Settings.groups.Find(x =>
+                {
+                    return x.Name.Equals(localGroupInfos[i].GroupName);
+                });
+                if (group != null && group.entries.Count > 0)
+                {
+                    defaultGroupInfo = localGroupInfos[i];
+                    defaultGroup = group;
+                    break;
+                }
+            }
+
+            if (defaultGroupInfo != null && defaultGroup != null)
+            {
+                AddressableAssetSettingsDefaultObject.Settings.DefaultGroup = defaultGroup;
+                var Schema = AddressableAssetSettingsDefaultObject.Settings.DefaultGroup
+                    .GetSchema<BundledAssetGroupSchema>();
+                var va = Schema.AssetBundleProviderType;
+                var nonEncrypt = ConfigHmAddressables.GetNonEncryptAssetBundleProvider();
+                var beNonEncrypt = va.Value == nonEncrypt;
+                if (beNonEncrypt)
+                {
+                    return true;
+                }
+            }
+
+            Debug.LogError(
+                $"发现默认资源组被加密了,可能会导致builtinShader资源组的新旧版本加密设置不一致,所以不允许其加密,请将一个不需要加密的资源组移动到config的LocalAssetsPaths列表最上方,并保证其至少有一个资源");
+            return false;
+        }
+
         /// <summary>
         /// 根据配置,组设置(加密/不加密和远程/本地)
         /// </summary>
@@ -548,6 +595,12 @@ namespace HM.Editor
                         // }
                     }
                 }
+            }
+
+
+            if (!SetConfigsDefaultGroupInfo(groupInfos))
+            {
+                hadWrong = true;
             }
         }
 
