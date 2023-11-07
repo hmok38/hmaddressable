@@ -304,7 +304,6 @@ namespace HM
                     if (m_dataProc == null)
                     {
                         m_AssetBundle = (m_downloadHandler as DownloadHandlerAssetBundle).assetBundle;
-                        ;
                     }
                     else
                     {
@@ -833,7 +832,6 @@ namespace HM
                     m_RequestOperation = AssetBundle.LoadFromStreamAsync(memStream, crc);
                 }
             }
-
         }
     }
 

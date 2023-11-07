@@ -5,6 +5,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.Events;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using Cysharp.Threading.Tasks;
 
@@ -46,18 +47,14 @@ namespace HM
 
         private static Dictionary<string, SceneInstance> LoadedSceneMap = new Dictionary<string, SceneInstance>();
         private static Dictionary<string, bool> LoadingSceneMap = new Dictionary<string, bool>();
-        
+
 
         /// <summary>
         /// HMAA的配置表,位于Assets/HMAddressables/Resource/ConfigHMAddressables.asset
         /// </summary>
         public static HMAddressablesConfig HMAAConfig
         {
-            get
-            {
-
-                return Resources.Load<HMAddressablesConfig>("ConfigHMAddressables");
-            }
+            get { return Resources.Load<HMAddressablesConfig>("ConfigHMAddressables"); }
         }
 
         /// <summary>
@@ -843,5 +840,22 @@ namespace HM
         }
 
         #endregion
+
+        /// <summary>清理之前版本的缓存资源</summary>
+        public static void ClearLastVerCacheRes()
+        {
+            var key = $"HMAddressableResVer{Application.version}";
+            if (PlayerPrefs.GetInt(key, 0) != 1)
+            {
+                var path = HMAA_AssetBundleResource.GetEncryptedCachePath();
+                if (Directory.Exists(path))
+                {
+                    Directory.Delete(path, true); //删除目录
+                    Debug.Log("删除之前的资源缓存");
+                }
+
+                PlayerPrefs.SetInt(key, 1);
+            }
+        }
     }
 }
