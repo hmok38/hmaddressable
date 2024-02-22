@@ -3,19 +3,14 @@
   "displayName": "HM Adrressable Package",
   "version": "4.2.5",
   "unity": "2020.3",
-  "author":{ "name" : "HuangMin",
-    "email" : "hmok@163.com"
+  "author": {
+    "name": "HuangMin",
+    "email": "hmok@163.com"
   },
   "description": "基于UnityAdrressableAssets系统的快速自动化资源管理系统,可以一键打包资源并自动分析重复依赖,同时进行加密,按照文件夹进行分组,且运行时调用函数自动更新,依赖Git Unitask插件 https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
   "dependencies": {
     "com.unity.addressables": "1.20.5",
     "com.unity.nuget.newtonsoft-json": "3.1.0",
-    "com.cysharp.unitask": {
-      "version": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {},
-      "hash": "64792b672d35e43b3412fc74861f8bdbf41e3a6f"
-    }
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask"
   }
 }
