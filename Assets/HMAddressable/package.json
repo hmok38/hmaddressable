@@ -10,7 +10,6 @@
   "description": "基于UnityAdrressableAssets系统的快速自动化资源管理系统,可以一键打包资源并自动分析重复依赖,同时进行加密,按照文件夹进行分组,且运行时调用函数自动更新,依赖Git Unitask插件 https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
   "dependencies": {
     "com.unity.addressables": "1.20.5",
-    "com.unity.nuget.newtonsoft-json": "3.1.0",
-    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask"
+    "com.unity.nuget.newtonsoft-json": "3.1.0"
   }
 }
