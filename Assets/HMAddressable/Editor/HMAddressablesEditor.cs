@@ -12,6 +12,7 @@ using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.ResourceProviders;
 using JsonConvert = Newtonsoft.Json.JsonConvert;
 using Object = UnityEngine.Object;
 
@@ -294,12 +295,20 @@ namespace HM.Editor
             AddressableAssetSettings settings
                 = AddressableAssetSettingsDefaultObject.Settings;
 
+            
+#if UNITY_2022_2_OR_NEWER
             //打包
+            IDataBuilder builder
+                = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
+                        "Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.asset") as
+                    IDataBuilder;
+           #else
+           //打包
             IDataBuilder builder
                 = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
                         "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset") as
                     IDataBuilder;
-
+#endif
             settings.ActivePlayerDataBuilderIndex
                 = settings.DataBuilders.IndexOf((ScriptableObject) builder);
             Debug.Log($"打包器选用:{builder.Name}");
@@ -512,7 +521,7 @@ namespace HM.Editor
                     .GetSchema<BundledAssetGroupSchema>();
                 var va = Schema.AssetBundleProviderType;
                 var nonEncrypt = ConfigHmAddressables.GetNonEncryptAssetBundleProvider();
-                var beNonEncrypt = va.Value == nonEncrypt;
+                var beNonEncrypt = va.Value == nonEncrypt||va.Value==typeof(AssetBundleProvider);
                 if (beNonEncrypt)
                 {
                     return true;
@@ -749,7 +758,15 @@ namespace HM.Editor
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 loadPath);
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
-
+            
+            
+            #if UNITY_2022_2_OR_NEWER  //2022版本展示屏蔽加密功能-采用原始资源提供器
+            //设置HMAAEncrypt_AssetBundleProvider
+            var va = bundledAssetGroupSchema.AssetBundleProviderType;
+            va.Value =typeof(AssetBundleProvider);
+            //没办法了,变量没公开,只好用反射调用
+            EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
+            #else
             //是否需要设置加解密数据
             if (beEncrypt)
             {
@@ -767,6 +784,8 @@ namespace HM.Editor
                 //没办法了,变量没公开,只好用反射调用
                 EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
             }
+            #endif
+            
 
             UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
         }

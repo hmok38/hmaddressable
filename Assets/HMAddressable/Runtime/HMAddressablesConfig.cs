@@ -22,7 +22,11 @@ namespace HM
         public string[] EncryptAssetsGroup;
 
 
+#if UNITY_2022_2_OR_NEWER
+        [Header("注意:Unity2022.2版本以上暂时无法使用加密功能,会默认采用官方的资源打包方式--注意更新")]
+#else      
         [Header("上述加密文件夹使用的资源加密类型")]
+#endif
         public EncrypyType MyDefaultAssetsEncryptType = EncrypyType.AESStreamProcessorWithSeek;
 
 
