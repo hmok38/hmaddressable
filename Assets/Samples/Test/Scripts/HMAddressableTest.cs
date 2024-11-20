@@ -12,11 +12,11 @@ using Random = UnityEngine.Random;
 //多个资源列表加载和分开加载是一样的耗时
 public class HMAddressableTest : MonoBehaviour
 {
-    string capsulePath = "Assets/Samples/Test/RES/Capsule/Capsule.prefab";
-    string spherePath = "Assets/Samples/Test/RES/Sphere/Sphere.prefab";
-    private string cylinderPath = "Assets/Samples/Test/RES/Capsule/Cylinder.prefab";
-    private string cylinder2Path = "Assets/Samples/Test/RES/New/Cylinder2.prefab";
-    private string CapsuleCopyPath = "Assets/Samples/Test/RES/Sphere/CapsuleCopy.prefab";
+    string capsulePath = "Assets/Samples/Test/RES/LocalRes/Capsule/Capsule.prefab";
+    string spherePath = "Assets/Samples/Test/RES/RemoteRes/Sphere/Sphere.prefab";
+    private string cylinderPath = "Assets/Samples/Test/RES/LocalRes/Capsule/Cylinder.prefab";
+    private string cylinder2Path = "Assets/Samples/Test/RES/LocalRes/New/Cylinder2.prefab";
+    private string CapsuleCopyPath = "Assets/Samples/Test/RES/RemoteRes/Sphere/CapsuleCopy.prefab";
     
     
     private List<GameObject> allObjs = new List<GameObject>();
@@ -158,7 +158,7 @@ public class HMAddressableTest : MonoBehaviour
         Debug.Log("开始单独加载测试");
         System.Diagnostics.Stopwatch stopwatch = new Stopwatch();
         stopwatch.Start();
-         var objs= await HMAddressableManager.LoadAssetsAsyncByGroup<GameObject> ("Assets/Samples/Test/RES/Capsule");
+         var objs= await HMAddressableManager.LoadAssetsAsyncByGroup<GameObject> ("Assets/Samples/Test/RES/LocalRes/Capsule");
         
         stopwatch.Stop();
         Debug.Log($"单个加载耗时={stopwatch.ElapsedMilliseconds} objs数量={objs.Count}");
@@ -173,7 +173,7 @@ public class HMAddressableTest : MonoBehaviour
     private  void ReleaseObjTest()
     {
        
-        HMAddressableManager.ReleaseResGroup("Assets/Samples/Test/RES/Capsule");
+        HMAddressableManager.ReleaseResGroup("Assets/Samples/Test/RES/LocalRes/Capsule");
 
         Debug.Log("卸载资源");
     }
