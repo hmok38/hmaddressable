@@ -17,16 +17,15 @@ public class HMAddressableTest : MonoBehaviour
     private string cylinderPath = "Assets/Samples/Test/RES/LocalRes/Capsule/Cylinder.prefab";
     private string cylinder2Path = "Assets/Samples/Test/RES/LocalRes/New/Cylinder2.prefab";
     private string CapsuleCopyPath = "Assets/Samples/Test/RES/RemoteRes/Sphere/CapsuleCopy.prefab";
-    
-    
+
+
     private List<GameObject> allObjs = new List<GameObject>();
 
     void Start()
     {
-        #if !UNITY_EDITOR
+#if !UNITY_EDITOR
          Addressables.InitializeAsync();
-         #endif
-        
+#endif
     }
 
     async void Wait()
@@ -52,7 +51,7 @@ public class HMAddressableTest : MonoBehaviour
     }
 
 
-     void Sphere(bool beSecond = false)
+    void Sphere(bool beSecond = false)
     {
         var prefab = HMAddressableManager.Load<GameObject>(spherePath);
 
@@ -62,7 +61,7 @@ public class HMAddressableTest : MonoBehaviour
     }
 
 
-    private void UpdateCb(AsyncOperationStatus status, float progeress, string message,UpdateStatusCode arg3)
+    private void UpdateCb(AsyncOperationStatus status, float progeress, string message, UpdateStatusCode arg3)
     {
         switch (status)
         {
@@ -82,7 +81,7 @@ public class HMAddressableTest : MonoBehaviour
 
     private bool beListTest = false;
     private bool beListReleaseTest = false;
-    
+
     private bool beTest = false;
     private bool beReleaseTest = false;
 
@@ -99,7 +98,7 @@ public class HMAddressableTest : MonoBehaviour
             beListReleaseTest = false;
             ListReleaseObjTest();
         }
-        
+
         if (beTest)
         {
             beTest = false;
@@ -124,61 +123,65 @@ public class HMAddressableTest : MonoBehaviour
 
     private async void ListTest()
     {
-        List<string> list = new List<string>() {this.capsulePath, this.spherePath ,this.cylinderPath,this.cylinder2Path,this.CapsuleCopyPath};
+        List<string> list = new List<string>()
+            { this.spherePath,  this.cylinder2Path, this.CapsuleCopyPath };
         Debug.Log("开始测试List加载");
         System.Diagnostics.Stopwatch stopwatch = new Stopwatch();
         stopwatch.Start();
 
 
-       var objs=await  HMAddressableManager.loadAssetsAsync<GameObject>(list);
-      
-        
+        var objs = await HMAddressableManager.loadAssetsAsync<GameObject>(list);
+
+
         stopwatch.Stop();
         Debug.Log($"List加载耗时={stopwatch.ElapsedMilliseconds}");
 
         foreach (var gameObject in objs)
         {
-           var g= Instantiate(gameObject);
-           g.transform.position = new Vector3(Random.Range(-5f, 5f), 0, 0);
-           this.allObjs.Add(g);
+            var g = Instantiate(gameObject);
+            g.transform.position = new Vector3(Random.Range(-5f, 5f), 0, 0);
+            this.allObjs.Add(g);
         }
     }
-    private  void ListReleaseObjTest()
+
+    private void ListReleaseObjTest()
     {
-        List<string> list = new List<string>() {this.capsulePath, this.spherePath ,this.cylinderPath,this.cylinder2Path,this.CapsuleCopyPath};
+        List<string> list = new List<string>()
+            {  this.spherePath, this.cylinder2Path, this.CapsuleCopyPath }; //this.cylinderPath,
         HMAddressableManager.ReleaseRes(list);
-        
+
 
         Debug.Log("卸载资源");
     }
-    
+
     private async void Test()
     {
-        List<string> list = new List<string>() {this.capsulePath, this.spherePath ,this.cylinderPath,this.cylinder2Path,this.CapsuleCopyPath};
+        List<string> list = new List<string>()
+            { this.capsulePath, this.spherePath, this.cylinderPath, this.cylinder2Path, this.CapsuleCopyPath };
         Debug.Log("开始单独加载测试");
         System.Diagnostics.Stopwatch stopwatch = new Stopwatch();
         stopwatch.Start();
-         var objs= await HMAddressableManager.LoadAssetsAsyncByGroup<GameObject> ("Assets/Samples/Test/RES/LocalRes/Capsule");
-        
+        var objs = await HMAddressableManager.LoadAssetsAsyncByGroup<GameObject>(
+            "Assets/Samples/Test/RES/LocalRes/Capsule");
+
         stopwatch.Stop();
         Debug.Log($"单个加载耗时={stopwatch.ElapsedMilliseconds} objs数量={objs.Count}");
         for (int i = 0; i < objs.Count; i++)
         {
-            var g= Instantiate(objs[i]);
+            var g = Instantiate(objs[i]);
             g.transform.position = new Vector3(Random.Range(-5f, 5f), 0, 0);
             this.allObjs.Add(g);
         }
-       
     }
-    private  void ReleaseObjTest()
+
+    private void ReleaseObjTest()
     {
-       
         HMAddressableManager.ReleaseResGroup("Assets/Samples/Test/RES/LocalRes/Capsule");
 
         Debug.Log("卸载资源");
     }
 
-    private async  void OnGUI()
+    private async void OnGUI()
     {
         if (GUILayout.Button("加载list多个对象"))
         {
@@ -187,6 +190,7 @@ public class HMAddressableTest : MonoBehaviour
             //使用此接口进行统一的资源更新
             //HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
         }
+
         if (GUILayout.Button("释放list多个对象"))
         {
             beListReleaseTest = true;
@@ -194,7 +198,7 @@ public class HMAddressableTest : MonoBehaviour
             //使用此接口进行统一的资源更新
             //HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
         }
-        
+
         if (GUILayout.Button("加载一组多个对象"))
         {
             beTest = true;
@@ -202,6 +206,7 @@ public class HMAddressableTest : MonoBehaviour
             //使用此接口进行统一的资源更新
             //HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
         }
+
         if (GUILayout.Button("释放一组多个对象"))
         {
             beReleaseTest = true;
@@ -210,28 +215,28 @@ public class HMAddressableTest : MonoBehaviour
             //HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
         }
 
-       
 
         if (GUILayout.Button("更新资源"))
         {
             //使用此接口进行统一的资源更新
-           await HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
+            await HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
         }
 
         if (GUILayout.Button("载入单个资源"))
         {
-            await  HMAddressableManager.LoadAsync<GameObject>(capsulePath);
+            await HMAddressableManager.LoadAsync<GameObject>(capsulePath);
         }
 
         if (GUILayout.Button("创建对象"))
         {
             this.Capsule();
         }
+
         if (GUILayout.Button("释放单个资源"))
         {
             HMAddressableManager.ReleaseRes(capsulePath);
         }
-        
+
         if (GUILayout.Button("删除所有对象"))
         {
             for (int i = 0; i < this.allObjs.Count; i++)
@@ -242,11 +247,41 @@ public class HMAddressableTest : MonoBehaviour
             this.allObjs.Clear();
         }
 
-       
 
         if (GUILayout.Button("加载场景"))
         {
-           await HMAddressableManager.LoadSceneAsync("Assets/Samples/Test/RES/Scenes/BeLoadScene.unity");
+            await HMAddressableManager.LoadSceneAsync("Assets/Samples/Test/RES/Scenes/BeLoadScene.unity");
         }
+
+
+        if (GUILayout.Button("加载a"))
+        {
+            TestLoad(capsulePath);
+        }
+        if (GUILayout.Button("释放a"))
+        {
+            Release(capsulePath);
+        }
+        if (GUILayout.Button("加载b"))
+        {
+            TestLoad(cylinderPath);
+        }
+        if (GUILayout.Button("释放b"))
+        {
+            Release(cylinderPath);
+        }
+    }
+
+    private async void TestLoad(string url)
+    {
+        var prefabs = await HMAddressableManager.LoadAsync<GameObject>(url);
+        var a = Instantiate(prefabs);
+        a.transform.position = new Vector3(Random.Range(-5f, 5f), 0, 0);
+        this.allObjs.Add(a);
+    }
+
+    private void Release(string url)
+    {
+        HMAddressableManager.ReleaseRes(url);
     }
 }
