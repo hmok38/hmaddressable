@@ -6,7 +6,7 @@ namespace HM
     [CreateAssetMenu(fileName = "ConfigHMAddressables", menuName = "HMAddressables/创建Config对象")]
     public class HMAddressablesConfig : ScriptableObject
     {
-        [Header("要包含在APP中的资源目录")] public string[] LocalAseetsPaths = new[] {"Assets/Bundles"};
+        [Header("要包含在APP中的资源目录")] public string[] LocalAseetsPaths = new[] { "Assets/Bundles" };
         [Header("要远程下载的资源目录")] public string[] RemoteAseetsPaths = new string[] { };
         [Header("正式资源服务器分发地址")] public string RemoteLoadPath = "http://[PrivateIpAddress]/[BuildTarget]";
         [Header("测试资源服务器分发地址")] public string TestRemoteLoadPath = "http://[PrivateIpAddress]/Test/[BuildTarget]";
@@ -24,7 +24,7 @@ namespace HM
 
 #if UNITY_2022_2_OR_NEWER
         [Header("注意:Unity2022.2版本以上暂时无法使用加密功能,会默认采用官方的资源打包方式--注意更新")]
-#else      
+#else
         [Header("上述加密文件夹使用的资源加密类型")]
 #endif
         public EncrypyType MyDefaultAssetsEncryptType = EncrypyType.AESStreamProcessorWithSeek;
@@ -47,36 +47,26 @@ namespace HM
 
 
 #if UNITY_2021_1_OR_NEWER
-       [SerializeField, Space(40), Header("=============谷歌资源分发aab包=============="),
-         Header("使用谷歌资源PlayAssetDelivery资源分发"),Header("在谷歌发布大于150M以上的安装包时发布aab包"), Header("会将所有<本地资源组>作为分包打入aab包中")]
+       [SerializeField, Space(40), Header("已弃用,请直接在playerSettings中设置Split Application Binary,同时需要在build Settings 中设置 Build App Bundle (Google Play)")]
 #else
 
-        [SerializeField, Header("会将所有<本地资源组>作为分包打入aab包中"), Header("在谷歌发布大于150M以上的安装包时发布aab包"),
-         Header("使用谷歌资源PlayAssetDelivery资源分发"), Header("=============谷歌资源分发aab包=============="), Space(40)]
+        [SerializeField,
+         Header(
+             "已弃用,请直接在playerSettings中设置Split Application Binary,同时需要在build Settings 中设置 Build App Bundle (Google Play)"),
+         Space(40)]
 #endif
         private bool useGooglePlayAssetDelivery;
 
         /// <summary>
         /// 使用谷歌PlayAssetDelivery分包,发布大于150M的包
         /// </summary>
+        [Obsolete(
+            "已弃用,请直接在playerSettings中设置Split Application Binary,同时需要在build Settings 中设置 Build App Bundle (Google Play)")]
         public bool UseGooglePlayAssetDelivery
         {
-            get
-            {
-#if !UNITY_ANDROID
-                return false;
-#endif
-                return useGooglePlayAssetDelivery;
-            }
+            get { return false; }
 
-            set
-            {
-                if (value == useGooglePlayAssetDelivery) return;
-                useGooglePlayAssetDelivery = value;
-
-
-                OnUseGooglePlayAssetDelivery();
-            }
+            set { }
         }
 
 
@@ -137,22 +127,11 @@ namespace HM
             return null;
         }
 
-        private void OnValidate()
-        {
-            this.OnUseGooglePlayAssetDelivery();
-        }
 
+        [Obsolete(
+            "已弃用,请直接在playerSettings中设置Split Application Binary,同时需要在build Settings 中设置 Build App Bundle (Google Play)")]
         public void OnUseGooglePlayAssetDelivery()
         {
-#if UNITY_EDITOR && UNITY_ANDROID
-            if (useGooglePlayAssetDelivery)
-            {
-                Debug.Log(
-                    "要使用谷歌资源分包 需要在打包或者导出安卓工程时 在<BuildSettings>设置BuildAppBundle(GooglePlay) 或 Export for App Bundle");
-            }
-
-            UnityEditor.PlayerSettings.Android.useAPKExpansionFiles = useGooglePlayAssetDelivery;
-#endif
         }
 
         /// <summary>
@@ -160,12 +139,6 @@ namespace HM
         /// </summary>
         public void CheckConfigTips()
         {
-#if UNITY_ANDROID
-            if (UseGooglePlayAssetDelivery)
-            {
-                OnUseGooglePlayAssetDelivery();
-            }
-#endif
             if (BeSkipUpdateCheck)
             {
                 Debug.Log($"重要提示:本次资源打包跳过了资源更新检查,在运行时不会进行资源更新检查,如非特意设置,请修改本配置表设置");

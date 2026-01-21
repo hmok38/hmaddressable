@@ -316,11 +316,11 @@ namespace HM.Editor
 
         private static void SetUsePlayAssetDeliveryBundles(AddressablesPlayerBuildResult result)
         {
-            if (!ConfigHmAddressables.UseGooglePlayAssetDelivery) return;
-#if UNITY_ANDROID
-            Debug.Log(
-                "重要提示:要使用谷歌资源分包 需要在打包或者导出安卓工程时在<BuildSettings>设置BuildAppBundle(GooglePlay) 或 Export for App Bundle");
-#endif
+//             if (!ConfigHmAddressables.UseGooglePlayAssetDelivery) return;
+// #if UNITY_ANDROID
+//             Debug.Log(
+//                 "重要提示:要使用谷歌资源分包 需要在打包或者导出安卓工程时在<BuildSettings>设置BuildAppBundle(GooglePlay) 或 Export for App Bundle");
+// #endif
         }
 
 
