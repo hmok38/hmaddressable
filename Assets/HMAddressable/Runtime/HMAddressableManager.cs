@@ -885,7 +885,7 @@ namespace HM
                 return (assetsNames, $"Download Failed:{downloadOp.OperationException.Message}");
             }
             Debug.Log(" 下载资源组成功");
-            downloadOp.Release();
+            Addressables.Release(downloadOp);
             return (assetsNames, "Succeeded");
         }
     }
