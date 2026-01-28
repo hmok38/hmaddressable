@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using Cysharp.Threading.Tasks;
 using HM;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -14,7 +16,10 @@ using Random = UnityEngine.Random;
 public class HMAddressableMultipleUpdateTest : MonoBehaviour
 {
     private string localResUrl = "Assets/Samples/Test/RES/LocalRes/MultipleTestLocal/MuitipleTestLocalCube.prefab";
-    private string remoteResUrl = "Assets/Samples/Test/RES/RemoteRes/MultipleTestRemote/MuitipleTestRemoteSphere.prefab";
+
+    private string remoteResUrl =
+        "Assets/Samples/Test/RES/RemoteRes/MultipleTestRemote/MuitipleTestRemoteSphere.prefab";
+
     private List<GameObject> instanceObjs = new List<GameObject>();
 
     void Start()
@@ -33,18 +38,16 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
     {
         System.Diagnostics.Stopwatch stopwatch = new Stopwatch();
         stopwatch.Start();
-       await HM.HMAddressableManager.UpdateAddressablesAllAssets(null);
-       stopwatch.Stop();
-       Debug.Log($"更新资源耗时:{stopwatch.ElapsedMilliseconds} ");
+        await HM.HMAddressableManager.UpdateAddressablesAllAssets(null);
+        stopwatch.Stop();
+        Debug.Log($"更新资源耗时:{stopwatch.ElapsedMilliseconds} ");
     }
+
     private void OnGUI()
     {
-       
-
         if (GUILayout.Button("热更"))
         {
             this.UpdateRes();
-
         }
 
         if (GUILayout.Button("释放所有资源"))
@@ -67,6 +70,27 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
         {
             this.DestroyAllObj();
         }
+
+        if (GUILayout.Button("预下载远程资源组"))
+        {
+            TestLoadRemoteRes().Forget();
+        }
+    }
+
+    private async UniTask TestLoadRemoteRes()
+    {
+        var a = await HM.HMAddressableManager.DownloadAssetsToLocal(
+            new List<string>()
+            {
+                "Assets/Samples/Test/RES/RemoteRes/MultipleTestRemote/MuitipleTestRemoteSphere.prefab",
+                "Assets/Samples/Test/RES/RemoteRes/Sphere/CapsuleCopy.prefab"
+            },
+            (long current, long total, float pro) =>
+            {
+                Debug.Log("预下载远程资源组进度:" + current + "/" + total + " pro:" + pro);
+            });
+
+        Debug.Log($"Caching.defaultCache.path:{Caching.defaultCache.path}");
     }
 
     private async void InstanceObj(string resUrl)

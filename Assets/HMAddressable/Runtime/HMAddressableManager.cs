@@ -495,7 +495,7 @@ namespace HM
 #if UNITY_EDITOR
             if (AssetDatabase.IsValidFolder(folderPath))
             {
-                var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}", new[] {folderPath});
+                var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}", new[] { folderPath });
                 List<string> list = new List<string>();
                 for (int i = 0; i < guids.Length; i++)
                 {
@@ -654,7 +654,7 @@ namespace HM
         {
             HMRuntimeDialogHelper.DebugStopWatchInfo("CheckNeedUpdateRecourceLocators");
 
-            _updateCatalogsOp = Addressables.UpdateCatalogs(new[] {"AddressablesMainContentCatalog"}, false);
+            _updateCatalogsOp = Addressables.UpdateCatalogs(new[] { "AddressablesMainContentCatalog" }, false);
 
 
             while (!_updateCatalogsOp.IsDone)
@@ -856,6 +856,37 @@ namespace HM
 
                 PlayerPrefs.SetInt(key, 1);
             }
+        }
+
+        /// <summary>
+        /// 下载一些资源到本地缓存,但不加载,如果已经下载过则不会重复下载
+        /// 整个组的资源都会下载
+        /// </summary>
+        /// <param name="assetsNames"></param>
+        /// <param name="progressCb"></param>
+        /// <returns></returns>
+        public static async UniTask<(List<string> assetsNames, string message)> DownloadAssetsToLocal(
+            List<string> assetsNames, UnityAction<long, long,float> progressCb = null)
+        {
+            var downloadOp = Addressables.DownloadDependenciesAsync(assetsNames, Addressables.MergeMode.Union, false);
+          
+            while (downloadOp.Status == AsyncOperationStatus.None)
+            {
+               
+                progressCb?.Invoke(downloadOp.GetDownloadStatus().DownloadedBytes,
+                    downloadOp.GetDownloadStatus().TotalBytes,downloadOp.PercentComplete);
+
+                await UniTask.DelayFrame(10);
+            }
+
+            if (downloadOp.Status != AsyncOperationStatus.Succeeded)
+            {
+                Debug.LogError($"下载资源组失败:{downloadOp.OperationException.Message}");
+                return (assetsNames, $"Download Failed:{downloadOp.OperationException.Message}");
+            }
+            Debug.Log(" 下载资源组成功");
+            downloadOp.Release();
+            return (assetsNames, "Succeeded");
         }
     }
 }
