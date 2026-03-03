@@ -295,14 +295,14 @@ namespace HM.Editor
             AddressableAssetSettings settings
                 = AddressableAssetSettingsDefaultObject.Settings;
 
-            
+
 #if UNITY_2022_2_OR_NEWER
             //打包
             IDataBuilder builder
                 = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
                         "Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.asset") as
                     IDataBuilder;
-           #else
+#else
            //打包
             IDataBuilder builder
                 = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
@@ -310,7 +310,7 @@ namespace HM.Editor
                     IDataBuilder;
 #endif
             settings.ActivePlayerDataBuilderIndex
-                = settings.DataBuilders.IndexOf((ScriptableObject) builder);
+                = settings.DataBuilders.IndexOf((ScriptableObject)builder);
             Debug.Log($"打包器选用:{builder.Name}");
         }
 
@@ -521,7 +521,7 @@ namespace HM.Editor
                     .GetSchema<BundledAssetGroupSchema>();
                 var va = Schema.AssetBundleProviderType;
                 var nonEncrypt = ConfigHmAddressables.GetNonEncryptAssetBundleProvider();
-                var beNonEncrypt = va.Value == nonEncrypt||va.Value==typeof(AssetBundleProvider);
+                var beNonEncrypt = va.Value == nonEncrypt || va.Value == typeof(AssetBundleProvider);
                 if (beNonEncrypt)
                 {
                     return true;
@@ -559,6 +559,12 @@ namespace HM.Editor
                 remoteDirectoryInfos.Add(new DirectoryInfo(path));
             }
 
+            var separatelyPackDirectoryInfos = new List<DirectoryInfo>();
+            foreach (var path in ConfigHmAddressables.SeparatelyPackAssetsPaths)
+            {
+                separatelyPackDirectoryInfos.Add(new DirectoryInfo(path));
+            }
+
             //打包的时候才会进行修改
             for (int i = 0; i < AddressableAssetSettingsDefaultObject.Settings.groups.Count; i++)
             {
@@ -583,14 +589,15 @@ namespace HM.Editor
                     if (group.name.Contains("Duplicate Asset Isolation")) //重复依赖组
                     {
                         SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group),
-                            !ConfigHmAddressables.DuplicateDependenciesGroupBeRemote, true);
+                            !ConfigHmAddressables.DuplicateDependenciesGroupBeRemote, true,
+                            CheckBeSeparatelyPackGroup(group,separatelyPackDirectoryInfos));
                     }
 
                     else //文件夹组
                     {
                         SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group),
                             CheckGroupAssetsBeLocalGroup(group, localDirectoryInfos, remoteDirectoryInfos),
-                            true);
+                            true, CheckBeSeparatelyPackGroup(group,separatelyPackDirectoryInfos));
                         // //根据文件夹进行分类
                         // var groupInfo = groupInfos.Find(x => x.GroupName.Replace('/', '-') == group.Name);
                         // if (groupInfo == null) Debug.Log(group.name + " 为空");
@@ -703,7 +710,7 @@ namespace HM.Editor
                     groupInfo.Group.name.Contains("Content Update"))
                     continue;
 
-                var strs = AssetDatabase.FindAssets("", new[] {groupInfo.Path});
+                var strs = AssetDatabase.FindAssets("", new[] { groupInfo.Path });
                 //Debug.Log($"{groupInfo.groupName}的要添加的资源为:{strs.Length}");
 
                 DirectoryInfo folderInfo = new DirectoryInfo(groupInfo.Path);
@@ -744,7 +751,7 @@ namespace HM.Editor
         }
 
         private static void SetGroupSchema(AddressableAssetGroup group, bool beEncrypt, bool beLocal,
-            bool beStaticContent)
+            bool beStaticContent, bool beSeparatelyPack = false)
         {
             var updateGroupSchema = group.GetSchema<ContentUpdateGroupSchema>();
             updateGroupSchema.StaticContent = beLocal || (beStaticContent ? true : false);
@@ -758,15 +765,18 @@ namespace HM.Editor
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 loadPath);
             bundledAssetGroupSchema.UseAssetBundleCrc = false;
-            
-            
-            #if UNITY_2022_2_OR_NEWER  //2022版本展示屏蔽加密功能-采用原始资源提供器
+
+            //统一打包或者分散打包
+            bundledAssetGroupSchema.BundleMode = beSeparatelyPack
+                ? BundledAssetGroupSchema.BundlePackingMode.PackSeparately
+                : BundledAssetGroupSchema.BundlePackingMode.PackTogether;
+#if UNITY_2022_2_OR_NEWER //2022版本展示屏蔽加密功能-采用原始资源提供器
             //设置HMAAEncrypt_AssetBundleProvider
             var va = bundledAssetGroupSchema.AssetBundleProviderType;
-            va.Value =typeof(AssetBundleProvider);
+            va.Value = typeof(AssetBundleProvider);
             //没办法了,变量没公开,只好用反射调用
             EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
-            #else
+#else
             //是否需要设置加解密数据
             if (beEncrypt)
             {
@@ -784,8 +794,8 @@ namespace HM.Editor
                 //没办法了,变量没公开,只好用反射调用
                 EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
             }
-            #endif
-            
+#endif
+
 
             UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
         }
@@ -809,7 +819,7 @@ namespace HM.Editor
                 groupInfos.Add(baseInfo);
             }
 
-            var allAssetsGuids = AssetDatabase.FindAssets("", new[] {folder});
+            var allAssetsGuids = AssetDatabase.FindAssets("", new[] { folder });
             var folderDirInfo = new System.IO.DirectoryInfo(folder);
             for (int i = 0; i < allAssetsGuids.Length; i++)
             {
@@ -932,7 +942,7 @@ namespace HM.Editor
         private static void DeleteAllSubAssetsByFolderPath(string folderPath, bool beDeleteSubFolder = false,
             System.Predicate<string> predicate = null)
         {
-            var strs = AssetDatabase.FindAssets("", new[] {folderPath});
+            var strs = AssetDatabase.FindAssets("", new[] { folderPath });
             List<string> paths = new List<string>();
             for (int i = 0; i < strs.Length; i++)
             {
@@ -1085,7 +1095,7 @@ namespace HM.Editor
                     AddressableAssetSettingsDefaultObject.Settings,
                     AddressableAssetSettings.kRemoteLoadPath);
             }
-            
+
             //设置请求Catlog文件的超时时间,大概300K左右
             AddressableAssetSettingsDefaultObject.Settings.CatalogRequestsTimeout = 10;
         }
@@ -1311,6 +1321,33 @@ namespace HM.Editor
             UnityEditor.AssetDatabase.Refresh();
             UnityEditor.EditorUtility.FocusProjectWindow();
             EditorUtility.RequestScriptReload();
+        }
+
+        private static bool CheckBeSeparatelyPackGroup(AddressableAssetGroup aagroup,
+            List<DirectoryInfo> separatelyDirectoryInfos)
+        {
+            if (aagroup.entries.Count <= 0) return true; //没有资源的话会被删除,可以随便返回什么
+            var entry = aagroup.entries.First();
+            if (entry == null) return true;
+            FileInfo entryDirectoryInfo = new FileInfo(entry.AssetPath);
+            //然后一层一层父物体向上找,在哪个列表(本地/远端)组找到就是它所属的
+
+            var parenDirectInfo = entryDirectoryInfo.Directory;
+            while (true)
+            {
+                if (parenDirectInfo == null || assetFolderDirectoryInfo.FullName.Equals(parenDirectInfo.FullName))
+                    break;
+
+
+                if (separatelyDirectoryInfos.FindIndex(x => x.FullName.Equals(parenDirectInfo.FullName)) >= 0)
+                {
+                    return true;
+                }
+
+                parenDirectInfo = parenDirectInfo.Parent;
+            }
+
+            return false;
         }
     }
 
