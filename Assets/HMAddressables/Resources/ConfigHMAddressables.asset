@@ -12,16 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 637bda5d1592f3446b87b2bd397d9122, type: 3}
   m_Name: ConfigHMAddressables
   m_EditorClassIdentifier: 
-  LocalAseetsPaths:
-  - Assets/Samples/Test/RES/LocalRes
-  RemoteAseetsPaths:
-  - Assets/Samples/Test/RES/RemoteRes
+  AAAssetsPath:
+  - Assets/Bundles
+  UnassignedAssetsPath:
+  - GroupName: Assets/Bundles/ConfigMini
+    BeLocal: 0
+    BeRemote: 0
+  UnassignedAssetsBeLocal: 1
+  LocalAseetsPaths: []
+  RemoteAseetsPaths: []
+  SeparatelyPackAssetsPaths: []
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
-  EncryptAssetsGroup:
-  - Assets/Samples/Test/RES/LocalRes/Capsule
+  EncryptAssetsGroup: []
   MyDefaultAssetsEncryptType: 3
   DuplicateDependenciesGroupBeRemote: 0
   ForceRemoteAssetsToLocal: 0
-  useGooglePlayAssetDelivery: 1
+  useGooglePlayAssetDelivery: 0
   BeSkipUpdateCheck: 0
