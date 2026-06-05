@@ -199,15 +199,17 @@ namespace HM
                         if (count > 0)
                         {
                             EditorGUILayout.BeginHorizontal();
+                            GUI.contentColor = Color.red;
                             _showUnassignedList = EditorGUILayout.Foldout(_showUnassignedList, "尚未分配本地/远程的资源目录");
                             GUILayout.FlexibleSpace();
-                            GUI.contentColor = Color.red;
+
                             EditorGUILayout.LabelField($"({count})", GUILayout.Width(30));
                             GUI.contentColor = Color.white;
                             EditorGUILayout.EndHorizontal();
 
                             GUI.contentColor = Color.red;
                             EditorGUILayout.LabelField("以下资源目录尚未分配至本地或远程,请及时处理！");
+                            EditorGUILayout.LabelField("设置完毕后,请点击上方的整理资源目录按钮,以保存设置并刷新资源目录列表");
                             GUI.contentColor = Color.white;
 
                             if (_showUnassignedList)
