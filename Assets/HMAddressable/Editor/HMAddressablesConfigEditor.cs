@@ -80,10 +80,14 @@ namespace HM
             _localPathsList.drawHeaderCallback = rect => { };
             _localPathsList.drawElementCallback = (rect, index, isActive, isFocused) =>
             {
+                if (index >= _localPathsList.serializedProperty.arraySize)
+                    return;
                 SerializedProperty element = _localPathsList.serializedProperty.GetArrayElementAtIndex(index);
+                if (element == null) return;
                 float btnWidth = 50;
                 Rect propRect = new Rect(rect.x, rect.y, rect.width - btnWidth - 5, EditorGUIUtility.singleLineHeight);
-                Rect btnRect = new Rect(rect.x + rect.width - btnWidth, rect.y, btnWidth, EditorGUIUtility.singleLineHeight);
+                Rect btnRect = new Rect(rect.x + rect.width - btnWidth, rect.y, btnWidth,
+                    EditorGUIUtility.singleLineHeight);
 
                 GUI.enabled = false;
                 EditorGUI.PropertyField(propRect, element, GUIContent.none);
@@ -106,7 +110,8 @@ namespace HM
                 SerializedProperty element = _remotePathsList.serializedProperty.GetArrayElementAtIndex(index);
                 float btnWidth = 50;
                 Rect propRect = new Rect(rect.x, rect.y, rect.width - btnWidth - 5, EditorGUIUtility.singleLineHeight);
-                Rect btnRect = new Rect(rect.x + rect.width - btnWidth, rect.y, btnWidth, EditorGUIUtility.singleLineHeight);
+                Rect btnRect = new Rect(rect.x + rect.width - btnWidth, rect.y, btnWidth,
+                    EditorGUIUtility.singleLineHeight);
 
                 GUI.enabled = false;
                 EditorGUI.PropertyField(propRect, element, GUIContent.none);
@@ -120,6 +125,31 @@ namespace HM
                 }
             };
             _remotePathsList.elementHeight = EditorGUIUtility.singleLineHeight;
+        }
+
+        private bool IsAllSame(string propertyName, bool targetValue)
+        {
+            SerializedProperty unassignedProp = serializedObject.FindProperty("UnassignedAssetsPath");
+            if (unassignedProp.arraySize == 0) return false;
+            for (int i = 0; i < unassignedProp.arraySize; i++)
+            {
+                if (unassignedProp.GetArrayElementAtIndex(i).FindPropertyRelative(propertyName).boolValue !=
+                    targetValue)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private void SetAllUnassigned(bool beLocal, bool beRemote)
+        {
+            SerializedProperty unassignedProp = serializedObject.FindProperty("UnassignedAssetsPath");
+            for (int i = 0; i < unassignedProp.arraySize; i++)
+            {
+                SerializedProperty element = unassignedProp.GetArrayElementAtIndex(i);
+                element.FindPropertyRelative("BeLocal").boolValue = beLocal;
+                element.FindPropertyRelative("BeRemote").boolValue = beRemote;
+            }
         }
 
         private void AddToUnassigned(string path, bool isLocal = false, bool isRemote = false)
@@ -179,6 +209,29 @@ namespace HM
                             GUI.contentColor = Color.red;
                             EditorGUILayout.LabelField("以下资源目录尚未分配至本地或远程,请及时处理！");
                             GUI.contentColor = Color.white;
+
+                            if (_showUnassignedList)
+                            {
+                                bool allLocal = IsAllSame("BeLocal", true);
+                                bool allRemote = IsAllSame("BeRemote", true);
+
+                                EditorGUILayout.BeginHorizontal();
+                                EditorGUI.BeginChangeCheck();
+                                bool newAllLocal = EditorGUILayout.Toggle("全部本地", allLocal);
+                                if (EditorGUI.EndChangeCheck())
+                                {
+                                    SetAllUnassigned(beLocal: newAllLocal, beRemote: false);
+                                }
+
+                                EditorGUI.BeginChangeCheck();
+                                bool newAllRemote = EditorGUILayout.Toggle("全部远程", allRemote);
+                                if (EditorGUI.EndChangeCheck())
+                                {
+                                    SetAllUnassigned(beLocal: false, beRemote: newAllRemote);
+                                }
+
+                                EditorGUILayout.EndHorizontal();
+                            }
 
                             if (_showUnassignedList)
                             {
