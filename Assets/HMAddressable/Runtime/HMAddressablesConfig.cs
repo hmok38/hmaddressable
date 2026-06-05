@@ -311,6 +311,28 @@ namespace HM
                 GetAllSubFolders(subFolder, allSubFolders);
             }
         }
+
+        public bool CheckAllAssetsPathIsInList()
+        {
+            var allSubFolders = new List<string>();
+            for (int i = 0; i < AAAssetsPath.Length; i++)
+            {
+                GetAllSubFolders(AAAssetsPath[i], allSubFolders);
+            }
+
+            var allSub = allSubFolders.ToHashSet();
+            Debug.Log($"共 {allSub.Count} 个资源组");
+            if (LocalAseetsPaths.Length + RemoteAseetsPaths.Length + UnassignedAssetsPath.Length != allSub.Count)
+            {
+                Debug.LogError("请选择资源模块配置表,点击 整理资源目录 按钮");
+                EditorGUIUtility.PingObject(this);
+                Debug.LogError(
+                    $"资源组数量不匹配,总数: allSubFolders:{allSubFolders.Count} 其中应该:LocalAseetsPaths:{LocalAseetsPaths.Length}  RemoteAseetsPaths:{RemoteAseetsPaths.Length} UnassignedAssetsPath:{UnassignedAssetsPath.Length} ");
+                return false;
+            }
+
+            return true;
+        }
 #endif
     }
 

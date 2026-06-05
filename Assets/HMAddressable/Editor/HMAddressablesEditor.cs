@@ -76,7 +76,7 @@ namespace HM.Editor
         {
             hadWrong = false;
             //设置
-            RefreshAASetting(false);
+            hadWrong = !RefreshAASetting(false);
             if (!hadWrong)
                 //打包
                 BuildAsset();
@@ -112,7 +112,7 @@ namespace HM.Editor
         {
             hadWrong = false;
             //设置
-            RefreshAASetting(true);
+            hadWrong = !RefreshAASetting(true);
             if (!hadWrong)
                 //打包
                 BuildAsset();
@@ -207,8 +207,10 @@ namespace HM.Editor
         /// <summary>
         /// 刷新AA资源设置
         /// </summary>
-        private static void RefreshAASetting(bool beTest)
+        private static bool RefreshAASetting(bool beTest)
         {
+            var bo = CheckAllGroupInConfig();
+            if (!bo) return false;
             //检查设置,没有就创建
             CheckAndCreateSetting();
             SetDataBuilder();
@@ -220,6 +222,15 @@ namespace HM.Editor
 
             //组设置(加密/不加密和远程/本地)
             SetAllGroupSchema();
+            return true;
+        }
+
+        /// <summary>
+        /// 检查是不是所有的资源组都进入了配置表
+        /// </summary>
+        private static bool CheckAllGroupInConfig()
+        {
+            return ConfigHmAddressables.CheckAllAssetsPathIsInList();
         }
 
         /// <summary>
@@ -433,6 +444,12 @@ namespace HM.Editor
                 GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos, null, false);
             }
 
+            foreach (var assetsPath in config.UnassignedAssetsPath)
+            {
+                GetAllSubFolderAndCreateGroupInfo(assetsPath.GroupName, ref groupInfos, null,
+                    assetsPath.BeLocal ? true : (assetsPath.BeRemote ? false : config.UnassignedAssetsBeLocal));
+            }
+
             return groupInfos;
         }
 
@@ -455,7 +472,8 @@ namespace HM.Editor
             }
 
 
-            if (config.LocalAseetsPaths.Length <= 0 && config.RemoteAseetsPaths.Length <= 0)
+            if (config.LocalAseetsPaths.Length <= 0 && config.RemoteAseetsPaths.Length <= 0 &&
+                config.UnassignedAssetsPath.Length <= 0)
             {
                 Debug.LogError($"未设置需要打包的资源路径,请检查{ConfigPath}的设置");
                 ShowAndSelectConfigMenuItem();
@@ -559,6 +577,19 @@ namespace HM.Editor
                 remoteDirectoryInfos.Add(new DirectoryInfo(path));
             }
 
+            for (int i = 0; i < ConfigHmAddressables.UnassignedAssetsPath.Length; i++)
+            {
+                if (ConfigHmAddressables.UnassignedAssetsBeLocal)
+                {
+                    localDirectoryInfos.Add(new DirectoryInfo(ConfigHmAddressables.UnassignedAssetsPath[i].GroupName));
+                }
+                else
+                {
+                    remoteDirectoryInfos.Add(new DirectoryInfo(ConfigHmAddressables.UnassignedAssetsPath[i].GroupName));
+                }
+            }
+
+
             var separatelyPackDirectoryInfos = new List<DirectoryInfo>();
             foreach (var path in ConfigHmAddressables.SeparatelyPackAssetsPaths)
             {
@@ -632,7 +663,8 @@ namespace HM.Editor
                 return;
             }
 
-            if (config.LocalAseetsPaths.Length <= 0 && config.RemoteAseetsPaths.Length <= 0)
+            if (config.LocalAseetsPaths.Length <= 0 && config.RemoteAseetsPaths.Length <= 0 &&
+                config.UnassignedAssetsPath.Length <= 0)
             {
                 Debug.LogError($"未设置需要打包的资源路径,请检查{ConfigPath}的设置");
                 ShowAndSelectConfigMenuItem();
@@ -650,6 +682,12 @@ namespace HM.Editor
             foreach (var assetsPath in config.RemoteAseetsPaths)
             {
                 GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos, null, false);
+            }
+
+            foreach (var assetsPath in config.UnassignedAssetsPath)
+            {
+                GetAllSubFolderAndCreateGroupInfo(assetsPath.GroupName, ref groupInfos, null,
+                    assetsPath.BeLocal ? true : (assetsPath.BeRemote ? false : config.UnassignedAssetsBeLocal));
             }
 
             if (groupInfos.Count <= 0)
