@@ -271,13 +271,15 @@ namespace HM
 
                     if (prop.name == "LocalAseetsPaths")
                     {
-                        DrawStringArrayWithReorderableList(_localPathsList, "要包含在APP中的资源目录", prop);
+                        DrawStringArrayWithReorderableList(_localPathsList,
+                            $"要包含在APP中的资源目录:{_localPathsList.serializedProperty.arraySize}", prop);
                         continue;
                     }
 
                     if (prop.name == "RemoteAseetsPaths")
                     {
-                        DrawStringArrayWithReorderableList(_remotePathsList, "要远程下载的资源目录", prop);
+                        DrawStringArrayWithReorderableList(_remotePathsList,
+                            $"要远程下载的资源目录:{_remotePathsList.serializedProperty.arraySize}", prop);
                         continue;
                     }
 
