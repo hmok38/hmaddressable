@@ -590,14 +590,14 @@ namespace HM.Editor
                     {
                         SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group),
                             !ConfigHmAddressables.DuplicateDependenciesGroupBeRemote, true,
-                            CheckBeSeparatelyPackGroup(group,separatelyPackDirectoryInfos));
+                            CheckBeSeparatelyPackGroup(group, separatelyPackDirectoryInfos));
                     }
 
                     else //文件夹组
                     {
                         SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group),
                             CheckGroupAssetsBeLocalGroup(group, localDirectoryInfos, remoteDirectoryInfos),
-                            true, CheckBeSeparatelyPackGroup(group,separatelyPackDirectoryInfos));
+                            true, CheckBeSeparatelyPackGroup(group, separatelyPackDirectoryInfos));
                         // //根据文件夹进行分类
                         // var groupInfo = groupInfos.Find(x => x.GroupName.Replace('/', '-') == group.Name);
                         // if (groupInfo == null) Debug.Log(group.name + " 为空");
@@ -1307,7 +1307,17 @@ namespace HM.Editor
         {
             var lastIndex = assetPath.LastIndexOf('/');
             var groupName = assetPath.Substring(0, lastIndex);
-            return ConfigHmAddressables.EncryptAssetsGroup.Contains(groupName);
+            try
+            {
+                var a = ConfigHmAddressables.EncryptAssetsGroup.Contains(groupName);
+                return a;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"检查资源是否在加密组时发生错误,请检查配置的加密组路径是否正确,错误信息:{e} assetPath:{assetPath}");
+            }
+
+            return false;
         }
 
         private static bool BeEncryptGroup(GroupInfo groupInfo)
