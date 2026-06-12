@@ -31,21 +31,20 @@ namespace HM
                 SerializedProperty beLocal = element.FindPropertyRelative("BeLocal");
                 SerializedProperty beRemote = element.FindPropertyRelative("BeRemote");
 
-                float groupLabelWidth = 0;
                 float toggleLabelWidth = 35;
                 float toggleWidth = 20;
-                float groupValueWidth = rect.width - groupLabelWidth - toggleLabelWidth * 2 - toggleWidth * 2 - 10;
+                float groupValueWidth = rect.width - toggleLabelWidth * 3 - toggleWidth * 3 - 15;
 
-                Rect groupLabelRect = new Rect(rect.x, rect.y, groupLabelWidth, rect.height);
-                Rect groupValueRect = new Rect(rect.x + groupLabelWidth, rect.y, groupValueWidth, rect.height);
+                Rect groupValueRect = new Rect(rect.x, rect.y, groupValueWidth, rect.height);
 
                 float rightStart = groupValueRect.xMax + 5;
                 Rect localLabelRect = new Rect(rightStart, rect.y, toggleLabelWidth, rect.height);
                 Rect localToggleRect = new Rect(localLabelRect.xMax, rect.y, toggleWidth, rect.height);
                 Rect remoteLabelRect = new Rect(localToggleRect.xMax, rect.y, toggleLabelWidth, rect.height);
                 Rect remoteToggleRect = new Rect(remoteLabelRect.xMax, rect.y, toggleWidth, rect.height);
+                Rect separateLabelRect = new Rect(remoteToggleRect.xMax, rect.y, toggleLabelWidth, rect.height);
+                Rect separateToggleRect = new Rect(separateLabelRect.xMax, rect.y, toggleWidth, rect.height);
 
-                EditorGUI.LabelField(groupLabelRect, "");
                 GUI.enabled = false;
                 EditorGUI.TextField(groupValueRect, groupName.stringValue);
                 GUI.enabled = true;
@@ -61,6 +60,14 @@ namespace HM
                 beRemote.boolValue = EditorGUI.Toggle(remoteToggleRect, beRemote.boolValue);
                 if (EditorGUI.EndChangeCheck() && beRemote.boolValue)
                     beLocal.boolValue = false;
+
+                string groupPath = groupName.stringValue;
+                bool isSeparate = IsSeparatelyPack(groupPath);
+                EditorGUI.LabelField(separateLabelRect, "分散:");
+                EditorGUI.BeginChangeCheck();
+                bool newSeparate = EditorGUI.Toggle(separateToggleRect, isSeparate);
+                if (EditorGUI.EndChangeCheck())
+                    SetSeparatelyPack(groupPath, newSeparate);
             };
             _unassignedList.elementHeight = EditorGUIUtility.singleLineHeight;
 
@@ -85,19 +92,34 @@ namespace HM
                 SerializedProperty element = _localPathsList.serializedProperty.GetArrayElementAtIndex(index);
                 if (element == null) return;
                 float btnWidth = 50;
-                Rect propRect = new Rect(rect.x, rect.y, rect.width - btnWidth - 5, EditorGUIUtility.singleLineHeight);
-                Rect btnRect = new Rect(rect.x + rect.width - btnWidth, rect.y, btnWidth,
+                float separateLabelWidth = 35;
+                float separateToggleWidth = 20;
+                float separateTotalWidth = separateLabelWidth + separateToggleWidth + 5;
+                float propWidth = rect.width - btnWidth - separateTotalWidth - 10;
+                Rect propRect = new Rect(rect.x, rect.y, propWidth, EditorGUIUtility.singleLineHeight);
+                Rect separateLabelRect = new Rect(propRect.xMax + 5, rect.y, separateLabelWidth,
+                    EditorGUIUtility.singleLineHeight);
+                Rect separateToggleRect = new Rect(separateLabelRect.xMax, rect.y, separateToggleWidth,
+                    EditorGUIUtility.singleLineHeight);
+                Rect btnRect = new Rect(separateToggleRect.xMax + 5, rect.y, btnWidth,
                     EditorGUIUtility.singleLineHeight);
 
                 GUI.enabled = false;
                 EditorGUI.PropertyField(propRect, element, GUIContent.none);
                 GUI.enabled = true;
 
+                string localPath = element.stringValue;
+                bool localIsSeparate = IsSeparatelyPack(localPath);
+                EditorGUI.LabelField(separateLabelRect, "分散:");
+                EditorGUI.BeginChangeCheck();
+                bool localNewSeparate = EditorGUI.Toggle(separateToggleRect, localIsSeparate);
+                if (EditorGUI.EndChangeCheck())
+                    SetSeparatelyPack(localPath, localNewSeparate);
+
                 if (GUI.Button(btnRect, "移除"))
                 {
-                    string path = element.stringValue;
                     _localPathsList.serializedProperty.DeleteArrayElementAtIndex(index);
-                    AddToUnassigned(path, isLocal: true);
+                    AddToUnassigned(localPath, isLocal: true);
                 }
             };
             _localPathsList.elementHeight = EditorGUIUtility.singleLineHeight;
@@ -107,21 +129,38 @@ namespace HM
             _remotePathsList.drawHeaderCallback = rect => { };
             _remotePathsList.drawElementCallback = (rect, index, isActive, isFocused) =>
             {
+                if (index >= _remotePathsList.serializedProperty.arraySize)
+                    return;
                 SerializedProperty element = _remotePathsList.serializedProperty.GetArrayElementAtIndex(index);
                 float btnWidth = 50;
-                Rect propRect = new Rect(rect.x, rect.y, rect.width - btnWidth - 5, EditorGUIUtility.singleLineHeight);
-                Rect btnRect = new Rect(rect.x + rect.width - btnWidth, rect.y, btnWidth,
+                float separateLabelWidth = 35;
+                float separateToggleWidth = 20;
+                float separateTotalWidth = separateLabelWidth + separateToggleWidth + 5;
+                float propWidth = rect.width - btnWidth - separateTotalWidth - 10;
+                Rect propRect = new Rect(rect.x, rect.y, propWidth, EditorGUIUtility.singleLineHeight);
+                Rect separateLabelRect = new Rect(propRect.xMax + 5, rect.y, separateLabelWidth,
+                    EditorGUIUtility.singleLineHeight);
+                Rect separateToggleRect = new Rect(separateLabelRect.xMax, rect.y, separateToggleWidth,
+                    EditorGUIUtility.singleLineHeight);
+                Rect btnRect = new Rect(separateToggleRect.xMax + 5, rect.y, btnWidth,
                     EditorGUIUtility.singleLineHeight);
 
                 GUI.enabled = false;
                 EditorGUI.PropertyField(propRect, element, GUIContent.none);
                 GUI.enabled = true;
 
+                string remotePath = element.stringValue;
+                bool remoteIsSeparate = IsSeparatelyPack(remotePath);
+                EditorGUI.LabelField(separateLabelRect, "分散:");
+                EditorGUI.BeginChangeCheck();
+                bool remoteNewSeparate = EditorGUI.Toggle(separateToggleRect, remoteIsSeparate);
+                if (EditorGUI.EndChangeCheck())
+                    SetSeparatelyPack(remotePath, remoteNewSeparate);
+
                 if (GUI.Button(btnRect, "移除"))
                 {
-                    string path = element.stringValue;
                     _remotePathsList.serializedProperty.DeleteArrayElementAtIndex(index);
-                    AddToUnassigned(path, isRemote: true);
+                    AddToUnassigned(remotePath, isRemote: true);
                 }
             };
             _remotePathsList.elementHeight = EditorGUIUtility.singleLineHeight;
@@ -168,6 +207,46 @@ namespace HM
             newElement.FindPropertyRelative("GroupName").stringValue = path;
             newElement.FindPropertyRelative("BeLocal").boolValue = false;
             newElement.FindPropertyRelative("BeRemote").boolValue = false;
+        }
+
+        private bool IsSeparatelyPack(string path)
+        {
+            SerializedProperty separatelyProp = serializedObject.FindProperty("SeparatelyPackAssetsPaths");
+            for (int i = 0; i < separatelyProp.arraySize; i++)
+            {
+                if (separatelyProp.GetArrayElementAtIndex(i).stringValue == path)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private void SetSeparatelyPack(string path, bool pack)
+        {
+            SerializedProperty separatelyProp = serializedObject.FindProperty("SeparatelyPackAssetsPaths");
+            if (pack)
+            {
+                for (int i = 0; i < separatelyProp.arraySize; i++)
+                {
+                    if (separatelyProp.GetArrayElementAtIndex(i).stringValue == path)
+                        return;
+                }
+
+                int newIndex = separatelyProp.arraySize;
+                separatelyProp.InsertArrayElementAtIndex(newIndex);
+                separatelyProp.GetArrayElementAtIndex(newIndex).stringValue = path;
+            }
+            else
+            {
+                for (int i = separatelyProp.arraySize - 1; i >= 0; i--)
+                {
+                    if (separatelyProp.GetArrayElementAtIndex(i).stringValue == path)
+                    {
+                        separatelyProp.DeleteArrayElementAtIndex(i);
+                        break;
+                    }
+                }
+            }
         }
 
         private void DrawStringArrayWithReorderableList(ReorderableList list, string foldoutTitle,
