@@ -246,6 +246,24 @@ namespace HM
                 needSave = true;
             }
 
+            //检查SeparatelyPackAssetsPaths中的路径是否合法
+            needRemoveIndex.Clear();
+            for (int i = SeparatelyPackAssetsPaths.Length - 1; i >= 0; i--)
+            {
+                var separatelyPath = SeparatelyPackAssetsPaths[i];
+                if (!allSubFolders.Contains(separatelyPath))
+                {
+                    Debug.LogError($"SeparatelyPackAssetsPaths 资源组中存在不合法的路径:{separatelyPath},已经移除");
+                    needRemoveIndex.Add(i);
+                }
+            }
+
+            if (needRemoveIndex.Count > 0)
+            {
+                SeparatelyPackAssetsPaths = SeparatelyPackAssetsPaths
+                    .Where((path, index) => !needRemoveIndex.Contains(index)).ToArray();
+                needSave = true;
+            }
 
             //还有一些路径没有被LocalAseetsPaths和RemoteAseetsPaths包含,说明这些路径没有被分配到资源组,需要进行提醒
             if (allSub.Count > 0)
