@@ -58,13 +58,37 @@ namespace HM
         }
 
         /// <summary>
+        /// 统一化路径分隔符，将反斜杠(\)转为正斜杠(/)。
+        /// 运行时字符串中转义符已被解析为控制字符，不会被误修改。
+        /// 正斜杠 Unity 全平台兼容。
+        /// </summary>
+        /// <param name="path">原始路径</param>
+        /// <param name="removeTrailingSeparator">是否移除末尾分隔符</param>
+        /// <returns>规范化后的路径</returns>
+        public static string NormalizePath(string path, bool removeTrailingSeparator = false)
+        {
+            if (string.IsNullOrEmpty(path))
+                return path;
+
+            // 统一分隔符：反斜杠 → 正斜杠
+            var normalized = path.Replace('\\', '/');
+
+            // // 移除末尾分隔符
+            // if (removeTrailingSeparator && normalized.Length > 1 && normalized.EndsWith("/"))
+            //     normalized = normalized.TrimEnd('/');
+
+            return normalized;
+        }
+
+        /// <summary>
         /// 加载资源 同步加载,尽量使用异步加载
         /// </summary>
-        /// <param name="resName"></param>
+        /// <param name="resNameP"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public static T Load<T>(string resName) where T : UnityEngine.Object
+        public static T Load<T>(string resNameP) where T : UnityEngine.Object
         {
+            var resName = NormalizePath(resNameP);
             if (ResMap.ContainsKey(resName))
             {
                 return ResMap[resName] as T;
@@ -106,8 +130,9 @@ namespace HM
             return ResMap[resName] as T;
         }
 
-        public static async UniTask<T> LoadAsync<T>(string resName) where T : UnityEngine.Object
+        public static async UniTask<T> LoadAsync<T>(string resNameP) where T : UnityEngine.Object
         {
+            var resName = NormalizePath(resNameP);
             if (ResMap.ContainsKey(resName))
                 return ResMap[resName] as T;
             if (LoadingMap.ContainsKey(resName) && LoadingMap[resName])
@@ -221,7 +246,7 @@ namespace HM
             rs.WaitForCompletion();
             if (rs.IsDone && rs.IsValid())
             {
-                return (rs.Result != null && rs.Result.Count > 0);
+                return true;
             }
 
             return false;
@@ -256,26 +281,33 @@ namespace HM
         /// <summary>
         /// 释放资源,
         /// </summary>
-        /// <param name="resName"></param>
+        /// <param name="resNameP"></param>
         /// <returns></returns>
-        public static async void ReleaseRes(string resName)
+        public static async void ReleaseRes(string resNameP)
         {
+            var resName = NormalizePath(resNameP);
             if (ResMap.ContainsKey(resName))
             {
                 var operation = ResMap[resName];
                 ResMap.Remove(resName);
                 if (operation != null)
                 {
+#if UNITY_EDITOR
+                    if (!HasAssets(resName))
+                    {
+                        if (BeOtherDebug)
+                        {
+                            HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{resName} 失败,没有这个资源");
+                        }
+
+                        return;
+                    }
+#endif
                     if (BeOtherDebug)
                     {
                         HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{resName}");
                     }
-#if UNITY_EDITOR
-                    if (!HasAssets(resName))
-                    {
-                        return;
-                    }
-#endif
+
                     Addressables.Release(operation);
                 }
             }
@@ -866,15 +898,14 @@ namespace HM
         /// <param name="progressCb"></param>
         /// <returns></returns>
         public static async UniTask<(List<string> assetsNames, string message)> DownloadAssetsToLocal(
-            List<string> assetsNames, UnityAction<long, long,float> progressCb = null)
+            List<string> assetsNames, UnityAction<long, long, float> progressCb = null)
         {
             var downloadOp = Addressables.DownloadDependenciesAsync(assetsNames, Addressables.MergeMode.Union, false);
-          
+
             while (downloadOp.Status == AsyncOperationStatus.None)
             {
-               
                 progressCb?.Invoke(downloadOp.GetDownloadStatus().DownloadedBytes,
-                    downloadOp.GetDownloadStatus().TotalBytes,downloadOp.PercentComplete);
+                    downloadOp.GetDownloadStatus().TotalBytes, downloadOp.PercentComplete);
 
                 await UniTask.DelayFrame(10);
             }
@@ -884,6 +915,7 @@ namespace HM
                 Debug.LogError($"下载资源组失败:{downloadOp.OperationException.Message}");
                 return (assetsNames, $"Download Failed:{downloadOp.OperationException.Message}");
             }
+
             Debug.Log(" 下载资源组成功");
             Addressables.Release(downloadOp);
             return (assetsNames, "Succeeded");
