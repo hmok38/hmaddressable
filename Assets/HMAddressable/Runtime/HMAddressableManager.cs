@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Cysharp.Threading.Tasks;
+using UnityEngine.ResourceManagement.ResourceLocations;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -241,14 +242,16 @@ namespace HM
             }
 #endif
 
-            var rs = Addressables.LoadResourceLocationsAsync(resName);
-
-            rs.WaitForCompletion();
-            if (rs.IsDone && rs.IsValid())
+            foreach (var locator in Addressables.ResourceLocators)
             {
-                return true;
+                if (locator.Locate(resName, typeof(object), out IList<IResourceLocation> locations))
+                {
+                    //Debug.Log($"找到资源{resName} 返回值{(locations != null && locations.Count > 0)}");
+                    return locations != null && locations.Count > 0;
+                }
             }
 
+            //Debug.Log($"未找到资源{resName} ");
             return false;
         }
 
@@ -259,20 +262,24 @@ namespace HM
         /// <returns></returns>
         public static bool ReleaseRes(Object res)
         {
+            if (ResMap == null) return false;
             var item = ResMap.First((item) => item.Value == res);
             if (item.Key == null) return false;
             var operation = ResMap[item.Key];
+            if (operation == null) return false;
             ResMap.Remove(item.Key);
-            if (BeOtherDebug)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{operation.name}");
-            }
+
 #if UNITY_EDITOR
             if (!HasAssets(operation.name))
             {
                 return true;
             }
 #endif
+            if (BeOtherDebug)
+            {
+                HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{operation.name}");
+            }
+
             Addressables.Release(operation);
 
             return true;
@@ -286,6 +293,7 @@ namespace HM
         public static async void ReleaseRes(string resNameP)
         {
             var resName = NormalizePath(resNameP);
+            if (ResMap == null) return;
             if (ResMap.ContainsKey(resName))
             {
                 var operation = ResMap[resName];
@@ -297,7 +305,7 @@ namespace HM
                     {
                         if (BeOtherDebug)
                         {
-                            HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{resName} 失败,没有这个资源");
+                            HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{resName} 失败,AA中没有这个资源,请检查是否设置其为AA资源");
                         }
 
                         return;
@@ -916,7 +924,7 @@ namespace HM
                 return (assetsNames, $"Download Failed:{downloadOp.OperationException.Message}");
             }
 
-            Debug.Log(" 下载资源组成功");
+            //Debug.Log(" 下载资源组成功");
             Addressables.Release(downloadOp);
             return (assetsNames, "Succeeded");
         }
