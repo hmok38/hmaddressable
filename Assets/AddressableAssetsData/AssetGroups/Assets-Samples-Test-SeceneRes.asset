@@ -16,7 +16,13 @@ MonoBehaviour:
   m_Data:
     m_SerializedData: []
   m_GUID: 8feb12cb0725eb943b16ad2538e47b19
-  m_SerializeEntries: []
+  m_SerializeEntries:
+  - m_GUID: 06edec37f25b15c48979ef1316cabd49
+    m_Address: Assets/Samples/Test/SeceneRes/TestLoadScene.unity
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/Samples/Test/SeceneRes
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 4d3531e4887c82c41867dc11bad20963, type: 2}
   m_SchemaSet:
