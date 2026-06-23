@@ -242,14 +242,12 @@ namespace HM
                 return false;
             }
 #endif
+            var rs = Addressables.LoadResourceLocationsAsync(resName);
 
-            foreach (var locator in Addressables.ResourceLocators)
+            rs.WaitForCompletion();
+            if (rs.IsDone && rs.IsValid())
             {
-                if (locator.Locate(resName, typeof(object), out IList<IResourceLocation> locations))
-                {
-                    //Debug.Log($"找到资源{resName} 返回值{(locations != null && locations.Count > 0)}");
-                    return locations != null && locations.Count > 0;
-                }
+                return (rs.Result != null && rs.Result.Count > 0);
             }
 
             //Debug.Log($"未找到资源{resName} ");
