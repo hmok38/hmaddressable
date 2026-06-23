@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Assets-Samples-Test-Scripts
+  m_EditorClassIdentifier: 
+  m_GroupName: Assets-Samples-Test-Scripts
+  m_Data:
+    m_SerializedData: []
+  m_GUID: e46f329e1f4fd544ab9d675f0de715e7
+  m_SerializeEntries:
+  - m_GUID: 0e04b8b879203c64dbcc5a036266951d
+    m_Address: 0e04b8b879203c64dbcc5a036266951d
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Assets/Samples/Test/Scripts
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 42224235b1c32494cb4afece5ac12061
+    m_Address: 42224235b1c32494cb4afece5ac12061
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Assets/Samples/Test/Scripts
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 53ea41024a71c3f44874746a623a7ca7
+    m_Address: 53ea41024a71c3f44874746a623a7ca7
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Assets/Samples/Test/Scripts
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 4d3531e4887c82c41867dc11bad20963, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: ea576b8aa0230674990d74c3f479c218, type: 2}
+    - {fileID: 11400000, guid: 74287db7e45bfd842a6a829ae1054263, type: 2}

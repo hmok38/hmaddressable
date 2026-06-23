@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Assets-Samples-Test-RES-LocalRes-New
+  m_EditorClassIdentifier: 
+  m_GroupName: Assets-Samples-Test-RES-LocalRes-New
+  m_Data:
+    m_SerializedData: []
+  m_GUID: b33674acf3bf2e14fbdb26134cd879ac
+  m_SerializeEntries:
+  - m_GUID: b4c42b3f599b64f43abacd3243821a50
+    m_Address: Assets/Samples/Test/RES/LocalRes/New/Cylinder2.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/Samples/Test/RES/LocalRes/New
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 4d3531e4887c82c41867dc11bad20963, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: d4a9d2e88a01567429065048e516f805, type: 2}
+    - {fileID: 11400000, guid: d09e8cc05bd8fe7478ad40bb071e1bef, type: 2}

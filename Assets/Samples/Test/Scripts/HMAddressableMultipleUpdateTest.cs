@@ -7,7 +7,9 @@ using Cysharp.Threading.Tasks;
 using HM;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.SceneManagement;
 using Debug = UnityEngine.Debug;
+using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 /// <summary>
@@ -27,6 +29,7 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
         Addressables.InitializeAsync();
         Debug.Log(Application.persistentDataPath);
         Debug.Log(Application.dataPath);
+        Object.DontDestroyOnLoad(this.gameObject);
     }
 
     // Update is called once per frame
@@ -75,6 +78,37 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
         {
             TestLoadRemoteRes().Forget();
         }
+
+        if (GUILayout.Button("加载场景"))
+        {
+            TestLoadScene().Forget();
+        }
+
+        if (GUILayout.Button("卸载场景"))
+        {
+            TestUnloadScene().Forget();
+        }
+
+
+        if (GUILayout.Button("调用释放无用资源"))
+        {
+            Resources.UnloadUnusedAssets();
+            System.GC.Collect();
+        }
+    }
+
+    private async UniTask TestLoadScene()
+    {
+        // await HM.HMAddressableManager.LoadSceneAsync("Assets/Samples/Test/SeceneRes/TestLoadScene.unity");
+
+        await HM.HMAddressableManager.LoadSceneAsync("TestLoadScene");
+    }
+
+    private async UniTask TestUnloadScene()
+    {
+        await HM.HMAddressableManager.LoadSceneAsync("TestScene");
+        await UniTask.NextFrame();
+        await HM.HMAddressableManager.UnloadSceneAsync("TestLoadScene");
     }
 
     private async UniTask TestLoadRemoteRes()

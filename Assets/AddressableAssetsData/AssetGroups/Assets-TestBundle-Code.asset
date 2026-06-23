@@ -1,0 +1,97 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Assets-TestBundle-Code
+  m_EditorClassIdentifier: 
+  m_GroupName: Assets-TestBundle-Code
+  m_Data:
+    m_SerializedData: []
+  m_GUID: abf97bbbb822ec94eae497371f1efc9e
+  m_SerializeEntries:
+  - m_GUID: 22e10e15b0a232f4e94f6286232b9d6d
+    m_Address: Assets/TestBundle/Code/Unity.Hotfix.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2b11a5535b1084941bca0b49017cefa1
+    m_Address: Assets/TestBundle/Code/FromHotFix.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 397f5adf910a95848acacfd0d322008b
+    m_Address: Assets/TestBundle/Code/System.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5448f4959fa9e214eb3b99877776fb11
+    m_Address: Assets/TestBundle/Code/Unity.HotfixView.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 548539cfa28ee31458fe5e2a3ad4b756
+    m_Address: Assets/TestBundle/Code/Unity.ModelView.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 55bd1343e11fe6346b08016cbd571bdd
+    m_Address: Assets/TestBundle/Code/mscorlib.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 62822db060c776f4a909783bf21621c0
+    m_Address: Assets/TestBundle/Code/System.Core.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 63a282dcc83ef364a9580d6653be917d
+    m_Address: Assets/TestBundle/Code/Unity.Mono.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7e975a9c75166b9438c76f7a2681df55
+    m_Address: Assets/TestBundle/Code/UnityEngine.AndroidJNIModule.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8b99e15ff7b837542bf5c24f82ddf694
+    m_Address: Assets/TestBundle/Code/Unity.Model.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 952f6b91519624d4893d08174a650369
+    m_Address: Assets/TestBundle/Code/Unity.ThirdParty.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d9cf8f934a827d3429f66ea7b94a2059
+    m_Address: Assets/TestBundle/Code/UnityEngine.CoreModule.dll.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Code
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 4d3531e4887c82c41867dc11bad20963, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: be2999c3add90bb45b6450b440961902, type: 2}
+    - {fileID: 11400000, guid: a1b5658ae50976448aef0e4ababddadc, type: 2}

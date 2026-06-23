@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Assets-Samples-Test
+  m_EditorClassIdentifier: 
+  m_GroupName: Assets-Samples-Test
+  m_Data:
+    m_SerializedData: []
+  m_GUID: 704ee721fb4e8554b8d0c97c9646ed98
+  m_SerializeEntries:
+  - m_GUID: 2fed067ac09792d47a8b4d800ca74334
+    m_Address: Assets/Samples/Test/test.png
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/Samples/Test
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 4d3531e4887c82c41867dc11bad20963, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: ddc2f8f43f12b3b408dd070282e05da4, type: 2}
+    - {fileID: 11400000, guid: 76c5267de85b9a5428777c4c58e54faf, type: 2}

@@ -1,0 +1,517 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Assets-TestBundle-Config
+  m_EditorClassIdentifier: 
+  m_GroupName: Assets-TestBundle-Config
+  m_Data:
+    m_SerializedData: []
+  m_GUID: 44e07ff368e42724fb2eda2caa676693
+  m_SerializeEntries:
+  - m_GUID: 00376e33d254f9b4c8f49366c87b8f94
+    m_Address: Assets/TestBundle/Config/HeroLevelGrowUpConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 02cc948d2bf5dc146a32f417a5dcc0da
+    m_Address: "Assets/TestBundle/Config/\u5B57\u4F53ConfigCategory.bytes"
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 05309611aa4d49242aae0bf56403533e
+    m_Address: Assets/TestBundle/Config/SDKCustomEventConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 06c15f8fedb0fd94a8e1c24fff10b387
+    m_Address: Assets/TestBundle/Config/OptSpecialGiftConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 06ce2a93aab36ae48955cd772cbef26e
+    m_Address: Assets/TestBundle/Config/BUFFCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0aa7d4f8fa72ed745a4bc5b64ead5c2d
+    m_Address: Assets/TestBundle/Config/MostroConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0ab759ad99a9dcc44af0c036b2b1ec7f
+    m_Address: Assets/TestBundle/Config/SaleCoinsConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 125f8e3a8f522524b963b7b0bfb1687b
+    m_Address: Assets/TestBundle/Config/FontScaleConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 12a6be9818b2ac7488e9bfe71badabb2
+    m_Address: Assets/TestBundle/Config/FriendInvitedRewardsConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 186cb18384ee6be4eab94fe4f7ad6648
+    m_Address: Assets/TestBundle/Config/BoxConfigConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1e80bdc975fbb584ca5394cf76a58ae9
+    m_Address: Assets/TestBundle/Config/PropCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1ec7a4b36520b48418c9968a0b9392d4
+    m_Address: Assets/TestBundle/Config/MostroRarityConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1f9edbeb62d08ec4486b63b38521d4bd
+    m_Address: Assets/TestBundle/Config/UnitCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 277d58db3067742a7b32f9994984b3bc
+    m_Address: Assets/TestBundle/Config/AIConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 28ebd7e8ae4097c49bad76042bc67609
+    m_Address: Assets/TestBundle/Config/PropConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2f6fb4fd5b9efc3499a7b38b354be3e5
+    m_Address: Assets/TestBundle/Config/ArenaConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2fd7ab3b20c83da4bbb56f4949f6c5a8
+    m_Address: Assets/TestBundle/Config/MostroSkillConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 30b3866fc7f20ea428de0f8a5f560583
+    m_Address: Assets/TestBundle/Config/OptLimitedTimeGiftConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3220b7bfc2aedb64fac4b74a46538a1a
+    m_Address: Assets/TestBundle/Config/SeasonConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3863783966322bd43a1dea96cf84bf81
+    m_Address: Assets/TestBundle/Config/MostroSkillCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3873135f6b7c7ea438bf3dffe693dfaf
+    m_Address: Assets/TestBundle/Config/BlessingConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 39c6502e7b3f4114b94e9c91d1c061d1
+    m_Address: Assets/TestBundle/Config/UnitSkillConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3b3d56b80dc5495448e0c494efc470c5
+    m_Address: Assets/TestBundle/Config/HeroSkillConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3ee6fa6e435132044b8d5be0380339bb
+    m_Address: Assets/TestBundle/Config/CashPaidGoodsConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3f352927dfef48549b5293a26f18a48c
+    m_Address: Assets/TestBundle/Config/DonationGrowUpConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3f452063ceb5f4150bbbfe795c0aca90
+    m_Address: Assets/TestBundle/Config/UnitConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3fe23d270c008034d89a7daeb36a89ed
+    m_Address: Assets/TestBundle/Config/SDKCopyConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 449b145e772e96c48acbfe82effcce64
+    m_Address: Assets/TestBundle/Config/SaleDiamondConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 51b31e3a1802f114c99d730c4de0ad5e
+    m_Address: Assets/TestBundle/Config/CharacterConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 52d8c157da420be4eaf2b8438c48487e
+    m_Address: Assets/TestBundle/Config/YuJianConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 57b71db65cae4674a8ed9e515bfa2b35
+    m_Address: Assets/TestBundle/Config/ActivityConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 597b61cfc00c3d84abc676530a628738
+    m_Address: Assets/TestBundle/Config/LuckCardConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5a7e25be06eff65448197f1afa49b1a6
+    m_Address: Assets/TestBundle/Config/TestConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5fb47b39de879bf45b57eb9f8f322c5e
+    m_Address: Assets/TestBundle/Config/LevelGrowUpConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5febf8311f886e44fb822c2e65183c4d
+    m_Address: Assets/TestBundle/Config/RarityConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 66a9aa4eb810df14cace17677e968d09
+    m_Address: Assets/TestBundle/Config/OptFirstChargeGiftConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 67222d77dace7fd4d9decdab84cbfd8a
+    m_Address: Assets/TestBundle/Config/GuideConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 69ce56d282057f141a7bdd55ffe9f056
+    m_Address: Assets/TestBundle/Config/ArenaCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7197fae1c6200be4399af4836d4c981e
+    m_Address: Assets/TestBundle/Config/BoxConfigCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 746ae765d36466b4aa54f872df74476f
+    m_Address: Assets/TestBundle/Config/AccountSkillConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 77557ef6623b0684ca16fa8ef3c64144
+    m_Address: Assets/TestBundle/Config/TaskConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 77a808ccb80a4764a84c15000189beb1
+    m_Address: Assets/TestBundle/Config/TipConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7f347a03ac6026544b01ac8f0b82677d
+    m_Address: Assets/TestBundle/Config/DailyGoodsConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7ff499f36ab8bda408516b9291aaef09
+    m_Address: Assets/TestBundle/Config/AccountExpConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 811ea60443d7be54caba5deb94f338fc
+    m_Address: Assets/TestBundle/Config/MostroCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 839de4b7d635da7468195be1cf0c1d55
+    m_Address: Assets/TestBundle/Config/OrganizationIconConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 85e2e1b646207b14f87b0e088bf16c5e
+    m_Address: Assets/TestBundle/Config/CampConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8650d2b2aa644c14fb5ddf12add70a98
+    m_Address: Assets/TestBundle/Config/SeasonRewardConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 88abac76cbab228468d65df08e9ec1ec
+    m_Address: Assets/TestBundle/Config/EmoticomConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8915a13ddcbdc9d4a8c0027083f27c22
+    m_Address: Assets/TestBundle/Config/ActivityRDConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8a36b94efaf1d7a45b9251c65ddd87aa
+    m_Address: Assets/TestBundle/Config/CampCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8a376e5a66dc0674896b461f09f33277
+    m_Address: Assets/TestBundle/Config/BuffCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8f687202774191b43b500483e615382c
+    m_Address: Assets/TestBundle/Config/OptActivitySignInConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8f7cac34f9e66864c8933aa6ff29a552
+    m_Address: Assets/TestBundle/Config/PropExchangeConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8ffa1fbb54d139344b62d98cc60993e4
+    m_Address: Assets/TestBundle/Config/AccountSkillCostConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 901ce9e4af7d3d744a24107e4c53cd6f
+    m_Address: Assets/TestBundle/Config/TAUserEventConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a1a436e0f2872e248899f886da0515d1
+    m_Address: Assets/TestBundle/Config/BattleStarGrowUpConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b0eeccd26bd065f48b831d9fe2c83987
+    m_Address: Assets/TestBundle/Config/UnitSkillCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b97774fb8db871741ac797f921568439
+    m_Address: Assets/TestBundle/Config/AccountSkillCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bd126c5cc9ca03b4784380ff0fc47947
+    m_Address: Assets/TestBundle/Config/DonationRewardConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c17f34f98cc614c4a8e4e105c3ee440a
+    m_Address: Assets/TestBundle/Config/SDKCustomEConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c342c8b1fb97c1e41b6cb364172fe94b
+    m_Address: Assets/TestBundle/Config/MostroWaveConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ca27b3f5ada97774f93b1b4823b8a1f6
+    m_Address: Assets/TestBundle/Config/AccountSkillTypeConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d2cf964aa274e27419bfadf7645eb0b2
+    m_Address: Assets/TestBundle/Config/HeroConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d48c329beb9b2504d95c61bb756a00e0
+    m_Address: Assets/TestBundle/Config/UnitUpInfoConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d4d8b88212bbcf54b9b09a41d47d7cc9
+    m_Address: Assets/TestBundle/Config/ShopBoxGrowUpConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d6c473fcd4753534889b828a016bdbd3
+    m_Address: Assets/TestBundle/Config/BattleOrderRewardConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: da754a881b02358469fd1287ab526437
+    m_Address: Assets/TestBundle/Config/RarityCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: daa1750f721adcd48a58b43da32ffcc9
+    m_Address: Assets/TestBundle/Config/ArenaRewardConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dc9cb37f784820e42a5399fa1da3f360
+    m_Address: Assets/TestBundle/Config/BattleOrderRewardSummaryConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: de660372e6198b04ebe951481f1f0f29
+    m_Address: Assets/TestBundle/Config/ActivityCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: df5e348329b8a5d46b4614f41b0b3cdd
+    m_Address: Assets/TestBundle/Config/QuestionnaireConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e228b16d99d68ca4584a4db609bfb098
+    m_Address: Assets/TestBundle/Config/EmoticomCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e492be063d8c9464dba3132518b94b36
+    m_Address: Assets/TestBundle/Config/HeroCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e60875e87c2903d48bc7a77661d1f3d8
+    m_Address: Assets/TestBundle/Config/BattleLevelGrowUpConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eadaa2cfb4d887e44bc7a6483b50d598
+    m_Address: Assets/TestBundle/Config/BuffConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ec6b13f40cd8ca94aaab6958e7970c25
+    m_Address: Assets/TestBundle/Config/HeroSkillCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f0016c98c737ada458d56986f333df30
+    m_Address: Assets/TestBundle/Config/ShopEmoConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f14c7c648529a954b8bb1e71415ae053
+    m_Address: Assets/TestBundle/Config/BattleBoxGrowUpConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f339e765da7a04642af7563557281d94
+    m_Address: Assets/TestBundle/Config/OptAccumulateChargeGiftConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fb153665b3de8b242b61ccbd445b1463
+    m_Address: Assets/TestBundle/Config/BlessingCConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fd854cc8b017363498782b863b415299
+    m_Address: Assets/TestBundle/Config/TAUserEventCopyConfigCategory.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Assets/TestBundle/Config
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 4d3531e4887c82c41867dc11bad20963, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 6ce773030f803a345bfa07ab3282cbc7, type: 2}
+    - {fileID: 11400000, guid: 96f7f68bc94f4814dbd7851c5bad16d7, type: 2}

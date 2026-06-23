@@ -14,14 +14,39 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   AAAssetsPath:
   - Assets/Bundles
-  UnassignedAssetsPath:
-  - GroupName: Assets/Bundles/ConfigMini
-    BeLocal: 0
-    BeRemote: 0
+  - Assets/TestBundle
+  - Assets/Samples/Test
+  UnassignedAssetsPath: []
   UnassignedAssetsBeLocal: 1
-  LocalAseetsPaths: []
-  RemoteAseetsPaths: []
-  SeparatelyPackAssetsPaths: []
+  LocalAseetsPaths:
+  - Assets/Bundles/ConfigMini
+  - Assets/TestBundle/Code
+  - Assets/TestBundle/sprite
+  - Assets/Samples/Test
+  - Assets/Samples/Test/Materials
+  - Assets/Samples/Test/ParrentFolder
+  - Assets/Samples/Test/ParrentFolder/SubFolder1
+  - Assets/Samples/Test/ParrentFolder/SubFolder1/sub1_1
+  - Assets/Samples/Test/ParrentFolder/SubFolder1/sub1_1/sub1_1_1
+  - Assets/Samples/Test/ParrentFolder/SubFolder2
+  - Assets/Samples/Test/RES/LocalRes/aaa
+  - Assets/Samples/Test/RES/LocalRes/Capsule
+  - Assets/Samples/Test/RES/LocalRes/MultipleTestLocal
+  - Assets/Samples/Test/RES/LocalRes/New
+  - Assets/Samples/Test/RES/RemoteRes/MultipleTestRemote
+  - Assets/Samples/Test/RES/RemoteRes/Scenes
+  - Assets/Samples/Test/RES/RemoteRes/Sphere
+  - Assets/Samples/Test/RES/RemoteRes/x
+  - Assets/Samples/Test/Resources
+  - Assets/Samples/Test/Scenes
+  - Assets/Samples/Test/Scripts
+  - Assets/Samples/Test/Sprite
+  - Assets/Samples/Test/SeceneRes
+  RemoteAseetsPaths:
+  - Assets/TestBundle/Config
+  SeparatelyPackAssetsPaths:
+  - Assets/TestBundle/Config
+  - Assets/TestBundle/Code
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
   EncryptAssetsGroup: []
