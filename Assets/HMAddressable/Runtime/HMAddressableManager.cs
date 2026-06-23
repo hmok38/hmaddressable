@@ -290,7 +290,7 @@ namespace HM
             ResMap.Remove(item.Key);
 
 #if UNITY_EDITOR
-            if (!HasAssets(operation.name))
+            if (!HasAssets(item.Key))
             {
                 return true;
             }
