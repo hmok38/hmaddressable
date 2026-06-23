@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -256,6 +257,27 @@ namespace HM
         }
 
         /// <summary>
+        /// 判断是否有资源
+        /// </summary>
+        /// <param name="resName"></param>
+        /// <returns></returns>
+        public static bool HasSceneAssets(string resName)
+        {
+#if UNITY_EDITOR
+            //编辑器下检查是不是有设置,没有就直接返回,有就真的判断是不是存在资源
+            var sett = AssetDatabase.LoadAssetAtPath<Object>(
+                "Assets/AddressableAssetsData/AddressableAssetSettings.asset");
+            if (sett == null)
+            {
+                return false;
+            }
+#endif
+            //对于场景来说,有AA资源就用aa加载.如果没有设置为AA资源的情况下,只要加入了Build Settings中,并勾选了也可以通过aa加载出来
+            //如果没有设置为AA资源,并且也没有勾选,则会报错,没有AA路径-因为默认加入了Build Settings就会在打包时成为AA资源
+            return true;
+        }
+
+        /// <summary>
         /// 释放资源,
         /// </summary>
         /// <param name="res"></param>
@@ -391,10 +413,11 @@ namespace HM
 
 
 #if UNITY_EDITOR
-            if (!HasAssets(sceneName))
+            if (!HasSceneAssets(sceneName))
             {
-                var scene = EditorSceneManager.LoadSceneInPlayMode(sceneName, new LoadSceneParameters());
-                return scene;
+                var s = SceneManager.LoadSceneAsync(sceneName, loadSceneMode);
+                await s.ToUniTask();
+                return SceneManager.GetSceneByName(sceneName);
             }
 
 #endif
@@ -432,10 +455,11 @@ namespace HM
             }
 
 #if UNITY_EDITOR
-            if (!HasAssets(sceneName))
+            if (!HasSceneAssets(sceneName))
             {
-                var scene = EditorSceneManager.LoadSceneInPlayMode(sceneName, new LoadSceneParameters(loadSceneMode));
-                return scene;
+                SceneManager.LoadScene(sceneName, loadSceneMode);
+
+                return SceneManager.GetSceneByName(sceneName);
             }
 #endif
 
@@ -462,14 +486,15 @@ namespace HM
         public static async UniTask UnloadSceneAsync(string scenePath)
         {
 #if UNITY_EDITOR
-            if (!HasAssets(scenePath))
+            if (!HasSceneAssets(scenePath))
             {
                 return;
             }
 #endif
             if (LoadedSceneMap.ContainsKey(scenePath) && LoadedSceneMap[scenePath].Scene.isLoaded)
             {
-                var op = Addressables.UnloadSceneAsync(LoadedSceneMap[scenePath]);
+                var op = Addressables.UnloadSceneAsync(LoadedSceneMap[scenePath],
+                    UnloadSceneOptions.UnloadAllEmbeddedSceneObjects);
                 await op.Task;
                 LoadedSceneMap.Remove(scenePath);
             }
@@ -486,7 +511,7 @@ namespace HM
         public static async UniTask UnloadSceneAsync(Scene scene)
         {
 #if UNITY_EDITOR
-            if (!HasAssets(scene.name))
+            if (!HasSceneAssets(scene.name))
             {
                 return;
             }
