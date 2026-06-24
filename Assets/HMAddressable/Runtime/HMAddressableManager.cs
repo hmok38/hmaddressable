@@ -282,8 +282,9 @@ namespace HM
         /// <returns></returns>
         public static bool ReleaseRes(Object res)
         {
+            if (res == null) return false;
             if (ResMap == null) return false;
-            var item = ResMap.First((item) => item.Value == res);
+            var item = ResMap.FirstOrDefault((item) => item.Value == res);
             if (item.Key == null) return false;
             var operation = ResMap[item.Key];
             if (operation == null) return false;
