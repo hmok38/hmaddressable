@@ -33,6 +33,10 @@ namespace HM.Editor
             get { return HMAddressableManager.HMAAConfig; }
         }
 
+        public static HMAddressablePlatformConfig PlatformConfig
+        {
+            get { return HMAddressableManager.HMAddressablePlatformConfig; }
+        }
 
         //=============================public=============================================
 
@@ -65,10 +69,20 @@ namespace HM.Editor
         [UnityEditor.MenuItem("HMAA资源管理/***选择并显示配置表***", false, 1)]
         public static void ShowAndSelectConfigMenuItem()
         {
-            Selection.activeObject = ConfigHmAddressables;
-            EditorGUIUtility.PingObject(Selection.activeObject);
-            EditorUtility.FocusProjectWindow();
-            Debug.Log("已经选择并显示配置表");
+            if (ConfigHmAddressables == null)
+            {
+                Selection.activeObject = PlatformConfig;
+                EditorGUIUtility.PingObject(Selection.activeObject);
+                EditorUtility.FocusProjectWindow();
+                Debug.Log("已经选择并显示配置表");
+            }
+            else
+            {
+                Selection.activeObject = ConfigHmAddressables;
+                EditorGUIUtility.PingObject(Selection.activeObject);
+                EditorUtility.FocusProjectWindow();
+                Debug.Log("已经选择并显示配置表");
+            }
         }
 
         [UnityEditor.MenuItem("HMAA资源管理/****一键打出包资源(正式包)****", false, 3)]

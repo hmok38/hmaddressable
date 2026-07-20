@@ -56,7 +56,30 @@ namespace HM
         /// </summary>
         public static HMAddressablesConfig HMAAConfig
         {
-            get { return Resources.Load<HMAddressablesConfig>("ConfigHMAddressables"); }
+            get
+            {
+                var platformConfig = HMAddressablePlatformConfig;
+
+                return platformConfig.CurrentConfig;
+            }
+        }
+
+        /// <summary>
+        /// 多平台配置表
+        /// </summary>
+        public static HMAddressablePlatformConfig HMAddressablePlatformConfig
+        {
+            get
+            {
+                var platformConfig = Resources.Load<HMAddressablePlatformConfig>("HMAddressablePlatformConfig");
+                if (platformConfig == null)
+                {
+                    Debug.LogError("未找到HMAA插件的平台配置表,请创建和配置,位于:Assets/HMAddressables/Resource/");
+                    return null;
+                }
+
+                return platformConfig;
+            }
         }
 
         /// <summary>

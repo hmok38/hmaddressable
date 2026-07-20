@@ -7,45 +7,31 @@ namespace HM.Editor
 {
     public class HMAddressableEditorTools
     {
-        [DidReloadScripts]
+        [DidReloadScripts(10)]
         static void DidReloadScripts()
         {
-            var oldPath = "Assets/HMAddressables/ConfigHMAddressables.asset";
-            var newPath = "Assets/HMAddressables/Resources/ConfigHMAddressables.asset";
-            var config = AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(oldPath);
-            if (config != null)
+            var platformConfigPath = "Assets/HMAddressables/Resources/HMAddressablePlatformConfig.asset";
+
+            var platformConfig = AssetDatabase.LoadAssetAtPath<HMAddressablePlatformConfig>(platformConfigPath);
+            if (platformConfig == null)
             {
+                Debug.Log($"{platformConfigPath}文件不存在,创建完毕");
+                if (!AssetDatabase.IsValidFolder("Assets/HMAddressables"))
+                {
+                    AssetDatabase.CreateFolder("Assets", "HMAddressables");
+                }
+
                 if (!AssetDatabase.IsValidFolder("Assets/HMAddressables/Resources"))
                 {
                     AssetDatabase.CreateFolder("Assets/HMAddressables", "Resources");
                 }
 
-                var erro = AssetDatabase.MoveAsset(oldPath, newPath);
-                Debug.Log($"V4.0.0版本移动配置表文件到原目录下Resources目录下{erro}");
+
+                platformConfig = ScriptableObject.CreateInstance<HMAddressablePlatformConfig>();
+                AssetDatabase.CreateAsset(platformConfig, platformConfigPath);
                 AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
             }
-            else
-            {
-                config = AssetDatabase.LoadAssetAtPath<HMAddressablesConfig>(newPath);
-                if (config == null)
-                {
-                    Debug.Log("HMAddressables/HMAddressablesConfig文件不存在,创建完毕");
-                    if (!AssetDatabase.IsValidFolder("Assets/HMAddressables"))
-                    {
-                        AssetDatabase.CreateFolder("Assets", "HMAddressables");
-                    }
-
-                    if (!AssetDatabase.IsValidFolder("Assets/HMAddressables/Resources"))
-                    {
-                        AssetDatabase.CreateFolder("Assets/HMAddressables", "Resources");
-                    }
-
-
-                    config = ScriptableObject.CreateInstance<HMAddressablesConfig>();
-                    AssetDatabase.CreateAsset(config, newPath);
-                }
-            }
-
         }
     }
 }

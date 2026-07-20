@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc494f8b8fdb47b38d48338c2bd880ab, type: 3}
+  m_Name: HMAddressablePlatformConfig
+  m_EditorClassIdentifier: 
+  _platformConfigs:
+  - Platform: 11
+    Config: {fileID: 11400000, guid: 14f5c1c955c30cf4c85a8d2c834bd193, type: 2}
+  - Platform: 2
+    Config: {fileID: 11400000, guid: 26c23b2481ab5ec40815d1e84b6f46db, type: 2}
+  - Platform: 17
+    Config: {fileID: 11400000, guid: e59ff539e01ab694d89157c360eaa9d2, type: 2}
