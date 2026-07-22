@@ -26,6 +26,7 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
         Debug.Log(Application.persistentDataPath);
         Debug.Log(Application.dataPath);
         Object.DontDestroyOnLoad(this.gameObject);
+        HMAddressableManager.OnLoadingResException += (resName, ex) => { Debug.Log($"资源加载失败:{resName} {ex}"); };
     }
 
     // Update is called once per frame
@@ -128,6 +129,7 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
         System.Diagnostics.Stopwatch stopwatch = new Stopwatch();
         stopwatch.Start();
         var objPrefab = await HM.HMAddressableManager.LoadAsync<GameObject>(resUrl);
+        Debug.Log($"资源加载完成{resUrl}  资源是否为空:{objPrefab==null}");
         var obj = GameObject.Instantiate(objPrefab);
         this.instanceObjs.Add(obj);
         obj.transform.position = Random.insideUnitSphere * 3;

@@ -51,6 +51,8 @@ namespace HM
         private static Dictionary<string, bool> LoadingSceneMap = new Dictionary<string, bool>();
 
 
+        public static Action<string, Exception> OnLoadingResException;
+
         /// <summary>
         /// HMAA的配置表,位于Assets/HMAddressables/Resource/ConfigHMAddressables.asset
         /// </summary>
@@ -139,6 +141,16 @@ namespace HM
                 var operation = Addressables.LoadAssetAsync<T>(resName);
                 AddToLoadingMap(resName);
                 operation.WaitForCompletion();
+
+                if (operation.Status != AsyncOperationStatus.Succeeded || operation.Result == null)
+                {
+                    //失败了
+                    RemoveFromLoadingMap(resName);
+                    Addressables.Release(operation); //释放掉它
+                    OnLoadingResException?.Invoke(resName, operation.OperationException); //派发加载失败的事件
+                    return null;
+                }
+
                 obj = operation.Result;
             }
 
@@ -164,7 +176,12 @@ namespace HM
             {
                 await UniTask.WaitUntil(() => (!LoadingMap.ContainsKey(resName)) || (!LoadingMap[resName]));
 
-                return ResMap[resName] as T;
+                if (ResMap.TryGetValue(resName, out var value))
+                {
+                    return value as T;
+                }
+
+                return null;
             }
 
             if (BeOtherDebug)
@@ -185,6 +202,15 @@ namespace HM
                 var operation = Addressables.LoadAssetAsync<T>(resName);
                 AddToLoadingMap(resName);
                 await operation.Task;
+                if (operation.Status != AsyncOperationStatus.Succeeded || operation.Result == null)
+                {
+                    //失败了
+                    RemoveFromLoadingMap(resName);
+                    Addressables.Release(operation); //释放掉它
+                    OnLoadingResException?.Invoke(resName, operation.OperationException); //派发加载失败的事件
+                    return null;
+                }
+
                 obj = operation.Result;
             }
 
@@ -430,7 +456,13 @@ namespace HM
             if (LoadingSceneMap.ContainsKey(sceneName) && LoadingSceneMap[sceneName])
             {
                 await UniTask.WaitUntil(() => !LoadingSceneMap[sceneName] && LoadedSceneMap[sceneName].Scene.isLoaded);
-                return LoadedSceneMap[sceneName].Scene;
+
+                if (LoadedSceneMap.TryGetValue(sceneName, out var value))
+                {
+                    return value.Scene;
+                }
+
+                return default;
             }
 
 
@@ -447,6 +479,15 @@ namespace HM
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             AddToLoadingSceneMap(sceneName);
             await op.Task;
+            if (op.Status != AsyncOperationStatus.Succeeded || !op.Result.Scene.IsValid())
+            {
+                //失败了
+                RemoveFromLoadingSceneMap(sceneName);
+                Addressables.Release(op); //释放掉它
+                OnLoadingResException?.Invoke(sceneName, op.OperationException); //派发加载失败的事件
+                return default;
+            }
+
             if (!LoadedSceneMap.ContainsKey(sceneName))
             {
                 LoadedSceneMap.Add(sceneName, op.Result);
@@ -488,6 +529,17 @@ namespace HM
 
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             op.WaitForCompletion();
+
+            if (op.Status != AsyncOperationStatus.Succeeded || !op.Result.Scene.IsValid())
+            {
+                //失败了
+                RemoveFromLoadingSceneMap(sceneName);
+                Addressables.Release(op); //释放掉它
+                OnLoadingResException?.Invoke(sceneName, op.OperationException); //派发加载失败的事件
+                return default;
+            }
+
+
             if (!LoadedSceneMap.ContainsKey(sceneName))
             {
                 LoadedSceneMap.Add(sceneName, op.Result);
