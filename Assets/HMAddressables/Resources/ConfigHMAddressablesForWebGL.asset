@@ -12,14 +12,43 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 637bda5d1592f3446b87b2bd397d9122, type: 3}
   m_Name: ConfigHMAddressablesForWebGL
   m_EditorClassIdentifier: 
+  BundledAssetGroupSchemaPreset: {fileID: 2655988077585873504, guid: a9a3ccec160c0e340a073a58f6b84982, type: 2}
   AAAssetsPath:
   - Assets/Bundles
+  - Assets/TestBundle
+  - Assets/Samples/Test
   UnassignedAssetsPath: []
   UnassignedAssetsBeLocal: 1
   LocalAseetsPaths:
-  - Assets/Bundles
-  RemoteAseetsPaths: []
-  SeparatelyPackAssetsPaths: []
+  - Assets/Bundles/ConfigMini
+  - Assets/Samples/Test/Materials
+  - Assets/Samples/Test/ParrentFolder/SubFolder1/sub1_1
+  - Assets/Samples/Test/ParrentFolder/SubFolder1/sub1_1/sub1_1_1
+  - Assets/Samples/Test/ParrentFolder/SubFolder2
+  - Assets/Samples/Test/RES/LocalRes/aaa
+  - Assets/Samples/Test/RES/LocalRes/Capsule
+  - Assets/Samples/Test/RES/LocalRes/MultipleTestLocal
+  - Assets/Samples/Test/RES/LocalRes/New
+  - Assets/Samples/Test/RES/RemoteRes/MultipleTestRemote
+  - Assets/Samples/Test/RES/RemoteRes/Scenes
+  - Assets/Samples/Test/RES/RemoteRes/Sphere
+  - Assets/Samples/Test/RES/RemoteRes/x
+  - Assets/Samples/Test/Resources
+  - Assets/Samples/Test/Scenes
+  - Assets/Samples/Test/Scripts
+  - Assets/Samples/Test/SeceneRes
+  - Assets/Samples/Test/Sprite
+  - Assets/TestBundle/Code
+  - Assets/TestBundle/Config
+  - Assets/TestBundle/sprite
+  RemoteAseetsPaths:
+  - Assets/Samples/Test
+  - Assets/Samples/Test/ParrentFolder
+  - Assets/Samples/Test/ParrentFolder/SubFolder1
+  SeparatelyPackAssetsPaths:
+  - Assets/Bundles/ConfigMini
+  - Assets/Samples/Test/Materials
+  - Assets/Samples/Test/ParrentFolder
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
   EncryptAssetsGroup: []
