@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using HM.Editor.HMAddressable.Editor;
 using UnityEditor;
@@ -13,7 +12,6 @@ using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEditor.Presets;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.ResourceProviders;
 using JsonConvert = Newtonsoft.Json.JsonConvert;
 using Object = UnityEngine.Object;
 
@@ -550,19 +548,11 @@ namespace HM.Editor
             if (defaultGroupInfo != null && defaultGroup != null)
             {
                 AddressableAssetSettingsDefaultObject.Settings.DefaultGroup = defaultGroup;
-                var Schema = AddressableAssetSettingsDefaultObject.Settings.DefaultGroup
-                    .GetSchema<BundledAssetGroupSchema>();
-                var va = Schema.AssetBundleProviderType;
-                var nonEncrypt = ConfigHmAddressables.GetNonEncryptAssetBundleProvider();
-                var beNonEncrypt = va.Value == nonEncrypt || va.Value == typeof(AssetBundleProvider);
-                if (beNonEncrypt)
-                {
-                    return true;
-                }
+                return true;
             }
 
             Debug.LogError(
-                $"发现默认资源组被加密了,可能会导致builtinShader资源组的新旧版本加密设置不一致,所以不允许其加密,请将一个不需要加密的资源组移动到config的LocalAssetsPaths列表最上方,并保证其至少有一个资源");
+                "未找到可作为 Addressables 默认组的非空本地资源组，请检查 LocalAseetsPaths 配置。");
             return false;
         }
 
@@ -619,29 +609,27 @@ namespace HM.Editor
 
                 if (group.name.Contains("Content Update")) //升级组
                 {
-                    SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group),
-                        false, false);
+                    SetGroupSchema(group, false, false);
                     continue;
                 }
 
                 //如果配置表开启了强制将远程包打入本地包,则强制修改为本地组
                 if (ConfigHmAddressables.ForceRemoteAssetsToLocal)
                 {
-                    SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group), true, true);
+                    SetGroupSchema(group, true, true);
                 }
                 //没开启的话,按照其设定修改组
                 else
                 {
                     if (group.name.Contains("Duplicate Asset Isolation")) //重复依赖组
                     {
-                        SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group),
-                            !ConfigHmAddressables.DuplicateDependenciesGroupBeRemote, true,
+                        SetGroupSchema(group, !ConfigHmAddressables.DuplicateDependenciesGroupBeRemote, true,
                             CheckBeSeparatelyPackGroup(group, separatelyPackDirectoryInfos));
                     }
 
                     else //文件夹组
                     {
-                        SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group),
+                        SetGroupSchema(group,
                             CheckGroupAssetsBeLocalGroup(group, localDirectoryInfos, remoteDirectoryInfos),
                             true, CheckBeSeparatelyPackGroup(group, separatelyPackDirectoryInfos));
                         // //根据文件夹进行分类
@@ -649,11 +637,11 @@ namespace HM.Editor
                         // if (groupInfo == null) Debug.Log(group.name + " 为空");
                         // if (groupInfo.BeLocalGroup)
                         // {
-                        //     SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group), true, true);
+                        //     SetGroupSchema(group, true, true);
                         // }
                         // else
                         // {
-                        //     SetGroupSchema(group, CheckGroupAssetsNeedEncrypt(group), groupInfo.BeLocalGroup, true);
+                        //     SetGroupSchema(group, groupInfo.BeLocalGroup, true);
                         // }
                     }
                 }
@@ -803,7 +791,7 @@ namespace HM.Editor
             }
         }
 
-        private static void SetGroupSchema(AddressableAssetGroup group, bool beEncrypt, bool beLocal,
+        private static void SetGroupSchema(AddressableAssetGroup group, bool beLocal,
             bool beStaticContent, bool beSeparatelyPack = false)
         {
             var updateGroupSchema = group.GetSchema<ContentUpdateGroupSchema>();
@@ -818,37 +806,11 @@ namespace HM.Editor
                 beLocal ? AddressableAssetSettings.kLocalLoadPath : AddressableAssetSettings.kRemoteLoadPath;
             bundledAssetGroupSchema.LoadPath.SetVariableByName(group.Settings,
                 loadPath);
-            bundledAssetGroupSchema.UseAssetBundleCrc = false;
 
             //统一打包或者分散打包
             bundledAssetGroupSchema.BundleMode = beSeparatelyPack
                 ? BundledAssetGroupSchema.BundlePackingMode.PackSeparately
                 : BundledAssetGroupSchema.BundlePackingMode.PackTogether;
-#if UNITY_2022_2_OR_NEWER //2022版本展示屏蔽加密功能-采用原始资源提供器
-            //设置HMAAEncrypt_AssetBundleProvider
-            var va = bundledAssetGroupSchema.AssetBundleProviderType;
-            va.Value = typeof(AssetBundleProvider);
-            //没办法了,变量没公开,只好用反射调用
-            EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
-#else
-            //是否需要设置加解密数据
-            if (beEncrypt)
-            {
-                //设置HMAAEncrypt_AssetBundleProvider
-                var va = bundledAssetGroupSchema.AssetBundleProviderType;
-                va.Value = ConfigHmAddressables.GetMyDefaultAssetBundleProvider();
-                //没办法了,变量没公开,只好用反射调用
-                EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
-            }
-            else
-            {
-                //设置HMAAEncrypt_AssetBundleProvider
-                var va = bundledAssetGroupSchema.AssetBundleProviderType;
-                va.Value = ConfigHmAddressables.GetNonEncryptAssetBundleProvider();
-                //没办法了,变量没公开,只好用反射调用
-                EditPrivateValue(bundledAssetGroupSchema, "m_AssetBundleProviderType", va);
-            }
-#endif
 
 
             UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
@@ -1245,36 +1207,14 @@ namespace HM.Editor
         {
             var contentGroup = settings.CreateGroup(FindUniqueGroupName(groupName), false, false, true, null);
             var schema = contentGroup.AddSchema<BundledAssetGroupSchema>();
+            ApplyBundledAssetGroupSchemaPreset(schema);
             schema.BuildPath.SetVariableByName(settings, AddressableAssetSettings.kRemoteBuildPath);
             schema.LoadPath.SetVariableByName(settings, AddressableAssetSettings.kRemoteLoadPath);
             schema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackTogether;
-            schema.UseAssetBundleCrc = false;
 
             var contentUpdateSchema = contentGroup.AddSchema<ContentUpdateGroupSchema>();
             contentUpdateSchema.StaticContent = false;
             settings.MoveEntries(items, contentGroup);
-
-
-            var checkNeedEncrypt = CheckGroupAssetsNeedEncrypt(contentGroup);
-
-            if (checkNeedEncrypt)
-            {
-                //更新组必须使用默认加密
-                //设置HMAAEncrypt_AssetBundleProvider
-                var va = schema.AssetBundleProviderType;
-                va.Value = ConfigHmAddressables.GetMyDefaultAssetBundleProvider();
-                //没办法了,变量没公开,只好用反射调用
-                EditPrivateValue(schema, "m_AssetBundleProviderType", va);
-            }
-            else
-            {
-                //更新组必须使用默认加密
-                //设置HMAAEncrypt_AssetBundleProvider
-                var va = schema.AssetBundleProviderType;
-                va.Value = ConfigHmAddressables.GetNonEncryptAssetBundleProvider();
-                //没办法了,变量没公开,只好用反射调用
-                EditPrivateValue(schema, "m_AssetBundleProviderType", va);
-            }
 
 
             UnityEditor.EditorUtility.SetDirty(contentGroup);
@@ -1341,33 +1281,6 @@ namespace HM.Editor
                     beTest ? "TestProfile" : "Default");
         }
 
-        /// <summary>
-        /// 编辑其他类的私有变量
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <param name="valueName"></param>
-        /// <param name="value"></param>
-        private static void EditPrivateValue(object obj, string valueName, object value)
-        {
-            var x = obj.GetType().GetField(valueName,
-                BindingFlags.Instance | BindingFlags.GetField | BindingFlags.NonPublic | BindingFlags.ExactBinding);
-            x.SetValue(obj, value);
-        }
-
-
-        private static bool CheckGroupAssetsNeedEncrypt(AddressableAssetGroup aagroup)
-        {
-            foreach (var entry in aagroup.entries)
-            {
-                if (BeAssetsInEncryptGroup(entry.AssetPath))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static DirectoryInfo assetFolderDirectoryInfo =
             new DirectoryInfo(Application.dataPath);
 
@@ -1401,28 +1314,6 @@ namespace HM.Editor
             return true;
         }
 
-        private static bool BeAssetsInEncryptGroup(string assetPath)
-        {
-            var lastIndex = assetPath.LastIndexOf('/');
-            var groupName = assetPath.Substring(0, lastIndex);
-            try
-            {
-                var a = ConfigHmAddressables.EncryptAssetsGroup.Contains(groupName);
-                return a;
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"检查资源是否在加密组时发生错误,请检查配置的加密组路径是否正确,错误信息:{e} assetPath:{assetPath}");
-            }
-
-            return false;
-        }
-
-        private static bool BeEncryptGroup(GroupInfo groupInfo)
-        {
-            return ConfigHmAddressables.EncryptAssetsGroup.Contains(groupInfo.Path);
-        }
-
         private static void SaveAssetAndRefresh()
         {
             UnityEditor.AssetDatabase.SaveAssets();
@@ -1434,28 +1325,17 @@ namespace HM.Editor
         private static bool CheckBeSeparatelyPackGroup(AddressableAssetGroup aagroup,
             List<DirectoryInfo> separatelyDirectoryInfos)
         {
-            if (aagroup.entries.Count <= 0) return true; //没有资源的话会被删除,可以随便返回什么
-            var entry = aagroup.entries.First();
-            if (entry == null) return true;
-            FileInfo entryDirectoryInfo = new FileInfo(entry.AssetPath);
-            //然后一层一层父物体向上找,在哪个列表(本地/远端)组找到就是它所属的
+            if (aagroup == null || aagroup.entries.Count <= 0 || separatelyDirectoryInfos.Count <= 0)
+                return false;
 
-            var parenDirectInfo = entryDirectoryInfo.Directory;
-            while (true)
-            {
-                if (parenDirectInfo == null || assetFolderDirectoryInfo.FullName.Equals(parenDirectInfo.FullName))
-                    break;
+            var entry = aagroup.entries.FirstOrDefault(x => x != null && !string.IsNullOrEmpty(x.AssetPath));
+            var entryDirectoryInfo = entry == null ? null : new FileInfo(entry.AssetPath).Directory;
+            if (entryDirectoryInfo == null) return false;
 
-
-                if (separatelyDirectoryInfos.FindIndex(x => x.FullName.Equals(parenDirectInfo.FullName)) >= 0)
-                {
-                    return true;
-                }
-
-                parenDirectInfo = parenDirectInfo.Parent;
-            }
-
-            return false;
+            // Inspector 中每个资源目录都有独立的“分散”开关，因此这里只匹配当前组所在目录，
+            // 不再向父目录查找，避免父目录开启后所有子目录组也被设置为 PackSeparately。
+            return separatelyDirectoryInfos.Any(x =>
+                string.Equals(x.FullName, entryDirectoryInfo.FullName, StringComparison.OrdinalIgnoreCase));
         }
     }
 

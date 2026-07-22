@@ -121,7 +121,7 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
                 Debug.Log("预下载远程资源组进度:" + current + "/" + total + " pro:" + pro);
             });
 
-        Debug.Log($"Caching.defaultCache.path:{Caching.defaultCache.path}");
+      //  Debug.Log($"Caching.defaultCache.path:{Caching.defaultCache.path}");
     }
 
     private async void InstanceObj(string resUrl)

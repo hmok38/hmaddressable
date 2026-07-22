@@ -466,4 +466,84 @@ namespace HM
             serializedObject.ApplyModifiedProperties();
         }
     }
+
+    [CustomEditor(typeof(BundledAssetGroupSchema))]
+    [CanEditMultipleObjects]
+    public class HMBundledAssetGroupSchemaEditor : UnityEditor.Editor
+    {
+        private static readonly GUIContent AssetBundleCrcLabel = new GUIContent(
+            "Asset Bundle CRC",
+            "设置 AssetBundle 加载时的 CRC 完整性校验方式。");
+
+        private static readonly GUIContent[] AssetBundleCrcOptions =
+        {
+            new GUIContent("关闭"),
+            new GUIContent("开启，包含已缓存 Bundle"),
+            new GUIContent("开启，排除已缓存 Bundle")
+        };
+
+        public override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            var property = serializedObject.GetIterator();
+            if (property.NextVisible(true))
+            {
+                do
+                {
+                    if (property.name == "m_Group" ||
+                        property.name == "m_UseAssetBundleCrcForCachedBundles")
+                    {
+                        continue;
+                    }
+
+                    if (property.name == "m_UseAssetBundleCrc")
+                    {
+                        DrawAssetBundleCrc();
+                        continue;
+                    }
+
+                    using (new EditorGUI.DisabledScope(property.name == "m_Script"))
+                    {
+                        EditorGUILayout.PropertyField(property, true);
+                    }
+                } while (property.NextVisible(false));
+            }
+
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        private void DrawAssetBundleCrc()
+        {
+            var useCrcProperty = serializedObject.FindProperty("m_UseAssetBundleCrc");
+            var useCrcForCachedBundlesProperty =
+                serializedObject.FindProperty("m_UseAssetBundleCrcForCachedBundles");
+            if (useCrcProperty == null || useCrcForCachedBundlesProperty == null)
+            {
+                return;
+            }
+
+            var currentValue = 0;
+            if (useCrcProperty.boolValue)
+            {
+                currentValue = useCrcForCachedBundlesProperty.boolValue ? 1 : 2;
+            }
+
+            EditorGUI.showMixedValue = useCrcProperty.hasMultipleDifferentValues ||
+                                       (useCrcProperty.boolValue &&
+                                        useCrcForCachedBundlesProperty.hasMultipleDifferentValues);
+            EditorGUI.BeginChangeCheck();
+            var newValue = EditorGUILayout.Popup(AssetBundleCrcLabel, currentValue, AssetBundleCrcOptions);
+            if (EditorGUI.EndChangeCheck())
+            {
+                useCrcProperty.boolValue = newValue != 0;
+                if (newValue != 0)
+                {
+                    useCrcForCachedBundlesProperty.boolValue = newValue == 1;
+                }
+            }
+
+            EditorGUI.showMixedValue = false;
+        }
+    }
 }
