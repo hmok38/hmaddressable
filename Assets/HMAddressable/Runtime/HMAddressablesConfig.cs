@@ -4,6 +4,7 @@ using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.Presets;
 #endif
 
 using UnityEngine;
@@ -13,6 +14,10 @@ namespace HM
     [CreateAssetMenu(fileName = "ConfigHMAddressables", menuName = "HMAddressables/创建Config对象")]
     public class HMAddressablesConfig : ScriptableObject
     {
+#if UNITY_EDITOR
+        public Preset BundledAssetGroupSchemaPreset;
+#endif
+
         [Header("AA资源目录")] public string[] AAAssetsPath = new[] { "Assets/Bundles" };
         [Header("尚未分配本地/远程的资源目录")] public AssetGroupLoadPath[] UnassignedAssetsPath = new AssetGroupLoadPath[] { };
 

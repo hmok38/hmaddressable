@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.AddressableAssets.Settings.GroupSchemas;
+using UnityEditor.Presets;
 using UnityEditorInternal;
 using UnityEngine;
 
@@ -8,6 +10,8 @@ namespace HM
     [CustomEditor(typeof(HMAddressablesConfig))]
     public class HMAddressablesConfigEditor : UnityEditor.Editor
     {
+        private const string PresetAssetDirectory = "Assets/HMAddressables";
+
         private static readonly HashSet<string> ReadonlyFields = new HashSet<string>
         {
             "SeparatelyPackAssetsPaths",
@@ -261,6 +265,84 @@ namespace HM
             }
         }
 
+        private void DrawBundledAssetGroupSchemaPreset(SerializedProperty presetProperty)
+        {
+            EditorGUILayout.PropertyField(presetProperty,
+                new GUIContent("BundledAssetGroupSchema Preset"));
+
+            var preset = presetProperty.objectReferenceValue as Preset;
+            if (preset == null)
+            {
+                EditorGUILayout.HelpBox(
+                    "未指定 Preset，将使用 Addressables 默认的 BundledAssetGroupSchema 配置。",
+                    MessageType.Warning);
+
+                if (GUILayout.Button("生成 BundledAssetGroupSchema Preset"))
+                {
+                    CreateBundledAssetGroupSchemaPreset(presetProperty);
+                }
+            }
+            else if (!CanApplyToBundledAssetGroupSchema(preset))
+            {
+                EditorGUILayout.HelpBox(
+                    "当前 Preset 不能应用于 BundledAssetGroupSchema，将使用 Addressables 默认配置。",
+                    MessageType.Error);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(
+                    "创建或刷新 Addressable Group 时，将先应用当前平台指定的 Preset。",
+                    MessageType.Info);
+            }
+
+        }
+
+        private static bool CanApplyToBundledAssetGroupSchema(Preset preset)
+        {
+            var schema = CreateInstance<BundledAssetGroupSchema>();
+            try
+            {
+                return preset.CanBeAppliedTo(schema);
+            }
+            finally
+            {
+                DestroyImmediate(schema);
+            }
+        }
+
+        private void CreateBundledAssetGroupSchemaPreset(SerializedProperty presetProperty)
+        {
+            if (!AssetDatabase.IsValidFolder(PresetAssetDirectory))
+            {
+                AssetDatabase.CreateFolder("Assets", "HMAddressables");
+            }
+
+            var config = target as HMAddressablesConfig;
+            var schema = CreateInstance<BundledAssetGroupSchema>();
+            try
+            {
+                schema.name = nameof(BundledAssetGroupSchema);
+                var preset = new Preset(schema)
+                {
+                    excludedProperties = new[] { "m_Group" }
+                };
+                var assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                    $"{PresetAssetDirectory}/{config.name}_BundledAssetGroupSchema.preset");
+
+                AssetDatabase.CreateAsset(preset, assetPath);
+                presetProperty.objectReferenceValue = preset;
+                serializedObject.ApplyModifiedProperties();
+                EditorUtility.SetDirty(config);
+                AssetDatabase.SaveAssets();
+                EditorGUIUtility.PingObject(preset);
+                GUIUtility.ExitGUI();
+            }
+            finally
+            {
+                DestroyImmediate(schema);
+            }
+        }
+
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
@@ -271,6 +353,12 @@ namespace HM
                 do
                 {
                     EditorGUILayout.Space(10);
+
+                    if (prop.name == "BundledAssetGroupSchemaPreset")
+                    {
+                        DrawBundledAssetGroupSchemaPreset(prop);
+                        continue;
+                    }
 
                     if (prop.name == "UnassignedAssetsPath")
                     {

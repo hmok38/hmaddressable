@@ -10,6 +10,7 @@ using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
+using UnityEditor.Presets;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -810,6 +811,7 @@ namespace HM.Editor
             string buildPath =
                 beLocal ? AddressableAssetSettings.kLocalBuildPath : AddressableAssetSettings.kRemoteBuildPath;
             var bundledAssetGroupSchema = group.GetSchema<BundledAssetGroupSchema>();
+            ApplyBundledAssetGroupSchemaPreset(bundledAssetGroupSchema);
             bundledAssetGroupSchema.BuildPath.SetVariableByName(group.Settings,
                 buildPath);
             string loadPath =
@@ -850,6 +852,50 @@ namespace HM.Editor
 
 
             UnityEditor.EditorUtility.SetDirty(bundledAssetGroupSchema);
+        }
+
+        private static void ApplyBundledAssetGroupSchemaPreset(BundledAssetGroupSchema schema)
+        {
+            if (schema == null)
+            {
+                return;
+            }
+
+            var configuredPreset = ConfigHmAddressables?.BundledAssetGroupSchemaPreset;
+            if (configuredPreset != null && configuredPreset.CanBeAppliedTo(schema))
+            {
+                ApplyPresetAndKeepGroup(configuredPreset, schema);
+                return;
+            }
+
+            var defaultSchema = ScriptableObject.CreateInstance<BundledAssetGroupSchema>();
+            var defaultPreset = new Preset(defaultSchema)
+            {
+                excludedProperties = new[] { "m_Group" }
+            };
+            try
+            {
+                ApplyPresetAndKeepGroup(defaultPreset, schema);
+            }
+            finally
+            {
+                Object.DestroyImmediate(defaultPreset);
+                Object.DestroyImmediate(defaultSchema);
+            }
+        }
+
+        private static void ApplyPresetAndKeepGroup(Preset preset, BundledAssetGroupSchema schema)
+        {
+            var group = schema.Group;
+            preset.ApplyTo(schema);
+
+            var serializedSchema = new SerializedObject(schema);
+            var groupProperty = serializedSchema.FindProperty("m_Group");
+            if (groupProperty != null)
+            {
+                groupProperty.objectReferenceValue = group;
+                serializedSchema.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
 
