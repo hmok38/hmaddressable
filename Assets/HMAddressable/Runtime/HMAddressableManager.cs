@@ -146,8 +146,9 @@ namespace HM
                 {
                     //失败了
                     RemoveFromLoadingMap(resName);
+                    var exc = operation.OperationException;
                     Addressables.Release(operation); //释放掉它
-                    OnLoadingResException?.Invoke(resName, operation.OperationException); //派发加载失败的事件
+                    OnLoadingResException?.Invoke(resName, exc); //派发加载失败的事件
                     return null;
                 }
 
@@ -206,8 +207,9 @@ namespace HM
                 {
                     //失败了
                     RemoveFromLoadingMap(resName);
+                    var exc = operation.OperationException;
                     Addressables.Release(operation); //释放掉它
-                    OnLoadingResException?.Invoke(resName, operation.OperationException); //派发加载失败的事件
+                    OnLoadingResException?.Invoke(resName, exc); //派发加载失败的事件
                     return null;
                 }
 
@@ -483,8 +485,9 @@ namespace HM
             {
                 //失败了
                 RemoveFromLoadingSceneMap(sceneName);
+                var exc = op.OperationException;
                 Addressables.Release(op); //释放掉它
-                OnLoadingResException?.Invoke(sceneName, op.OperationException); //派发加载失败的事件
+                OnLoadingResException?.Invoke(sceneName, exc); //派发加载失败的事件
                 return default;
             }
 
@@ -534,8 +537,11 @@ namespace HM
             {
                 //失败了
                 RemoveFromLoadingSceneMap(sceneName);
+                
+                var exc = op.OperationException;
                 Addressables.Release(op); //释放掉它
-                OnLoadingResException?.Invoke(sceneName, op.OperationException); //派发加载失败的事件
+                OnLoadingResException?.Invoke(sceneName, exc); //派发加载失败的事件
+                
                 return default;
             }
 
