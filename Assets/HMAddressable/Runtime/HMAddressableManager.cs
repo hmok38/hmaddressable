@@ -202,7 +202,7 @@ namespace HM
             {
                 var operation = Addressables.LoadAssetAsync<T>(resName);
                 AddToLoadingMap(resName);
-                await operation.Task;
+                await operation.ToUniTask();
                 if (operation.Status != AsyncOperationStatus.Succeeded || operation.Result == null)
                 {
                     //失败了
@@ -265,7 +265,7 @@ namespace HM
             {
                 var resouceLocationsHandle =
                     Addressables.LoadResourceLocationsAsync(groupNameOrLabel, typeof(T));
-                await resouceLocationsHandle.Task;
+                await resouceLocationsHandle.ToUniTask();
                 var resouceLocations = resouceLocationsHandle.Result;
                 names = new List<string>();
                 foreach (var resouceLocation in resouceLocations)
@@ -425,7 +425,7 @@ namespace HM
             {
                 var resouceLocationsHandle =
                     Addressables.LoadResourceLocationsAsync(groupNameOrLabel);
-                await resouceLocationsHandle.Task;
+                await resouceLocationsHandle.ToUniTask();
                 var resouceLocations = resouceLocationsHandle.Result;
                 names = new List<string>();
                 foreach (var resouceLocation in resouceLocations)
@@ -480,7 +480,7 @@ namespace HM
 
             var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             AddToLoadingSceneMap(sceneName);
-            await op.Task;
+            await op.ToUniTask();
             if (op.Status != AsyncOperationStatus.Succeeded || !op.Result.Scene.IsValid())
             {
                 //失败了
@@ -537,11 +537,11 @@ namespace HM
             {
                 //失败了
                 RemoveFromLoadingSceneMap(sceneName);
-                
+
                 var exc = op.OperationException;
                 Addressables.Release(op); //释放掉它
                 OnLoadingResException?.Invoke(sceneName, exc); //派发加载失败的事件
-                
+
                 return default;
             }
 
@@ -575,7 +575,7 @@ namespace HM
             {
                 var op = Addressables.UnloadSceneAsync(LoadedSceneMap[scenePath],
                     UnloadSceneOptions.UnloadAllEmbeddedSceneObjects);
-                await op.Task;
+                await op.ToUniTask();
                 LoadedSceneMap.Remove(scenePath);
             }
             else if (LoadedSceneMap.ContainsKey(scenePath) && !LoadedSceneMap[scenePath].Scene.isLoaded)
@@ -741,7 +741,7 @@ namespace HM
             HMRuntimeDialogHelper.DebugStopWatchInfo("Addressable.InitializeAsync");
 
             var initializeAsync = Addressables.InitializeAsync();
-            await initializeAsync.Task;
+            await initializeAsync.ToUniTask();
 
 
             await CheckUpdateMainCatalog();
