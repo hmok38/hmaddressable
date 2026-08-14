@@ -182,7 +182,7 @@ namespace HM
                     return value as T;
                 }
 
-                return null;
+                return await LoadAsync<T>(resNameP);
             }
 
             if (BeOtherDebug)
@@ -464,7 +464,8 @@ namespace HM
                     return value.Scene;
                 }
 
-                return default;
+                //也许被释放了,所以重新走下面的逻辑
+                return await LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             }
 
 
