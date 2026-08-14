@@ -473,15 +473,15 @@ namespace HM
             if (!HasSceneAssets(sceneName))
             {
                 var s = SceneManager.LoadSceneAsync(sceneName, loadSceneMode);
-                await s.ToUniTask();
+                await UniTask.WaitUntil(() => s != null && s.isDone);
                 return SceneManager.GetSceneByName(sceneName);
             }
 
 #endif
 
-            var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
             AddToLoadingSceneMap(sceneName);
-            await op.ToUniTask();
+            var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
+            await UniTask.WaitUntil(() => op.IsDone);
             if (op.Status != AsyncOperationStatus.Succeeded || !op.Result.Scene.IsValid())
             {
                 //失败了
@@ -576,7 +576,7 @@ namespace HM
             {
                 var op = Addressables.UnloadSceneAsync(LoadedSceneMap[scenePath],
                     UnloadSceneOptions.UnloadAllEmbeddedSceneObjects);
-                await op.ToUniTask();
+                await UniTask.WaitUntil(() => op.IsDone);
                 LoadedSceneMap.Remove(scenePath);
             }
             else if (LoadedSceneMap.ContainsKey(scenePath) && !LoadedSceneMap[scenePath].Scene.isLoaded)
