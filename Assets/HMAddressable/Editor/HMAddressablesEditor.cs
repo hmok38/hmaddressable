@@ -284,6 +284,7 @@ namespace HM.Editor
                 AddressableAssetSettingsDefaultObject.Settings.BuildRemoteCatalog = true;
                 AddressableAssetSettingsDefaultObject.Settings.DisableCatalogUpdateOnStartup = true;
                 AddressableAssetSettingsDefaultObject.Settings.MaxConcurrentWebRequests = 100;
+                AddressableAssetSettingsDefaultObject.Settings.OverridePlayerVersion = string.Empty;
                 HMAACustomEncryptBuild builder = ScriptableObject.CreateInstance<HMAACustomEncryptBuild>();
 
                 if (!AssetDatabase.IsValidFolder("Assets/AddressableAssetsData"))
