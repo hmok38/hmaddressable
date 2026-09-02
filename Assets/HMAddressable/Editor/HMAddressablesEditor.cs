@@ -252,6 +252,12 @@ namespace HM.Editor
         /// <param name="beTest"></param>
         private static void UpdateAASetting(bool beTest)
         {
+            if (ConfigHmAddressables == null)
+            {
+                throw new InvalidOperationException(
+                    $"未找到 HMAA 配置：{ConfigPath}，不能构建更新资源。");
+            }
+
             //检查设置,没有就创建
             CheckAndCreateSetting();
             //更新组设置-采用升级资源组配置
@@ -740,42 +746,65 @@ namespace HM.Editor
         {
             if (!AssetDatabase.IsValidFolder(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder))
             {
-                Debug.LogError($"没找到数据文件,不能设置升级包,请恢复代码");
-                return;
+                throw new DirectoryNotFoundException(
+                    $"没找到 Addressables 数据目录，不能设置升级包，请恢复目标母包的数据：" +
+                    AddressableAssetSettingsDefaultObject.kDefaultConfigFolder);
             }
 
-            if (config.LocalAseetsPaths.Length <= 0 && config.RemoteAseetsPaths.Length <= 0 &&
-                config.UnassignedAssetsPath.Length <= 0)
+            if (config == null)
             {
-                Debug.LogError($"未设置需要打包的资源路径,请检查{ConfigPath}的设置");
+                throw new InvalidOperationException(
+                    $"未找到 HMAA 配置：{ConfigPath}，不能设置升级包。");
+            }
+
+            bool hasLocalAssets = config.LocalAseetsPaths != null &&
+                                  config.LocalAseetsPaths.Length > 0;
+            bool hasRemoteAssets = config.RemoteAseetsPaths != null &&
+                                   config.RemoteAseetsPaths.Length > 0;
+            bool hasUnassignedAssets = config.UnassignedAssetsPath != null &&
+                                       config.UnassignedAssetsPath.Length > 0;
+            if (!hasLocalAssets && !hasRemoteAssets && !hasUnassignedAssets)
+            {
                 ShowAndSelectConfigMenuItem();
-                return;
+                throw new InvalidOperationException(
+                    $"未设置需要打包的资源路径，请检查 {ConfigPath} 的设置。");
             }
 
             var groupInfos = new List<GroupInfo>();
 
             //根据配置表获取并创建资源目录结构数据
-            foreach (var assetsPath in config.LocalAseetsPaths)
+            if (config.LocalAseetsPaths != null)
             {
-                GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos, null, true);
+                foreach (var assetsPath in config.LocalAseetsPaths)
+                {
+                    GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos, null, true);
+                }
             }
 
-            foreach (var assetsPath in config.RemoteAseetsPaths)
+            if (config.RemoteAseetsPaths != null)
             {
-                GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos, null, false);
+                foreach (var assetsPath in config.RemoteAseetsPaths)
+                {
+                    GetAllSubFolderAndCreateGroupInfo(assetsPath, ref groupInfos, null, false);
+                }
             }
 
-            foreach (var assetsPath in config.UnassignedAssetsPath)
+            if (config.UnassignedAssetsPath != null)
             {
-                GetAllSubFolderAndCreateGroupInfo(assetsPath.GroupName, ref groupInfos, null,
-                    assetsPath.BeLocal ? true : (assetsPath.BeRemote ? false : config.UnassignedAssetsBeLocal));
+                foreach (var assetsPath in config.UnassignedAssetsPath)
+                {
+                    GetAllSubFolderAndCreateGroupInfo(assetsPath.GroupName, ref groupInfos, null,
+                        assetsPath.BeLocal
+                            ? true
+                            : (assetsPath.BeRemote ? false : config.UnassignedAssetsBeLocal));
+                }
             }
 
             if (groupInfos.Count <= 0)
             {
-                Debug.LogError($"未设置需要打包的资源路径,请检查{ConfigPath}的设置");
                 ShowAndSelectConfigMenuItem();
-                return;
+                throw new InvalidOperationException(
+                    $"HMAA 配置未生成任何有效资源组，请检查 {ConfigPath} 中的资源路径是否存在。");
             }
 
             CreateAndClearGroup(groupInfos, true);
@@ -1198,8 +1227,8 @@ namespace HM.Editor
         {
             if (AddressableAssetSettingsDefaultObject.Settings == null)
             {
-                Debug.LogErrorFormat("未初始化系统,请先运行 更新资源分组(没有就创建)");
-                return;
+                throw new InvalidOperationException(
+                    "Addressables Settings 未初始化，不能设置构建 Profile。");
             }
 
             //设置Default设置
@@ -1248,14 +1277,21 @@ namespace HM.Editor
             var obj = AssetDatabase.LoadAssetAtPath<Object>(path);
             if (obj == null)
             {
-                Debug.Log("还没打第一次的资源包:" + path);
-                return;
+                throw new FileNotFoundException(
+                    "缺少 Addressables Content State，不能检查资源升级并设置升级组：" + path,
+                    path);
             }
 
             var modifiedEntries =
                 ContentUpdateScript.GatherModifiedEntriesWithDependencies(
                     AddressableAssetSettingsDefaultObject.Settings,
                     path);
+            if (modifiedEntries == null)
+            {
+                throw new InvalidDataException(
+                    "读取 Addressables Content State 或检查资源变更失败：" + path);
+            }
+
             List<AddressableAssetEntry> items = new List<AddressableAssetEntry>();
             foreach (var entry in modifiedEntries)
             {
@@ -1350,13 +1386,20 @@ namespace HM.Editor
         {
             if (AddressableAssetSettingsDefaultObject.Settings == null)
             {
-                Debug.LogError("AddressableAssetSettingsDefaultObject.Settings 不存在");
-                return;
+                throw new InvalidOperationException(
+                    "AddressableAssetSettingsDefaultObject.Settings 不存在，不能切换构建 Profile。");
             }
 
-            AddressableAssetSettingsDefaultObject.Settings.activeProfileId =
-                AddressableAssetSettingsDefaultObject.Settings.profileSettings.GetProfileId(
-                    beTest ? "TestProfile" : "Default");
+            string profileName = beTest ? "TestProfile" : "Default";
+            string profileId = AddressableAssetSettingsDefaultObject.Settings.profileSettings
+                .GetProfileId(profileName);
+            if (string.IsNullOrEmpty(profileId))
+            {
+                throw new InvalidOperationException(
+                    $"Addressables Profile 不存在：{profileName}");
+            }
+
+            AddressableAssetSettingsDefaultObject.Settings.activeProfileId = profileId;
         }
 
         private static DirectoryInfo assetFolderDirectoryInfo =
