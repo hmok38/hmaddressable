@@ -403,43 +403,90 @@ namespace HM.Editor
         /// 检查内置shader资源是否通过(不允许变更)
         /// </summary>
         /// <param name="oldContent"></param>
-        /// <param name="newContent"></param>
+        /// <param name="outPath"></param>
         /// <returns></returns>
         private static bool CheckBuildinShaderAsset(AddressablesContentState oldContent,
             string outPath)
         {
-            string findStr = "_unitybuiltinshaders_";
-            string oldName = "";
-            for (int i = 0; i < oldContent.cachedBundles.Length; i++)
+            const string builtInShaderBundleMarker = "_unitybuiltinshaders";
+            string oldName = string.Empty;
+            if (oldContent.cachedBundles != null)
             {
-                var cache = oldContent.cachedBundles[i];
-                if (cache.bundleFileId.IndexOf(findStr) >= 0)
+                for (int i = 0; i < oldContent.cachedBundles.Length; i++)
                 {
-                    oldName = cache.bundleFileId;
+                    var cache = oldContent.cachedBundles[i];
+                    if (IsBuiltInShaderBundle(cache.bundleFileId, builtInShaderBundleMarker))
+                    {
+                        oldName = GetBundleFileName(cache.bundleFileId);
+                        break;
+                    }
                 }
             }
 
             var jsonPath = Path.Combine(outPath, "catalog_" + oldContent.playerVersion + ".json");
-
             var jsonTxt = File.ReadAllText(jsonPath);
-
             var obj = JsonConvert.DeserializeObject<JsonClass>(jsonTxt);
-            var m_InternalIds = obj.m_InternalIds;
+            var internalIds = obj?.m_InternalIds;
 
-            string newName = "";
-            for (int i = 0; i < m_InternalIds.Length; i++)
+            string newName = string.Empty;
+            if (internalIds != null)
             {
-                var cache = m_InternalIds[i];
-                if (cache != null && cache.IndexOf(findStr) >= 0)
+                for (int i = 0; i < internalIds.Length; i++)
                 {
-                    newName = cache;
+                    string internalId = internalIds[i];
+                    if (IsBuiltInShaderBundle(internalId, builtInShaderBundleMarker))
+                    {
+                        newName = GetBundleFileName(internalId);
+                        break;
+                    }
                 }
             }
 
-            Debug.LogError($"更新资源时发现错误:更新资源中有之前未使用过的内置Shader的材质球,导致内置shader资源组发生错误,请修改后还原打更新资源前再次更新资源" +
-                           "   旧buildInShader资源组为:" + oldName + "    新的为:" + newName);
+            if (string.IsNullOrEmpty(oldName) && string.IsNullOrEmpty(newName))
+            {
+                Debug.Log("更新资源检查通过：旧资源和新资源均未生成 Unity 内置 Shader Bundle。");
+                return true;
+            }
 
-            return oldName.Equals(newName);
+            if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.Log($"更新资源检查通过：Unity 内置 Shader Bundle 未发生变化：{oldName}");
+                return true;
+            }
+
+            Debug.LogError(
+                "更新资源时发现错误：Unity 内置 Shader Bundle 相比母包发生新增、删除或内容变化。" +
+                "当前默认资源组不允许通过内容更新修改该共享 Bundle，请还原本次新增的内置 Shader 材质后，" +
+                "恢复到打更新资源前的状态并重新构建；如果确实需要该变化，请重新发布母包。" +
+                $" 旧 Bundle：{FormatBundleName(oldName)}，新 Bundle：{FormatBundleName(newName)}");
+
+            return false;
+        }
+
+        private static bool IsBuiltInShaderBundle(string internalId, string marker)
+        {
+            return !string.IsNullOrEmpty(internalId) &&
+                   internalId.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static string GetBundleFileName(string internalId)
+        {
+            string normalizedId = internalId.Replace('\\', '/');
+            int parameterIndex = normalizedId.IndexOfAny(new[] { '?', '#' });
+            if (parameterIndex >= 0)
+            {
+                normalizedId = normalizedId.Substring(0, parameterIndex);
+            }
+
+            int slashIndex = normalizedId.LastIndexOf('/');
+            return slashIndex >= 0
+                ? normalizedId.Substring(slashIndex + 1)
+                : normalizedId;
+        }
+
+        private static string FormatBundleName(string bundleName)
+        {
+            return string.IsNullOrEmpty(bundleName) ? "<不存在>" : bundleName;
         }
 
 
