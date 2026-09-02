@@ -354,16 +354,20 @@ namespace HM.Editor
             SetDataBuilder();
 
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
-
+            if (result == null)
+            {
+                throw new InvalidOperationException(
+                    "Addressables 母包资源构建失败：BuildPlayerContent 未返回构建结果。");
+            }
 
             if (!string.IsNullOrEmpty(result.Error))
-                Debug.LogError("打出包资源错误:" + result.Error);
-
-            else
             {
-                Debug.Log("打出包资源完成");
-                SetUsePlayAssetDeliveryBundles(result);
+                throw new InvalidOperationException(
+                    "Addressables 母包资源构建失败：" + result.Error);
             }
+
+            Debug.Log("打出包资源完成");
+            SetUsePlayAssetDeliveryBundles(result);
         }
 
         private static void BuildUpdateAsset()
@@ -378,25 +382,51 @@ namespace HM.Editor
             var obj = AssetDatabase.LoadAssetAtPath<Object>(path);
             if (obj == null)
             {
-                Debug.Log("还没打第一次的资源包:" + path);
-                return;
+                throw new FileNotFoundException(
+                    "还没打第一次的资源包，缺少 Addressables Content State：" + path,
+                    path);
             }
 
             var contentStateDataPath = Path.Combine(assetPath, "addressables_content_state.bin");
             var cacheDataOld = ContentUpdateScript.LoadContentState(contentStateDataPath);
+            if (cacheDataOld == null)
+            {
+                throw new InvalidDataException(
+                    "Addressables Content State 读取失败：" + contentStateDataPath);
+            }
 
             //打资源包
 
-            ContentUpdateScript.BuildContentUpdate(AddressableAssetSettingsDefaultObject.Settings,
-                Path.Combine(assetPath, "addressables_content_state.bin"));
+            AddressablesPlayerBuildResult result = ContentUpdateScript.BuildContentUpdate(
+                AddressableAssetSettingsDefaultObject.Settings,
+                contentStateDataPath);
+            if (result == null)
+            {
+                throw new InvalidOperationException(
+                    "Addressables 更新资源构建失败：BuildContentUpdate 未返回构建结果。" +
+                    "请检查 Content State、Build Remote Catalog 和 Remote Catalog Load Path。所在路径：" +
+                    contentStateDataPath);
+            }
+
+            if (!string.IsNullOrEmpty(result.Error))
+            {
+                throw new InvalidOperationException(
+                    "Addressables 更新资源构建失败：" + result.Error);
+            }
 
 
             var remoteCatalogBuildPath = AddressableAssetSettingsDefaultObject.Settings.RemoteCatalogBuildPath.GetValue(
                 AddressableAssetSettingsDefaultObject.Settings);
 
 
-            var beChange = CheckBuildinShaderAsset(cacheDataOld, remoteCatalogBuildPath);
-            Debug.Log($"更新资源包 打包完成 {(beChange ? "" : "发生错误,请修复后 回退到打更新资源包之前")}");
+            if (!CheckBuildinShaderAsset(cacheDataOld, remoteCatalogBuildPath))
+            {
+                throw new InvalidOperationException(
+                    "Addressables 更新资源构建失败：Unity 内置 Shader Bundle 相比母包发生变化。" +
+                    "请根据上一条错误日志修复，并恢复到打更新资源包之前再重新构建。");
+            }
+
+            Debug.Log("更新资源包打包完成");
         }
 
         /// <summary>
