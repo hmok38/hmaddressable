@@ -61,38 +61,71 @@ by:黄敏
 
 **升级接口和其他接口参考:**
 
-```c#
+`UpdateAddressablesAllAssets` 的回调有四个参数：状态、进度、消息、`UpdateStatusCode`。状态为 `None` 时表示进行中，`Succeeded` 或 `Failed` 才是本次最终结果。
 
- private void UpdateCb(AsyncOperationStatus status, float progeress, string message)
-    {
-        switch (status)
-        {
-            case  AsyncOperationStatus.Failed:
-                Debug.LogError(message);
-                break;
-            case  AsyncOperationStatus.Succeeded:
-                Debug.Log($"更新成功{message}");
-                this.Capsule(true);
-                this.Sphere(true);
-                break;
-            case AsyncOperationStatus.None:
-                Debug.Log($"正在下载,进度={progeress}");
-                break;
-        }
-    }
+- `await` 正常返回只表示调用结束，不代表更新成功。等待结束后，必须检查本次最终回调状态，成功才继续加载业务资源；传入 `null` 回调将无法取得结果。
+- 已有更新尚未结束时，重复调用会抛出 `InvalidOperationException`，且不会通知第二次调用的回调。示例中的实例标记防止本按钮重复触发，其他调用方仍可能占用更新流程，因此还需要 `try/catch/finally`。
+- 回调应只记录状态或更新 UI，不要在最终回调中重新调用更新接口。失败后等待当前调用结束，再由用户点击按钮重试。
+- 插件隔离的是同步回调直接抛出的异常；不要把回调写成 `async void`，其中的异常不由插件处理。
+
+下面是保留现有 OnGUI 调试按钮形式的最小示例：
+
+```csharp
+using System;
+using HM;
+using UnityEngine;
+using UnityEngine.ResourceManagement.AsyncOperations;
+
+public class AddressablesUpdateExample : MonoBehaviour
+{
+    private bool updating;
+    private string updateMessage = "点击按钮更新资源";
 
     private void OnGUI()
     {
-        if (GUILayout.Button("更新资源"))
+        GUILayout.Label(updateMessage);
+        bool wasEnabled = GUI.enabled;
+        GUI.enabled = wasEnabled && !updating;
+        if (GUILayout.Button("更新资源 / 失败后重试"))
         {
-            //使用此接口进行统一的资源更新
-            HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
-            //使用此类接口进行实例化及加载和释放
-            HMAddressableManager.InstantiateGameObject(this.spherePath);
+            UpdateResources();
         }
+        GUI.enabled = wasEnabled;
     }
 
+    private async void UpdateResources()
+    {
+        if (updating) return;
+        updating = true;
+        var finalStatus = AsyncOperationStatus.None;
+        try
+        {
+            await HMAddressableManager.UpdateAddressablesAllAssets((status, progress, message, code) =>
+            {
+                finalStatus = status;
+                updateMessage = $"{code}：{progress:P0} {message}";
+            });
+            if (finalStatus != AsyncOperationStatus.Succeeded)
+            {
+                updateMessage = $"更新未成功，请点击按钮重试。{updateMessage}";
+                return;
+            }
 
+            updateMessage = "更新成功，可以继续加载业务资源。";
+            // 只有在这里继续初始化或加载业务资源。
+            Debug.Log(updateMessage);
+        }
+        catch (Exception exception)
+        {
+            updateMessage = $"更新请求未完成，请稍后点击按钮重试：{exception.Message}";
+            Debug.LogException(exception);
+        }
+        finally
+        {
+            updating = false;
+        }
+    }
+}
 ```
 
 ---

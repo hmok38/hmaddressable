@@ -752,8 +752,15 @@ namespace HM
         private static bool _isUpdating;
 
         /// <summary>
-        /// 更新所有资源。重复调用会报错；回调仅属于本次更新，回调异常不会中断下载。
+        /// 更新所有资源，通过本次回调报告进度和最终结果。
         /// </summary>
+        /// <param name="updateCb">本次更新的回调。传入 null 将无法取得结果，不能据此判断更新成功。</param>
+        /// <returns>等待本次调用结束的任务。正常返回不代表更新成功，必须检查本次最终回调状态是否为 Succeeded。</returns>
+        /// <exception cref="InvalidOperationException">已有更新尚未结束时拒绝重复调用，且不会通知第二次调用的回调。</exception>
+        /// <remarks>
+        /// 回调应只记录状态或更新 UI，不要在最终回调中重试。等待本次调用结束后，成功才继续业务，失败由用户手动再次触发。
+        /// 回调请使用同步方法；插件只隔离同步回调直接抛出的异常，不处理 async void 回调异常。
+        /// </remarks>
         public static async UniTask UpdateAddressablesAllAssets(
             UnityAction<AsyncOperationStatus, float, string, UpdateStatusCode> updateCb)
         {
