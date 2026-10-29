@@ -11,6 +11,7 @@ using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEditor.Presets;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using Object = UnityEngine.Object;
 
@@ -352,10 +353,21 @@ namespace HM.Editor
             var schema = ScriptableObject.CreateInstance<BundledAssetGroupSchema>();
             try
             {
-                schema.AssetBundleProviderType = source != null ? source.AssetBundleProviderType :
-                    new UnityEngine.ResourceManagement.Util.SerializedType { Value = typeof(AssetBundleProvider) };
-                schema.BundledAssetProviderType = source != null ? source.BundledAssetProviderType :
-                    new UnityEngine.ResourceManagement.Util.SerializedType { Value = typeof(BundledAssetProvider) };
+                if (source != null)
+                {
+                    using (var sourceObject = new SerializedObject(source))
+                    using (var targetObject = new SerializedObject(schema))
+                    {
+                        targetObject.CopyFromSerializedProperty(sourceObject.FindProperty("m_AssetBundleProviderType"));
+                        targetObject.CopyFromSerializedProperty(sourceObject.FindProperty("m_BundledAssetProviderType"));
+                        targetObject.ApplyModifiedPropertiesWithoutUndo();
+                    }
+                }
+                else
+                {
+                    schema.OnAfterDeserialize();
+                }
+                Debug.Assert(schema.Group == null, "Provider 校验不能绑定实际资源组。");
                 if (applyPreset) ApplyBundledAssetGroupSchemaPreset(schema);
                 var editorAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Editor).Select(x => x.name);
                 var playerAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player).Select(x => x.name);
@@ -908,8 +920,7 @@ namespace HM.Editor
             }
 
             var defaultSchema = ScriptableObject.CreateInstance<BundledAssetGroupSchema>();
-            defaultSchema.AssetBundleProviderType = new UnityEngine.ResourceManagement.Util.SerializedType { Value = typeof(AssetBundleProvider) };
-            defaultSchema.BundledAssetProviderType = new UnityEngine.ResourceManagement.Util.SerializedType { Value = typeof(BundledAssetProvider) };
+            defaultSchema.OnAfterDeserialize();
             var defaultPreset = new Preset(defaultSchema)
             {
                 excludedProperties = new[] { "m_Group" }
