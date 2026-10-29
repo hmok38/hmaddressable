@@ -20,6 +20,9 @@ public class HMAddressableTest : MonoBehaviour
 
 
     private List<GameObject> allObjs = new List<GameObject>();
+    private bool isUpdating;
+    private AsyncOperationStatus updateStatus;
+    private string updateMessage = string.Empty;
 
     void Start()
     {
@@ -62,17 +65,45 @@ public class HMAddressableTest : MonoBehaviour
     }
 
 
+    private async void UpdateRes()
+    {
+        if (isUpdating) return;
+        isUpdating = true;
+        updateStatus = AsyncOperationStatus.None;
+        updateMessage = string.Empty;
+        try
+        {
+            await HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
+            Debug.Assert(updateStatus != AsyncOperationStatus.None, "资源更新结束后未收到最终状态。");
+        }
+        catch (Exception exception)
+        {
+            updateStatus = AsyncOperationStatus.Failed;
+            updateMessage = exception.Message;
+            Debug.LogException(exception);
+            return;
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+
+        if (updateStatus != AsyncOperationStatus.Succeeded) return;
+        this.Capsule(true);
+        this.Sphere(true);
+    }
+
     private void UpdateCb(AsyncOperationStatus status, float progeress, string message, UpdateStatusCode arg3)
     {
+        updateStatus = status;
+        updateMessage = message;
         switch (status)
         {
             case AsyncOperationStatus.Failed:
-                Debug.LogError($"errorCode={arg3}");
+                Debug.LogError($"更新失败，可手动重试。errorCode={arg3} {updateMessage}");
                 break;
             case AsyncOperationStatus.Succeeded:
                 Debug.Log($"更新成功 Code={arg3}");
-                this.Capsule(true);
-                this.Sphere(true);
                 break;
             case AsyncOperationStatus.None:
                 Debug.Log($"正在下载,进度={progeress} Code={arg3}");
@@ -217,11 +248,19 @@ public class HMAddressableTest : MonoBehaviour
         }
 
 
-        if (GUILayout.Button("更新资源"))
+        bool previousEnabled = GUI.enabled;
+        bool updateRequested;
+        try
         {
-            //使用此接口进行统一的资源更新
-            await HMAddressableManager.UpdateAddressablesAllAssets(UpdateCb);
+            GUI.enabled = previousEnabled && !isUpdating;
+            updateRequested = GUILayout.Button(isUpdating ? "更新中…" :
+                updateStatus == AsyncOperationStatus.Failed ? "重试更新" : "更新资源");
         }
+        finally
+        {
+            GUI.enabled = previousEnabled;
+        }
+        if (updateRequested) UpdateRes();
 
         if (GUILayout.Button("载入单个资源"))
         {

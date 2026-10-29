@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using HM;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
@@ -19,6 +20,9 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
         "Assets/Samples/Test/RES/RemoteRes/MultipleTestRemote/MuitipleTestRemoteSphere.prefab";
 
     private List<GameObject> instanceObjs = new List<GameObject>();
+    private bool isUpdating;
+    private AsyncOperationStatus updateStatus;
+    private string updateMessage = string.Empty;
 
     void Start()
     {
@@ -36,19 +40,57 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
 
     private async void UpdateRes()
     {
+        if (isUpdating) return;
+        isUpdating = true;
+        updateStatus = AsyncOperationStatus.None;
+        updateMessage = string.Empty;
         System.Diagnostics.Stopwatch stopwatch = new Stopwatch();
         stopwatch.Start();
-        await HM.HMAddressableManager.UpdateAddressablesAllAssets(null);
-        stopwatch.Stop();
-        Debug.Log($"更新资源耗时:{stopwatch.ElapsedMilliseconds} ");
+        try
+        {
+            await HM.HMAddressableManager.UpdateAddressablesAllAssets((status, progress, message, code) =>
+            {
+                updateStatus = status;
+                updateMessage = $"Code={code} {message}";
+            });
+            Debug.Assert(updateStatus != AsyncOperationStatus.None, "资源更新结束后未收到最终状态。");
+        }
+        catch (System.Exception exception)
+        {
+            updateStatus = AsyncOperationStatus.Failed;
+            updateMessage = exception.Message;
+            Debug.LogException(exception);
+            return;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            isUpdating = false;
+        }
+
+        if (updateStatus != AsyncOperationStatus.Succeeded)
+        {
+            Debug.LogError($"更新资源失败，可手动重试：{updateMessage}");
+            return;
+        }
+        Debug.Log($"更新资源成功，耗时:{stopwatch.ElapsedMilliseconds} {updateMessage}");
     }
 
     private void OnGUI()
     {
-        if (GUILayout.Button("热更"))
+        bool previousEnabled = GUI.enabled;
+        bool updateRequested;
+        try
         {
-            this.UpdateRes();
+            GUI.enabled = previousEnabled && !isUpdating;
+            updateRequested = GUILayout.Button(isUpdating ? "更新中…" :
+                updateStatus == AsyncOperationStatus.Failed ? "重试热更" : "热更");
         }
+        finally
+        {
+            GUI.enabled = previousEnabled;
+        }
+        if (updateRequested) this.UpdateRes();
 
         if (GUILayout.Button("释放所有资源"))
         {
