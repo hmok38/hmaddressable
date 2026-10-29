@@ -304,6 +304,7 @@ namespace HM
 
         private void GetAllSubFolders(string folder, List<string> allSubFolders)
         {
+            folder = NormalizeAssetFolder(folder);
             if (!AssetDatabase.IsValidFolder(folder)) return;
 
             var allAssetsGuids = AssetDatabase.FindAssets("", new[] { folder });
@@ -323,7 +324,7 @@ namespace HM
 
             if (hasNotFolderAssets)
             {
-                allSubFolders.Add(folder);
+                if (!allSubFolders.Contains(folder)) allSubFolders.Add(folder);
             }
 
 
@@ -337,24 +338,75 @@ namespace HM
 
         public bool CheckAllAssetsPathIsInList()
         {
-            var allSubFolders = new List<string>();
-            for (int i = 0; i < AAAssetsPath.Length; i++)
+            try
             {
-                GetAllSubFolders(AAAssetsPath[i], allSubFolders);
-            }
+                if (AAAssetsPath == null || AAAssetsPath.Length == 0 || LocalAseetsPaths == null ||
+                    RemoteAseetsPaths == null || UnassignedAssetsPath == null || SeparatelyPackAssetsPaths == null)
+                    throw new InvalidOperationException("资源目录列表缺失或 AAAssetsPath 为空。");
 
-            var allSub = allSubFolders.ToHashSet();
-            Debug.Log($"共 {allSub.Count} 个资源组");
-            if (LocalAseetsPaths.Length + RemoteAseetsPaths.Length + UnassignedAssetsPath.Length != allSub.Count)
+                var allSubFolders = new List<string>();
+                var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var path in AAAssetsPath)
+                {
+                    var folder = NormalizeAssetFolder(path);
+                    if (!roots.Add(folder)) throw new InvalidOperationException("AAAssetsPath 重复配置目录：" + folder);
+                    GetAllSubFolders(folder, allSubFolders);
+                }
+
+                var expected = new HashSet<string>(allSubFolders, StringComparer.OrdinalIgnoreCase);
+                var configured = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var item in UnassignedAssetsPath)
+                {
+                    if (item == null || (item.BeLocal && item.BeRemote))
+                        throw new InvalidOperationException("未分配目录存在空条目，或同时勾选了本地和远程。");
+                }
+                foreach (var path in LocalAseetsPaths.Concat(RemoteAseetsPaths).Concat(UnassignedAssetsPath.Select(x => x.GroupName)))
+                {
+                    var folder = NormalizeAssetFolder(path);
+                    if (!configured.Add(folder))
+                        throw new InvalidOperationException("本地、远程、未分配列表重复配置了目录：" + folder);
+                }
+
+                var missing = expected.Except(configured, StringComparer.OrdinalIgnoreCase).ToArray();
+                var extra = configured.Except(expected, StringComparer.OrdinalIgnoreCase).ToArray();
+                if (missing.Length > 0 || extra.Length > 0)
+                    throw new InvalidOperationException($"资源目录集合不匹配。未配置：{string.Join(", ", missing)}；已失效：{string.Join(", ", extra)}。请点击“整理资源目录”后检查配置。");
+
+                var separately = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var path in SeparatelyPackAssetsPaths)
+                {
+                    var folder = NormalizeAssetFolder(path);
+                    if (!expected.Contains(folder) || !separately.Add(folder))
+                        throw new InvalidOperationException("分散打包目录未纳入资源目录或重复配置：" + folder);
+                }
+                if (expected.Count == 0) throw new InvalidOperationException("配置目录中没有资源，不能打包。");
+                Debug.Assert(configured.SetEquals(expected), "资源目录校验结果不一致。");
+                return true;
+            }
+            catch (Exception exception)
             {
-                Debug.LogError("请选择资源模块配置表,点击 整理资源目录 按钮");
+                Debug.LogError("HMAA 配置检查失败：" + exception.Message, this);
                 EditorGUIUtility.PingObject(this);
-                Debug.LogError(
-                    $"资源组数量不匹配,总数: allSubFolders:{allSubFolders.Count} 其中应该:LocalAseetsPaths:{LocalAseetsPaths.Length}  RemoteAseetsPaths:{RemoteAseetsPaths.Length} UnassignedAssetsPath:{UnassignedAssetsPath.Length} ");
                 return false;
             }
+        }
 
-            return true;
+        /// <summary>
+        /// 返回 Assets 下已存在目录的规范路径；目录不存在或越出工程时抛出异常。仅用于编辑器。
+        /// </summary>
+        public static string NormalizeAssetFolder(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("资源目录不能为空。");
+            var fullPath = System.IO.Path.GetFullPath(path).TrimEnd('\\', '/').Replace('\\', '/');
+            var assetsPath = System.IO.Path.GetFullPath(Application.dataPath).TrimEnd('\\', '/').Replace('\\', '/');
+            if (!string.Equals(fullPath, assetsPath, StringComparison.OrdinalIgnoreCase) &&
+                !fullPath.StartsWith(assetsPath + "/", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("资源目录必须位于当前工程的 Assets 下：" + path);
+            var normalized = "Assets" + fullPath.Substring(assetsPath.Length);
+            if (!AssetDatabase.IsValidFolder(normalized))
+                throw new ArgumentException("资源目录不存在：" + path);
+            var canonicalPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.AssetPathToGUID(normalized));
+            return string.IsNullOrEmpty(canonicalPath) ? normalized : canonicalPath;
         }
 #endif
     }

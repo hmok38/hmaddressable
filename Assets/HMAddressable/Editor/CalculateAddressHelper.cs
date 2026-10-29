@@ -62,9 +62,7 @@ namespace HM.Editor.HMAddressable.Editor
             newCreatGroups = new List<AddressableAssetGroup>();
             if (!BuildUtility.CheckModifiedScenesAndAskToSave())
             {
-                Debug.LogError("Cannot run Analyze with unsaved scenes");
-
-                return;
+                throw new OperationCanceledException("未保存场景或取消了保存，已停止重复依赖分析和后续打包。");
             }
 
             CalculateInputDefinitions(settings);
@@ -75,8 +73,7 @@ namespace HM.Editor.HMAddressable.Editor
                 ReturnCode exitCode = RefreshBuild(context);
                 if (exitCode < ReturnCode.Success)
                 {
-                    Debug.LogError("Analyze build failed. " + exitCode);
-                    return;
+                    throw new InvalidOperationException("重复依赖分析构建失败，已停止后续打包：" + exitCode);
                 }
                 
                 var implicitGuids = GetImplicitGuidToFilesMap();

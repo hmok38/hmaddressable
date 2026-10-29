@@ -66,7 +66,7 @@ Preset:
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: m_BundledAssetProviderType.m_ClassName
-    value: UnityEngine.ResourceManagement.ResourceProviders.AssetDatabaseProvider
+    value: UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: m_ForceUniqueProvider
@@ -122,7 +122,7 @@ Preset:
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: m_AssetBundleProviderType.m_ClassName
-    value: UnityEngine.ResourceManagement.ResourceProviders.AssetDatabaseProvider
+    value: UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: m_BundleNaming
