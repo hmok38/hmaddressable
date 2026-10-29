@@ -53,6 +53,8 @@ namespace HM
         private static Dictionary<string, SceneInstance> LoadedSceneMap = new Dictionary<string, SceneInstance>();
         private static readonly Dictionary<string, UniTaskCompletionSource<Scene>> LoadingSceneMap =
             new Dictionary<string, UniTaskCompletionSource<Scene>>();
+        private static readonly Dictionary<string, UniTaskCompletionSource> ActivatingSceneMap =
+            new Dictionary<string, UniTaskCompletionSource>();
         private static readonly Dictionary<string, UniTaskCompletionSource> UnloadingSceneMap =
             new Dictionary<string, UniTaskCompletionSource>();
 
@@ -558,7 +560,60 @@ namespace HM
         }
 
         /// <summary>
-        /// 按加载地址卸载，并发卸载共用同一次操作；失败会传给调用方。未激活场景不会被自动激活。
+        /// 显式激活已加载的场景，同一地址的并发请求共用一次激活；失败会传给调用方。
+        /// </summary>
+        public static async UniTask ActivateSceneAsync(string scenePath)
+        {
+            scenePath = NormalizePath(scenePath);
+            if (string.IsNullOrEmpty(scenePath)) throw new ArgumentException("场景地址不能为空。", nameof(scenePath));
+            if (LoadingSceneMap.TryGetValue(scenePath, out var loading)) await loading.Task;
+            if (UnloadingSceneMap.ContainsKey(scenePath))
+                throw new InvalidOperationException("场景正在卸载，不能激活：" + scenePath);
+            if (ActivatingSceneMap.TryGetValue(scenePath, out var pending))
+            {
+                await pending.Task;
+                return;
+            }
+            if (!LoadedSceneMap.TryGetValue(scenePath, out var instance) || !instance.Scene.IsValid())
+                throw new InvalidOperationException("场景尚未加载或已经失效，不能激活：" + scenePath);
+            if (instance.Scene.isLoaded) return;
+
+            var completion = new UniTaskCompletionSource();
+            ActivatingSceneMap.Add(scenePath, completion);
+            Exception failure = null;
+            try
+            {
+                var operation = instance.ActivateAsync();
+                if (operation == null) throw new InvalidOperationException("场景未返回有效的激活操作：" + scenePath);
+                await operation.ToUniTask();
+                if (!instance.Scene.IsValid() || !instance.Scene.isLoaded)
+                    throw new InvalidOperationException("场景激活后仍未加载完成：" + scenePath);
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+            finally
+            {
+                ActivatingSceneMap.Remove(scenePath);
+                Debug.Assert(!ActivatingSceneMap.ContainsKey(scenePath), "场景激活结束后仍存在激活标记。");
+                if (failure == null) completion.TrySetResult();
+                else completion.TrySetException(failure);
+            }
+            await completion.Task;
+        }
+
+        /// <summary>按实际 Scene 激活已保存的 SceneInstance，不依赖场景短名称。</summary>
+        public static async UniTask ActivateSceneAsync(Scene scene)
+        {
+            if (!scene.IsValid()) throw new ArgumentException("场景无效，不能激活。", nameof(scene));
+            var entry = LoadedSceneMap.FirstOrDefault(pair => pair.Value.Scene == scene);
+            if (entry.Key == null) throw new InvalidOperationException("场景未由 HMAddressableManager 加载，不能激活：" + scene.path);
+            await ActivateSceneAsync(entry.Key);
+        }
+
+        /// <summary>
+        /// 按加载地址卸载，并发卸载共用同一次操作；失败会传给调用方。未激活、正在激活或最后一个已加载场景会被拒绝卸载。
         /// </summary>
         public static async UniTask UnloadSceneAsync(string scenePath)
         {
@@ -583,11 +638,18 @@ namespace HM
             Exception failure = null;
             try
             {
+                if (ActivatingSceneMap.ContainsKey(scenePath))
+                    throw new InvalidOperationException("场景正在激活，请等待 ActivateSceneAsync 完成后再卸载：" + scenePath);
                 if (!instance.Scene.isLoaded)
                     throw new InvalidOperationException("场景尚未激活，不能直接卸载：" + scenePath);
+                if (!HasOtherLoadedScene(instance.Scene))
+                    throw new InvalidOperationException("不能卸载最后一个已加载场景，请先加载其他场景：" + scenePath);
                 operation = Addressables.UnloadSceneAsync(instance, UnloadSceneOptions.UnloadAllEmbeddedSceneObjects, false);
                 await operation.ToUniTask();
+                if (instance.Scene.IsValid() && instance.Scene.isLoaded)
+                    throw new InvalidOperationException("场景卸载操作结束，但场景仍处于已加载状态：" + scenePath);
                 LoadedSceneMap.Remove(scenePath);
+                Debug.Assert(!LoadedSceneMap.ContainsKey(scenePath), "场景卸载成功后仍存在场景记录。");
             }
             catch (Exception exception)
             {
@@ -602,6 +664,19 @@ namespace HM
                 else completion.TrySetException(failure);
             }
             await completion.Task;
+        }
+
+        private static bool HasOtherLoadedScene(Scene targetScene)
+        {
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                var scene = SceneManager.GetSceneAt(i);
+                if (!scene.IsValid() || !scene.isLoaded || scene == targetScene) continue;
+                // 已开始卸载的场景不能作为另一个并发卸载请求的保留场景。
+                if (LoadedSceneMap.Any(pair => pair.Value.Scene == scene && UnloadingSceneMap.ContainsKey(pair.Key))) continue;
+                return true;
+            }
+            return false;
         }
 
         /// <summary>按实际 Scene 匹配保存的 SceneInstance，不依赖场景短名称。</summary>
@@ -955,6 +1030,7 @@ namespace HM
         /// <summary>
         /// 下载一些资源到本地缓存,但不加载,如果已经下载过则不会重复下载
         /// 整个组的资源都会下载
+        /// 所有地址必须有效；输入列表会在等待前复制，失败仍通过返回消息报告。
         /// </summary>
         /// <param name="assetsNames"></param>
         /// <param name="progressCb"></param>
@@ -965,6 +1041,26 @@ namespace HM
             AsyncOperationHandle downloadOp = default;
             try
             {
+                if (assetsNames == null) throw new ArgumentNullException(nameof(assetsNames), "下载资源列表不能为空。");
+                if (assetsNames.Count == 0) throw new ArgumentException("下载资源列表不能是空列表。", nameof(assetsNames));
+                assetsNames = new List<string>(assetsNames);
+                foreach (var assetName in assetsNames)
+                {
+                    if (string.IsNullOrWhiteSpace(assetName))
+                        throw new ArgumentException("下载资源列表中存在空地址。", nameof(assetsNames));
+                    var locationsOp = Addressables.LoadResourceLocationsAsync(assetName);
+                    try
+                    {
+                        var locations = await locationsOp.ToUniTask();
+                        if (locations == null || locations.Count == 0)
+                            throw new InvalidOperationException("找不到需要下载的资源地址：" + assetName);
+                    }
+                    finally
+                    {
+                        if (locationsOp.IsValid()) Addressables.Release(locationsOp);
+                    }
+                }
+                Debug.Assert(assetsNames.All(name => !string.IsNullOrWhiteSpace(name)), "下载前必须校验所有资源地址。");
                 downloadOp = Addressables.DownloadDependenciesAsync(assetsNames, Addressables.MergeMode.Union, false);
                 while (!downloadOp.IsDone)
                 {

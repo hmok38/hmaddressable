@@ -653,11 +653,19 @@ namespace HM.Editor
             CreateGroups(groupInfos);
             SetAssetsToGroup(groupInfos);
             var settings = AddressableAssetSettingsDefaultObject.Settings;
-            foreach (var group in settings.groups.ToArray())
+            var obsoleteGroups = settings.groups.Where(group => group != null &&
+                !group.HasSchema<PlayerDataGroupSchema>() && !groupInfos.Any(info => info.Group == group)).ToArray();
+            var dependencyMetadata = new Dictionary<string, (string address, string[] labels, bool readOnly)>();
+            foreach (var group in obsoleteGroups)
             {
-                if (group != null && !group.HasSchema<PlayerDataGroupSchema>() &&
-                    !groupInfos.Any(info => info.Group == group)) settings.RemoveGroup(group);
+                foreach (var entry in group.entries)
+                {
+                    var automaticLabel = FindAutomaticGroupLabel(entry);
+                    dependencyMetadata[entry.guid] = (entry.address,
+                        entry.labels.Where(label => label != automaticLabel).ToArray(), entry.ReadOnly);
+                }
             }
+            foreach (var group in obsoleteGroups) settings.RemoveGroup(group);
             SetAllGroupSchema(groupInfos);
             // 分析必须使用最终 Schema，否则修改分散开关后会沿用旧的依赖结果。
             var helper2 = new CalculateAddressHelper();
@@ -665,6 +673,15 @@ namespace HM.Editor
                 out var newCreatGroups);
             foreach (var group in newCreatGroups)
             {
+                foreach (var entry in group.entries)
+                {
+                    if (!dependencyMetadata.TryGetValue(entry.guid, out var metadata)) continue;
+                    entry.SetAddress(metadata.address);
+                    foreach (var label in metadata.labels) entry.SetLabel(label, true, true);
+                    entry.ReadOnly = metadata.readOnly;
+                    Debug.Assert(entry.address == metadata.address && metadata.labels.All(entry.labels.Contains),
+                        $"重复依赖条目 {entry.guid} 的 Address 或自定义 Labels 未恢复。");
+                }
                 SetGroupSchema(group, ConfigHmAddressables.ForceRemoteAssetsToLocal ||
                     !ConfigHmAddressables.DuplicateDependenciesGroupBeRemote, true,
                     BundledAssetGroupSchema.BundlePackingMode.PackTogether);
@@ -763,6 +780,7 @@ namespace HM.Editor
                 var entry = settings.FindAssetEntry(pair.Key);
                 if (entry != null)
                 {
+                    SynchronizeDirectoryLabel(entry, pair.Value.Path);
                     if (beUpdateAssets && (IsContentUpdateGroup(entry.parentGroup) || IsDuplicateGroup(entry.parentGroup)))
                         continue;
                     if (entry.parentGroup != pair.Value.Group)
@@ -790,6 +808,60 @@ namespace HM.Editor
                 EditorUtility.SetDirty(group);
             }
             EditorUtility.SetDirty(settings);
+        }
+
+        private static void SynchronizeDirectoryLabel(AddressableAssetEntry entry, string directory)
+        {
+            var previousLabel = FindAutomaticGroupLabel(entry, directory);
+            if (previousLabel != null && previousLabel != directory) entry.SetLabel(previousLabel, false);
+            entry.SetLabel(directory, true, true);
+            Debug.Assert(entry.labels.Contains(directory) &&
+                (previousLabel == null || previousLabel == directory || !entry.labels.Contains(previousLabel)),
+                $"资源条目 {entry.guid} 的目录标签未正确同步。");
+        }
+
+        private static string FindAutomaticGroupLabel(AddressableAssetEntry entry, string currentDirectory = null)
+        {
+            string groupName = entry.parentGroup.Name;
+            const string marker = "_Content Update_";
+            int markerIndex = groupName.LastIndexOf(marker, StringComparison.Ordinal);
+            bool hasSourceGroup = markerIndex >= 0 &&
+                int.TryParse(groupName.Substring(markerIndex + marker.Length), out var sequence) && sequence > 0;
+            string sourceName = hasSourceGroup ? groupName.Substring(0, markerIndex) : groupName;
+            bool truncatedSource = hasSourceGroup && sourceName.Length == 48;
+            var candidates = entry.labels.Where(label => MatchesAutomaticGroupLabel(label, sourceName, truncatedSource)).ToArray();
+            if (candidates.Length == 1) return candidates[0];
+
+            // 历史条目没有标签来源记录，不能把目录形式的自定义标签直接删除。
+            if ((currentDirectory == null || !entry.labels.Contains(currentDirectory)) &&
+                entry.labels.Any(label => label == "Duplicate Asset Isolation" || IsDirectoryLabel(label)))
+            {
+                Debug.LogWarning($"资源 {entry.AssetPath}（{entry.guid}）在组 {groupName} 中的自动标签无法唯一识别，" +
+                    "已保留原标签，请人工检查是否需要删除旧目录标签。");
+            }
+            return null;
+        }
+
+        private static bool MatchesAutomaticGroupLabel(string label, string sourceName, bool truncatedSource)
+        {
+            string normalized = label.Replace('\\', '/').TrimEnd('/');
+            if (normalized == "Duplicate Asset Isolation") return sourceName == normalized;
+            if (!IsDirectoryLabel(normalized)) return false;
+            string directoryGroup = normalized.Replace('/', '-');
+            string duplicateGroup = "Duplicate Asset Isolation " + directoryGroup;
+            if (truncatedSource)
+            {
+                directoryGroup = directoryGroup.Substring(0, Math.Min(48, directoryGroup.Length));
+                duplicateGroup = duplicateGroup.Substring(0, Math.Min(48, duplicateGroup.Length));
+            }
+            return string.Equals(sourceName, directoryGroup, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(sourceName, duplicateGroup, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsDirectoryLabel(string label)
+        {
+            string normalized = label.Replace('\\', '/').TrimEnd('/');
+            return normalized == "Assets" || normalized.StartsWith("Assets/", StringComparison.Ordinal);
         }
 
         private static bool IsPackableAssetPath(string path)
