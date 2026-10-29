@@ -45,10 +45,16 @@ namespace HM
         static readonly Dictionary<string, Object> ResMap =
             new Dictionary<string, Object>();
 
-        private static readonly Dictionary<string, bool> LoadingMap = new Dictionary<string, bool>();
+        private static readonly Dictionary<string, UniTaskCompletionSource<Object>> LoadingMap =
+            new Dictionary<string, UniTaskCompletionSource<Object>>();
+        private static readonly Dictionary<string, AsyncOperationHandle> ResourceHandles =
+            new Dictionary<string, AsyncOperationHandle>();
 
         private static Dictionary<string, SceneInstance> LoadedSceneMap = new Dictionary<string, SceneInstance>();
-        private static Dictionary<string, bool> LoadingSceneMap = new Dictionary<string, bool>();
+        private static readonly Dictionary<string, UniTaskCompletionSource<Scene>> LoadingSceneMap =
+            new Dictionary<string, UniTaskCompletionSource<Scene>>();
+        private static readonly Dictionary<string, UniTaskCompletionSource> UnloadingSceneMap =
+            new Dictionary<string, UniTaskCompletionSource>();
 
 
         public static Action<string, Exception> OnLoadingResException;
@@ -108,7 +114,7 @@ namespace HM
         }
 
         /// <summary>
-        /// 加载资源 同步加载,尽量使用异步加载
+        /// 同步加载资源。WebGL 仅能直接返回已缓存资源，未缓存资源请使用 LoadAsync。
         /// </summary>
         /// <param name="resNameP"></param>
         /// <typeparam name="T"></typeparam>
@@ -116,117 +122,116 @@ namespace HM
         public static T Load<T>(string resNameP) where T : UnityEngine.Object
         {
             var resName = NormalizePath(resNameP);
-            if (ResMap.ContainsKey(resName))
+            if (string.IsNullOrEmpty(resName)) throw new ArgumentException("资源地址不能为空。", nameof(resNameP));
+            if (ResMap.TryGetValue(resName, out var cached)) return cached as T;
+            RequireSynchronousLoading(nameof(LoadAsync));
+            if (LoadingMap.ContainsKey(resName))
+                throw new InvalidOperationException($"资源 {resName} 正在异步加载，请使用 LoadAsync 等待同一次加载。");
+
+            var completion = new UniTaskCompletionSource<Object>();
+            LoadingMap.Add(resName, completion);
+            AsyncOperationHandle<T> operation = default;
+            T result = null;
+            Exception failure = null;
+            try
             {
-                return ResMap[resName] as T;
-            }
-
-            if (BeOtherDebug)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"准备直接加载资源:{resName} ");
-            }
-
-            T obj = null;
-
 #if UNITY_EDITOR
-            if (!HasAssets(resName))
-            {
-                //编辑器下判断有没有,没有就直接读目录,有就从aa走
-                obj = AssetDatabase.LoadAssetAtPath<T>(resName);
-            }
+                if (!HasAssets(resName)) result = AssetDatabase.LoadAssetAtPath<T>(resName);
 #endif
-
-            if (obj == null)
-            {
-                var operation = Addressables.LoadAssetAsync<T>(resName);
-                AddToLoadingMap(resName);
-                operation.WaitForCompletion();
-
-                if (operation.Status != AsyncOperationStatus.Succeeded || operation.Result == null)
+                if (result == null)
                 {
-                    //失败了
-                    RemoveFromLoadingMap(resName);
-                    var exc = operation.OperationException;
-                    Addressables.Release(operation); //释放掉它
-                    OnLoadingResException?.Invoke(resName, exc); //派发加载失败的事件
-                    return null;
+                    operation = Addressables.LoadAssetAsync<T>(resName);
+                    result = operation.WaitForCompletion();
+                    if (operation.Status != AsyncOperationStatus.Succeeded || result == null)
+                        throw operation.OperationException ?? new InvalidOperationException("资源加载结果为空：" + resName);
+                    ResourceHandles[resName] = operation;
+                    operation = default;
                 }
-
-                obj = operation.Result;
+                ResMap[resName] = result;
             }
-
-            if (!ResMap.ContainsKey(resName))
+            catch (Exception exception)
             {
-                ResMap.Add(resName, obj);
+                result = null;
+                failure = exception;
             }
-            else
+            finally
             {
-                ResMap[resName] = obj;
+                if (operation.IsValid()) Addressables.Release(operation);
+                LoadingMap.Remove(resName);
+                Debug.Assert(!LoadingMap.ContainsKey(resName), "资源加载结束后仍存在加载标记。");
+                completion.TrySetResult(result);
             }
-
-            RemoveFromLoadingMap(resName);
-            return ResMap[resName] as T;
+            if (failure != null) NotifyLoadingFailure(resName, failure);
+            return result;
         }
 
+        /// <summary>
+        /// 异步加载资源。同一地址的并发请求共用一次加载；失败返回 null 并通知 OnLoadingResException。
+        /// </summary>
         public static async UniTask<T> LoadAsync<T>(string resNameP) where T : UnityEngine.Object
         {
             var resName = NormalizePath(resNameP);
-            if (ResMap.ContainsKey(resName))
-                return ResMap[resName] as T;
-            if (LoadingMap.ContainsKey(resName) && LoadingMap[resName])
+            if (string.IsNullOrEmpty(resName)) throw new ArgumentException("资源地址不能为空。", nameof(resNameP));
+            if (ResMap.TryGetValue(resName, out var cached)) return cached as T;
+            if (LoadingMap.TryGetValue(resName, out var pending)) return await pending.Task as T;
+
+            var completion = new UniTaskCompletionSource<Object>();
+            LoadingMap.Add(resName, completion);
+            AsyncOperationHandle<T> operation = default;
+            T result = null;
+            Exception failure = null;
+            try
             {
-                await UniTask.WaitUntil(() => (!LoadingMap.ContainsKey(resName)) || (!LoadingMap[resName]));
-
-                if (ResMap.TryGetValue(resName, out var value))
-                {
-                    return value as T;
-                }
-
-                return await LoadAsync<T>(resNameP);
-            }
-
-            if (BeOtherDebug)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"准备异步加载资源:{resName} ");
-            }
-
-            T obj = null;
 #if UNITY_EDITOR
-            if (!HasAssets(resName))
-            {
-                //编辑器下判断有没有,没有就直接读目录,有就从aa走
-                obj = AssetDatabase.LoadAssetAtPath<T>(resName);
-            }
+                if (!await HasAssetsAsync(resName)) result = AssetDatabase.LoadAssetAtPath<T>(resName);
 #endif
-            if (obj == null)
-            {
-                var operation = Addressables.LoadAssetAsync<T>(resName);
-                AddToLoadingMap(resName);
-                await operation.ToUniTask();
-                if (operation.Status != AsyncOperationStatus.Succeeded || operation.Result == null)
+                if (result == null)
                 {
-                    //失败了
-                    RemoveFromLoadingMap(resName);
-                    var exc = operation.OperationException;
-                    Addressables.Release(operation); //释放掉它
-                    OnLoadingResException?.Invoke(resName, exc); //派发加载失败的事件
-                    return null;
+                    operation = Addressables.LoadAssetAsync<T>(resName);
+                    result = await operation.ToUniTask();
+                    if (result == null)
+                        throw new InvalidOperationException("资源加载结果为空：" + resName);
+                    ResourceHandles[resName] = operation;
+                    operation = default;
                 }
-
-                obj = operation.Result;
+                ResMap[resName] = result;
             }
-
-            if (!ResMap.ContainsKey(resName))
+            catch (Exception exception)
             {
-                ResMap.Add(resName, obj);
+                result = null;
+                failure = exception;
             }
-            else
+            finally
             {
-                ResMap[resName] = obj;
+                if (operation.IsValid()) Addressables.Release(operation);
+                LoadingMap.Remove(resName);
+                Debug.Assert(!LoadingMap.ContainsKey(resName), "资源加载结束后仍存在加载标记。");
+                completion.TrySetResult(result);
             }
+            if (failure != null) NotifyLoadingFailure(resName, failure);
+            return result;
+        }
 
-            RemoveFromLoadingMap(resName);
-            return ResMap[resName] as T;
+        private static void RequireSynchronousLoading(string asyncMethod)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            throw new PlatformNotSupportedException($"WebGL 不支持同步等待 Addressables，请使用 {asyncMethod}。");
+#endif
+        }
+
+        private static void NotifyLoadingFailure(string key, Exception exception)
+        {
+            var callbacks = OnLoadingResException;
+            if (callbacks == null)
+            {
+                Debug.LogException(exception);
+                return;
+            }
+            foreach (Action<string, Exception> callback in callbacks.GetInvocationList())
+            {
+                try { callback(key, exception); }
+                catch (Exception callbackException) { Debug.LogException(callbackException); }
+            }
         }
 
         /// <summary>
@@ -263,27 +268,22 @@ namespace HM
 #endif
             if (names == null || names.Count <= 0)
             {
-                var resouceLocationsHandle =
-                    Addressables.LoadResourceLocationsAsync(groupNameOrLabel, typeof(T));
-                await resouceLocationsHandle.ToUniTask();
-                var resouceLocations = resouceLocationsHandle.Result;
-                names = new List<string>();
-                foreach (var resouceLocation in resouceLocations)
-                {
-                    names.Add(resouceLocation.PrimaryKey);
-                }
+                names = await GetResourceNamesAsync(groupNameOrLabel, typeof(T));
             }
 
             return await loadAssetsAsync<T>(names);
         }
 
         /// <summary>
-        /// 判断是否有资源
+        /// 同步判断是否有资源；WebGL 请使用 HasAssetsAsync。
         /// </summary>
         /// <param name="resName"></param>
         /// <returns></returns>
         public static bool HasAssets(string resName)
         {
+            resName = NormalizePath(resName);
+            if (string.IsNullOrEmpty(resName)) return false;
+            RequireSynchronousLoading(nameof(HasAssetsAsync));
 #if UNITY_EDITOR
             //编辑器下检查是不是有设置,没有就直接返回,有就真的判断是不是存在资源
             var sett = AssetDatabase.LoadAssetAtPath<Object>(
@@ -295,14 +295,50 @@ namespace HM
 #endif
             var rs = Addressables.LoadResourceLocationsAsync(resName);
 
-            rs.WaitForCompletion();
-            if (rs.IsDone && rs.IsValid())
+            try
             {
-                return (rs.Result != null && rs.Result.Count > 0);
+                rs.WaitForCompletion();
+                return rs.Status == AsyncOperationStatus.Succeeded && rs.Result != null && rs.Result.Count > 0;
             }
+            finally
+            {
+                if (rs.IsValid()) Addressables.Release(rs);
+            }
+        }
 
-            //Debug.Log($"未找到资源{resName} ");
-            return false;
+        /// <summary>异步判断 Catalog 中是否存在资源，可在 WebGL 使用；查询异常会传给调用方。</summary>
+        public static async UniTask<bool> HasAssetsAsync(string resName)
+        {
+            resName = NormalizePath(resName);
+            if (string.IsNullOrEmpty(resName)) return false;
+#if UNITY_EDITOR
+            if (AssetDatabase.LoadAssetAtPath<Object>("Assets/AddressableAssetsData/AddressableAssetSettings.asset") == null)
+                return false;
+#endif
+            var operation = Addressables.LoadResourceLocationsAsync(resName);
+            try
+            {
+                var locations = await operation.ToUniTask();
+                return locations != null && locations.Count > 0;
+            }
+            finally
+            {
+                if (operation.IsValid()) Addressables.Release(operation);
+            }
+        }
+
+        private static async UniTask<List<string>> GetResourceNamesAsync(string key, Type type = null)
+        {
+            var operation = Addressables.LoadResourceLocationsAsync(key, type);
+            try
+            {
+                var locations = await operation.ToUniTask();
+                return locations.Select(location => location.PrimaryKey).Distinct().ToList();
+            }
+            finally
+            {
+                if (operation.IsValid()) Addressables.Release(operation);
+            }
         }
 
         /// <summary>
@@ -334,307 +370,257 @@ namespace HM
         public static bool ReleaseRes(Object res)
         {
             if (res == null) return false;
-            if (ResMap == null) return false;
-            var item = ResMap.FirstOrDefault((item) => item.Value == res);
-            if (item.Key == null) return false;
-            var operation = ResMap[item.Key];
-            if (operation == null) return false;
-            ResMap.Remove(item.Key);
-
-#if UNITY_EDITOR
-            if (!HasAssets(item.Key))
-            {
-                return true;
-            }
-#endif
-            if (BeOtherDebug)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{operation.name}");
-            }
-
-            Addressables.Release(operation);
-
-            return true;
+            var item = ResMap.FirstOrDefault(pair => pair.Value == res);
+            return item.Key != null && ReleaseLoadedResource(item.Key);
         }
 
-        /// <summary>
-        /// 释放资源,
-        /// </summary>
-        /// <param name="resNameP"></param>
-        /// <returns></returns>
+        /// <summary>释放资源；若正在加载，等待本次加载结束后释放，不会重新发起加载。</summary>
         public static async void ReleaseRes(string resNameP)
         {
             var resName = NormalizePath(resNameP);
-            if (ResMap == null) return;
-            if (ResMap.ContainsKey(resName))
+            if (string.IsNullOrEmpty(resName)) return;
+            try
             {
-                var operation = ResMap[resName];
-                ResMap.Remove(resName);
-                if (operation != null)
+                if (LoadingMap.TryGetValue(resName, out var pending))
                 {
-#if UNITY_EDITOR
-                    if (!HasAssets(resName))
-                    {
-                        if (BeOtherDebug)
-                        {
-                            HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{resName} 失败,AA中没有这个资源,请检查是否设置其为AA资源");
-                        }
-
-                        return;
-                    }
-#endif
-                    if (BeOtherDebug)
-                    {
-                        HMRuntimeDialogHelper.DebugStopWatchInfo($"释放资源:{resName}");
-                    }
-
-                    Addressables.Release(operation);
+                    var loaded = await pending.Task;
+                    if (loaded == null) return;
                 }
+                ReleaseLoadedResource(resName);
             }
-            //正在加载中,就等加载完毕后再释放
-            else if (LoadingMap.ContainsKey(resName) && LoadingMap[resName])
+            catch (Exception exception)
             {
-                await UniTask.WaitUntil(() => !LoadingMap[resName]);
-                ReleaseRes(resName);
+                NotifyLoadingFailure(resName, exception);
             }
         }
 
-        /// <summary>
-        /// 释放多个资源
-        /// </summary>
-        /// <param name="resNames"></param>
+        private static bool ReleaseLoadedResource(string resName)
+        {
+            if (!ResMap.Remove(resName)) return false;
+            if (ResourceHandles.TryGetValue(resName, out var handle))
+            {
+                ResourceHandles.Remove(resName);
+                if (handle.IsValid()) Addressables.Release(handle);
+            }
+            return true;
+        }
+
+        /// <summary>释放多个资源。</summary>
         public static void ReleaseRes(List<string> resNames)
         {
-            for (int i = 0; i < resNames.Count; i++)
-            {
-                ReleaseRes(resNames[i]);
-            }
+            foreach (var name in resNames) ReleaseRes(name);
         }
 
-        /// <summary>
-        /// 通过组名或者标签释放多个资源
-        /// </summary>
-        /// <param name="groupNameOrLabel"></param>
+        /// <summary>通过组名或者标签释放多个资源。</summary>
         public static async void ReleaseResGroup(string groupNameOrLabel)
         {
-            List<string> names = null;
-#if UNITY_EDITOR
-            names = GetAllResouceAssetsByFolder<Object>(groupNameOrLabel);
-#endif
-            if (names == null || names.Count <= 0)
+            try
             {
-                var resouceLocationsHandle =
-                    Addressables.LoadResourceLocationsAsync(groupNameOrLabel);
-                await resouceLocationsHandle.ToUniTask();
-                var resouceLocations = resouceLocationsHandle.Result;
-                names = new List<string>();
-                foreach (var resouceLocation in resouceLocations)
-                {
-                    names.Add(resouceLocation.PrimaryKey);
-                }
+                List<string> names = null;
+#if UNITY_EDITOR
+                names = GetAllResouceAssetsByFolder<Object>(groupNameOrLabel);
+#endif
+                if (names == null || names.Count == 0)
+                    names = await GetResourceNamesAsync(groupNameOrLabel);
+                ReleaseRes(names);
             }
-
-
-            ReleaseRes(names);
+            catch (Exception exception)
+            {
+                NotifyLoadingFailure(groupNameOrLabel, exception);
+            }
         }
 
         /// <summary>
-        /// 异步加载场景,如果要对加载完毕的场景做操作,请用await写
-        /// 如果要手动释放,请保留好这个SceneInstance释放的时候需要它
+        /// 异步加载场景，同一地址的并发请求共用一次加载。未激活场景按加载操作完成判断，不等待 isLoaded。
         /// </summary>
-        /// <param name="sceneName"></param>
-        /// <param name="loadSceneMode"></param>
-        /// <param name="activeteOnLoad"></param>
-        /// <returns></returns>
         public static async UniTask<Scene> LoadSceneAsync(string sceneName,
             LoadSceneMode loadSceneMode = LoadSceneMode.Single, bool activeteOnLoad = true)
         {
-            if (LoadedSceneMap.ContainsKey(sceneName) && LoadedSceneMap[sceneName].Scene.isLoaded)
+            sceneName = NormalizePath(sceneName);
+            if (string.IsNullOrEmpty(sceneName)) throw new ArgumentException("场景地址不能为空。", nameof(sceneName));
+            if (UnloadingSceneMap.TryGetValue(sceneName, out var unloading)) await unloading.Task;
+            if (LoadingSceneMap.TryGetValue(sceneName, out var pending)) return await pending.Task;
+            if (LoadedSceneMap.TryGetValue(sceneName, out var loaded) && loaded.Scene.IsValid()) return loaded.Scene;
+            LoadedSceneMap.Remove(sceneName);
+
+            var completion = new UniTaskCompletionSource<Scene>();
+            LoadingSceneMap.Add(sceneName, completion);
+            return await LoadSceneCoreAsync(sceneName, loadSceneMode, activeteOnLoad, completion);
+        }
+
+        private static async UniTask<Scene> LoadSceneCoreAsync(string sceneName, LoadSceneMode mode, bool activate,
+            UniTaskCompletionSource<Scene> completion, AsyncOperationHandle<SceneInstance> operation = default)
+        {
+            Scene result = default;
+            Exception failure = null;
+            try
             {
-                return LoadedSceneMap[sceneName].Scene;
-            }
-
-            //正在加载中就等待
-            if (LoadingSceneMap.ContainsKey(sceneName) && LoadingSceneMap[sceneName])
-            {
-                await UniTask.WaitUntil(() => !LoadingSceneMap[sceneName] && LoadedSceneMap[sceneName].Scene.isLoaded);
-
-                if (LoadedSceneMap.TryGetValue(sceneName, out var value))
-                {
-                    return value.Scene;
-                }
-
-                //也许被释放了,所以重新走下面的逻辑
-                return await LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
-            }
-
-
 #if UNITY_EDITOR
-            if (!HasSceneAssets(sceneName))
-            {
-                var s = SceneManager.LoadSceneAsync(sceneName, loadSceneMode);
-                await UniTask.WaitUntil(() => s != null && s.isDone);
-                return SceneManager.GetSceneByName(sceneName);
-            }
-
+                if (!operation.IsValid() && !HasSceneAssets(sceneName))
+                {
+                    var editorOperation = SceneManager.LoadSceneAsync(sceneName, mode);
+                    if (editorOperation == null) throw new InvalidOperationException("无法加载场景：" + sceneName);
+                    await editorOperation.ToUniTask();
+                    result = GetSceneByPathOrName(sceneName);
+                    if (!result.IsValid()) throw new InvalidOperationException("场景加载结果无效：" + sceneName);
+                }
+                else
 #endif
-
-            AddToLoadingSceneMap(sceneName);
-            var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
-            await UniTask.WaitUntil(() => op.IsDone);
-            if (op.Status != AsyncOperationStatus.Succeeded || !op.Result.Scene.IsValid())
-            {
-                //失败了
-                RemoveFromLoadingSceneMap(sceneName);
-                var exc = op.OperationException;
-                Addressables.Release(op); //释放掉它
-                OnLoadingResException?.Invoke(sceneName, exc); //派发加载失败的事件
-                return default;
+                {
+                    if (!operation.IsValid()) operation = Addressables.LoadSceneAsync(sceneName, mode, activate);
+                    var instance = await operation.ToUniTask();
+                    if (!instance.Scene.IsValid()) throw new InvalidOperationException("场景加载结果无效：" + sceneName);
+                    LoadedSceneMap[sceneName] = instance;
+                    result = instance.Scene;
+                    operation = default; // 成功句柄交给场景卸载流程释放。
+                }
             }
-
-            if (!LoadedSceneMap.ContainsKey(sceneName))
+            catch (Exception exception)
             {
-                LoadedSceneMap.Add(sceneName, op.Result);
+                LoadedSceneMap.Remove(sceneName);
+                failure = exception;
             }
-            else
+            finally
             {
-                LoadedSceneMap[sceneName] = op.Result;
+                if (operation.IsValid()) Addressables.Release(operation);
+                LoadingSceneMap.Remove(sceneName);
+                Debug.Assert(!LoadingSceneMap.ContainsKey(sceneName), "场景加载结束后仍存在加载标记。");
+                completion.TrySetResult(result);
             }
-
-            RemoveFromLoadingSceneMap(sceneName);
-            return LoadedSceneMap[sceneName].Scene;
+            if (failure != null) NotifyLoadingFailure(sceneName, failure);
+            return result;
         }
 
         /// <summary>
-        /// 同步加载场景
-        /// 如果要手动释放,请保留好这个SceneInstance释放的时候需要它
+        /// 同步取得场景。WebGL 请使用 LoadSceneAsync；其他平台的场景激活仍可能等待下一帧。
         /// </summary>
-        /// <param name="sceneName"></param>
-        /// <param name="loadSceneMode"></param>
-        /// <param name="activeteOnLoad"></param>
-        /// <returns></returns>
         public static Scene LoadScene(string sceneName, LoadSceneMode loadSceneMode = LoadSceneMode.Single,
             bool activeteOnLoad = true)
         {
-            if (LoadedSceneMap.ContainsKey(sceneName) && LoadedSceneMap[sceneName].Scene.isLoaded)
-            {
-                return LoadedSceneMap[sceneName].Scene;
-            }
+            sceneName = NormalizePath(sceneName);
+            if (string.IsNullOrEmpty(sceneName)) throw new ArgumentException("场景地址不能为空。", nameof(sceneName));
+            if (LoadingSceneMap.ContainsKey(sceneName) || UnloadingSceneMap.ContainsKey(sceneName))
+                throw new InvalidOperationException("场景正在加载或卸载，请使用 LoadSceneAsync：" + sceneName);
+            if (LoadedSceneMap.TryGetValue(sceneName, out var loaded) && loaded.Scene.IsValid()) return loaded.Scene;
+            RequireSynchronousLoading(nameof(LoadSceneAsync));
+            LoadedSceneMap.Remove(sceneName);
 
+            var completion = new UniTaskCompletionSource<Scene>();
+            LoadingSceneMap.Add(sceneName, completion);
+            AsyncOperationHandle<SceneInstance> operation = default;
+            Scene result = default;
+            Exception failure = null;
+            bool delegated = false;
+            try
+            {
 #if UNITY_EDITOR
-            if (!HasSceneAssets(sceneName))
-            {
-                SceneManager.LoadScene(sceneName, loadSceneMode);
-
-                return SceneManager.GetSceneByName(sceneName);
-            }
+                if (!HasSceneAssets(sceneName))
+                {
+                    SceneManager.LoadScene(sceneName, loadSceneMode);
+                    result = GetSceneByPathOrName(sceneName);
+                }
+                else
 #endif
-
-
-            var op = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
-            op.WaitForCompletion();
-
-            if (op.Status != AsyncOperationStatus.Succeeded || !op.Result.Scene.IsValid())
-            {
-                //失败了
-                RemoveFromLoadingSceneMap(sceneName);
-
-                var exc = op.OperationException;
-                Addressables.Release(op); //释放掉它
-                OnLoadingResException?.Invoke(sceneName, exc); //派发加载失败的事件
-
-                return default;
+                {
+                    operation = Addressables.LoadSceneAsync(sceneName, loadSceneMode, activeteOnLoad);
+                    var instance = operation.WaitForCompletion();
+                    if (!operation.IsDone)
+                    {
+                        // 场景激活可能尚未结束，保留句柄并由异步流程完成清理。
+                        if (instance.Scene.IsValid()) LoadedSceneMap[sceneName] = instance;
+                        delegated = true;
+                        LoadSceneCoreAsync(sceneName, loadSceneMode, activeteOnLoad, completion, operation).Forget();
+                        operation = default;
+                        return instance.Scene;
+                    }
+                    if (operation.Status != AsyncOperationStatus.Succeeded || !instance.Scene.IsValid())
+                        throw operation.OperationException ?? new InvalidOperationException("场景加载结果无效：" + sceneName);
+                    LoadedSceneMap[sceneName] = instance;
+                    result = instance.Scene;
+                    operation = default;
+                }
             }
-
-
-            if (!LoadedSceneMap.ContainsKey(sceneName))
+            catch (Exception exception)
             {
-                LoadedSceneMap.Add(sceneName, op.Result);
+                failure = exception;
             }
-            else
+            finally
             {
-                LoadedSceneMap[sceneName] = op.Result;
+                if (operation.IsValid()) Addressables.Release(operation);
+                if (!delegated)
+                {
+                    LoadingSceneMap.Remove(sceneName);
+                    completion.TrySetResult(result);
+                }
             }
-
-            RemoveFromLoadingSceneMap(sceneName);
-            return LoadedSceneMap[sceneName].Scene;
+            if (failure != null) NotifyLoadingFailure(sceneName, failure);
+            return result;
         }
 
         /// <summary>
-        /// 释放场景
+        /// 按加载地址卸载，并发卸载共用同一次操作；失败会传给调用方。未激活场景不会被自动激活。
         /// </summary>
-        /// <param name="scenePath"></param>
         public static async UniTask UnloadSceneAsync(string scenePath)
         {
-#if UNITY_EDITOR
-            if (!HasSceneAssets(scenePath))
+            scenePath = NormalizePath(scenePath);
+            if (string.IsNullOrEmpty(scenePath)) return;
+            if (LoadingSceneMap.TryGetValue(scenePath, out var loading)) await loading.Task;
+            if (UnloadingSceneMap.TryGetValue(scenePath, out var pending))
             {
+                await pending.Task;
                 return;
             }
-#endif
-            if (LoadedSceneMap.ContainsKey(scenePath) && LoadedSceneMap[scenePath].Scene.isLoaded)
-            {
-                var op = Addressables.UnloadSceneAsync(LoadedSceneMap[scenePath],
-                    UnloadSceneOptions.UnloadAllEmbeddedSceneObjects);
-                await UniTask.WaitUntil(() => op.IsDone);
-                LoadedSceneMap.Remove(scenePath);
-            }
-            else if (LoadedSceneMap.ContainsKey(scenePath) && !LoadedSceneMap[scenePath].Scene.isLoaded)
+            if (!LoadedSceneMap.TryGetValue(scenePath, out var instance)) return;
+            if (!instance.Scene.IsValid())
             {
                 LoadedSceneMap.Remove(scenePath);
+                return;
             }
+
+            var completion = new UniTaskCompletionSource();
+            UnloadingSceneMap.Add(scenePath, completion);
+            AsyncOperationHandle<SceneInstance> operation = default;
+            Exception failure = null;
+            try
+            {
+                if (!instance.Scene.isLoaded)
+                    throw new InvalidOperationException("场景尚未激活，不能直接卸载：" + scenePath);
+                operation = Addressables.UnloadSceneAsync(instance, UnloadSceneOptions.UnloadAllEmbeddedSceneObjects, false);
+                await operation.ToUniTask();
+                LoadedSceneMap.Remove(scenePath);
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+            finally
+            {
+                // SceneProvider 会释放加载句柄，此处只释放卸载操作。
+                if (operation.IsValid()) Addressables.Release(operation);
+                UnloadingSceneMap.Remove(scenePath);
+                if (failure == null) completion.TrySetResult();
+                else completion.TrySetException(failure);
+            }
+            await completion.Task;
         }
 
-        /// <summary>
-        /// 释放场景
-        /// </summary>
-        /// <param name="scene"></param>
+        /// <summary>按实际 Scene 匹配保存的 SceneInstance，不依赖场景短名称。</summary>
         public static async UniTask UnloadSceneAsync(Scene scene)
         {
+            if (!scene.IsValid()) return;
+            var entry = LoadedSceneMap.FirstOrDefault(pair => pair.Value.Scene == scene);
+            if (entry.Key != null) await UnloadSceneAsync(entry.Key);
+        }
+
 #if UNITY_EDITOR
-            if (!HasSceneAssets(scene.name))
-            {
-                return;
-            }
+        private static Scene GetSceneByPathOrName(string path)
+        {
+            var scene = SceneManager.GetSceneByPath(path);
+            return scene.IsValid() ? scene : SceneManager.GetSceneByName(Path.GetFileNameWithoutExtension(path));
+        }
 #endif
-            await UnloadSceneAsync(scene.name);
-        }
 
-        private static void AddToLoadingMap(string res)
-        {
-            if (!LoadingMap.ContainsKey(res))
-            {
-                LoadingMap.Add(res, true);
-            }
 
-            LoadingMap[res] = true;
-        }
-
-        private static void RemoveFromLoadingMap(string res)
-        {
-            if (LoadingMap.ContainsKey(res))
-            {
-                LoadingMap[res] = false;
-            }
-        }
-
-        private static void AddToLoadingSceneMap(string res)
-        {
-            if (!LoadingSceneMap.ContainsKey(res))
-            {
-                LoadingSceneMap.Add(res, true);
-            }
-
-            LoadingSceneMap[res] = true;
-        }
-
-        private static void RemoveFromLoadingSceneMap(string res)
-        {
-            if (LoadingSceneMap.ContainsKey(res))
-            {
-                LoadingSceneMap[res] = false;
-            }
-        }
 
         private static List<string> GetAllResouceAssetsByFolder<T>(string folderPath) where T : UnityEngine.Object
         {
@@ -688,277 +674,239 @@ namespace HM
         private static List<string> _needUpdateCatalogs;
         static readonly List<object> NeedUpdateKeys = new List<object>();
 
-        private static AsyncOperationHandle<List<string>> _checkMainCatalogOp;
-        private static AsyncOperationHandle<List<IResourceLocator>> _updateCatalogsOp;
-        private static AsyncOperationHandle<long> _sizeOpration;
-        private static AsyncOperationHandle _downloadOp;
+        private static bool _isUpdating;
 
-        ///  <summary>
-        /// 更新所有资源
-        ///  </summary>
-        ///  <param name="updateCb"></param>
+        /// <summary>
+        /// 更新所有资源。重复调用会报错；回调仅属于本次更新，回调异常不会中断下载。
+        /// </summary>
         public static async UniTask UpdateAddressablesAllAssets(
             UnityAction<AsyncOperationStatus, float, string, UpdateStatusCode> updateCb)
         {
-            if (_updateStatus == AsyncOperationStatus.None)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo("正在更新所有资源,不能重复调用更新");
+            if (_isUpdating)
+                throw new InvalidOperationException("正在更新所有资源，请等待当前更新结束后再调用。");
 
-                return; //正在更新
-            }
-
-            NeedUpdateKeys.Clear();
+            _isUpdating = true;
+            _updateCb = updateCb;
             _updateStatus = AsyncOperationStatus.None;
-            _updateCb += updateCb;
+            _updateStatusCode = UpdateStatusCode.CHECKING_RESOURCE_LIST;
+            _resultMessage = string.Empty;
             _progressValue = 0;
-
-#if UNITY_EDITOR
-
-
-            _updateStatus = AsyncOperationStatus.Succeeded;
-            _resultMessage = "";
-            _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
-            PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
-            DispatchUpdateCallback();
-            return;
-
-#endif
-            if (HMAAConfig.BeSkipUpdateCheck)
+            _totalDownloadSize = 0;
+            _needUpdateCatalogs = null;
+            NeedUpdateKeys.Clear();
+            try
             {
+#if UNITY_EDITOR
                 _updateStatus = AsyncOperationStatus.Succeeded;
-                _resultMessage = "";
                 _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
-                PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
-                DispatchUpdateCallback();
-                return;
+#else
+                var platformConfig = HMAddressablePlatformConfig;
+                var config = platformConfig == null ? null : platformConfig.CurrentConfig;
+                if (config == null) throw new InvalidOperationException("缺少当前平台的 HMAddressables 配置，不能检查热更。");
+                if (config.BeSkipUpdateCheck)
+                {
+                    _updateStatus = AsyncOperationStatus.Succeeded;
+                    _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
+                }
+                else
+                {
+                    await UpdateWork();
+                }
+#endif
+                if (_updateStatus == AsyncOperationStatus.Succeeded)
+                {
+                    _progressValue = 1;
+                    PlayerPrefs.SetString(PrefsName, string.Empty);
+                }
             }
-
-            await UpdateWork();
+            catch (Exception exception)
+            {
+                _updateStatus = AsyncOperationStatus.Failed;
+                _resultMessage = exception.Message;
+                switch (_updateStatusCode)
+                {
+                    case UpdateStatusCode.CHECKING_CONTENT_OF_UPDATING_RESOURCES:
+                        _updateStatusCode = UpdateStatusCode.ERROR_UPDATING_RESOURCE_LIST;
+                        break;
+                    case UpdateStatusCode.GETTING_TOTAL_SIZE_OF_RESOURCE_FILES:
+                        _updateStatusCode = UpdateStatusCode.ERROR_GETTING_RESOURCE_FILE_SIZE;
+                        break;
+                    case UpdateStatusCode.DOWNLOADING_RESOURCES:
+                        _updateStatusCode = UpdateStatusCode.ERROR_DOWNLOADING_RESOURCES;
+                        break;
+                    default:
+                        _updateStatusCode = UpdateStatusCode.ERROR_CHECKING_RESOURCE_LIST;
+                        break;
+                }
+                Debug.LogException(exception);
+            }
+            finally
+            {
+                try
+                {
+                    DispatchUpdateCallback();
+                }
+                finally
+                {
+                    _updateCb = null;
+                    _needUpdateCatalogs = null;
+                    NeedUpdateKeys.Clear();
+                    _isUpdating = false;
+                    Debug.Assert(_updateStatus != AsyncOperationStatus.None, "资源更新结束后仍处于更新中。");
+                }
+            }
         }
 
-
-        static async UniTask UpdateWork()
+        private static async UniTask UpdateWork()
         {
-            HMRuntimeDialogHelper.DebugStopWatchInfo("Addressable.InitializeAsync");
-
-            var initializeAsync = Addressables.InitializeAsync();
-            await initializeAsync.ToUniTask();
-
+            // 原生初始化可能复用其他调用方的句柄，只释放本次 Acquire 的引用。
+            var initialization = Addressables.ResourceManager.Acquire(Addressables.InitializeAsync());
+            try
+            {
+                var locator = await initialization.ToUniTask();
+                if (locator == null)
+                    throw new InvalidOperationException("Addressables 初始化未返回有效 Catalog，请检查初始化错误，必要时重启客户端后重试。");
+            }
+            finally
+            {
+                if (initialization.IsValid()) Addressables.Release(initialization);
+            }
 
             await CheckUpdateMainCatalog();
-            if (!CheckCanGoOn()) return;
-
             await CheckNeedUpdateRecourceLocators();
-            if (!CheckCanGoOn()) return;
-
+            if (_updateStatus != AsyncOperationStatus.None) return;
             await CheckNeedDownloadSize();
-            if (!CheckCanGoOn()) return;
-
+            if (_updateStatus != AsyncOperationStatus.None) return;
             await DownLoadAssets();
-            if (!CheckCanGoOn()) return;
         }
 
-        static async UniTask CheckUpdateMainCatalog()
+        private static async UniTask CheckUpdateMainCatalog()
         {
-            HMRuntimeDialogHelper.DebugStopWatchInfo("CheckUpdateMainCatalog");
-            //检查是否需要更新
-
-            _checkMainCatalogOp = Addressables.CheckForCatalogUpdates(false);
-
-
-            while (!_checkMainCatalogOp.IsDone)
+            _updateStatusCode = UpdateStatusCode.CHECKING_RESOURCE_LIST;
+            var operation = Addressables.CheckForCatalogUpdates(false);
+            try
             {
-                _resultMessage = "";
-                _updateStatusCode = UpdateStatusCode.CHECKING_RESOURCE_LIST;
-                DispatchUpdateCallback();
-                await UniTask.NextFrame();
+                while (!operation.IsDone)
+                {
+                    DispatchUpdateCallback();
+                    await UniTask.NextFrame();
+                }
+                if (operation.Status != AsyncOperationStatus.Succeeded)
+                    throw operation.OperationException ?? new InvalidOperationException("检查 Catalog 更新失败。");
+                _needUpdateCatalogs = operation.Result == null ? new List<string>() : operation.Result.Distinct().ToList();
             }
-
-
-            if (_checkMainCatalogOp.Status != AsyncOperationStatus.Succeeded)
+            finally
             {
-                _updateStatus = AsyncOperationStatus.Failed;
-                _resultMessage = _checkMainCatalogOp.OperationException.Message;
-                _updateStatusCode = UpdateStatusCode.ERROR_CHECKING_RESOURCE_LIST;
-                Addressables.Release(_checkMainCatalogOp);
-                return;
+                if (operation.IsValid()) Addressables.Release(operation);
             }
-
-            _needUpdateCatalogs = _checkMainCatalogOp.Result;
-
-            if (BeOtherDebug)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的MainCatalog数量:{_needUpdateCatalogs.Count} ");
-            }
-
-
-            Addressables.Release(_checkMainCatalogOp);
         }
 
-
-        static async UniTask CheckNeedUpdateRecourceLocators()
+        private static async UniTask CheckNeedUpdateRecourceLocators()
         {
-            HMRuntimeDialogHelper.DebugStopWatchInfo("CheckNeedUpdateRecourceLocators");
-
-            _updateCatalogsOp = Addressables.UpdateCatalogs(new[] { "AddressablesMainContentCatalog" }, false);
-
-
-            while (!_updateCatalogsOp.IsDone)
+            _updateStatusCode = UpdateStatusCode.CHECKING_CONTENT_OF_UPDATING_RESOURCES;
+            if (_needUpdateCatalogs != null && _needUpdateCatalogs.Count > 0)
             {
-                await UniTask.NextFrame();
-                _resultMessage = "";
-                _updateStatusCode = UpdateStatusCode.CHECKING_CONTENT_OF_UPDATING_RESOURCES;
-                DispatchUpdateCallback();
+                var operation = Addressables.UpdateCatalogs(_needUpdateCatalogs, false);
+                try
+                {
+                    while (!operation.IsDone)
+                    {
+                        DispatchUpdateCallback();
+                        await UniTask.NextFrame();
+                    }
+                    if (operation.Status != AsyncOperationStatus.Succeeded)
+                        throw operation.OperationException ?? new InvalidOperationException("更新 Catalog 失败。");
+                }
+                finally
+                {
+                    if (operation.IsValid()) Addressables.Release(operation);
+                }
             }
 
-            HMRuntimeDialogHelper.DebugStopWatchInfo(
-                $"CheckNeedUpdateRecourceLocators Status = {_updateCatalogsOp.Status}");
-            if (_updateCatalogsOp.Status != AsyncOperationStatus.Succeeded)
+            // Catalog 已更新但资源下载中断时，下次仍须检查当前 Catalog 中缺少的资源。
+            var keys = new HashSet<object>();
+            foreach (var locator in Addressables.ResourceLocators)
             {
-                _updateStatus = AsyncOperationStatus.Failed;
-                _resultMessage = _updateCatalogsOp.OperationException.Message;
-                _updateStatusCode = UpdateStatusCode.ERROR_UPDATING_RESOURCE_LIST;
-                Addressables.Release(_updateCatalogsOp);
-                return;
+                var locatorKeys = locator.Keys;
+                if (locatorKeys == null) continue;
+                foreach (var key in locatorKeys)
+                {
+                    if (key != null) keys.Add(key);
+                }
             }
-
-            foreach (var item in _updateCatalogsOp.Result)
-            {
-                NeedUpdateKeys.AddRange(item.Keys);
-            }
-
-            if (BeOtherDebug)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的资源数量:{NeedUpdateKeys.Count}");
-            }
-
-            if (NeedUpdateKeys.Count <= 0)
+            NeedUpdateKeys.Clear();
+            NeedUpdateKeys.AddRange(keys);
+            if (NeedUpdateKeys.Count == 0)
             {
                 _updateStatus = AsyncOperationStatus.Succeeded;
-                _resultMessage = "";
                 _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
-                PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
-                Addressables.Release(_updateCatalogsOp);
-                return;
             }
-
-            Addressables.Release(_updateCatalogsOp);
         }
 
         private static async UniTask CheckNeedDownloadSize()
         {
-            _sizeOpration = Addressables.GetDownloadSizeAsync(NeedUpdateKeys);
-
-
-            while (!_sizeOpration.IsDone)
+            _updateStatusCode = UpdateStatusCode.GETTING_TOTAL_SIZE_OF_RESOURCE_FILES;
+            var operation = Addressables.GetDownloadSizeAsync(NeedUpdateKeys);
+            try
             {
-                await UniTask.NextFrame();
-                _resultMessage = "";
-                _updateStatusCode = UpdateStatusCode.GETTING_TOTAL_SIZE_OF_RESOURCE_FILES;
-                DispatchUpdateCallback();
+                while (!operation.IsDone)
+                {
+                    DispatchUpdateCallback();
+                    await UniTask.NextFrame();
+                }
+                if (operation.Status != AsyncOperationStatus.Succeeded)
+                    throw operation.OperationException ?? new InvalidOperationException("获取资源下载大小失败。");
+                _totalDownloadSize = operation.Result;
+                if (_totalDownloadSize <= 0)
+                {
+                    _updateStatus = AsyncOperationStatus.Succeeded;
+                    _resultMessage = "0";
+                    _updateStatusCode = UpdateStatusCode.DETECTED_SIZE_OF_RESOURCES_TO_DOWNLOAD;
+                }
             }
-
-            HMRuntimeDialogHelper.DebugStopWatchInfo($"CheckNeedDownloadSize Status = {_sizeOpration.Status}");
-            if (_sizeOpration.Status == AsyncOperationStatus.Failed)
+            finally
             {
-                _updateStatus = AsyncOperationStatus.Failed;
-                _resultMessage = _sizeOpration.OperationException.Message;
-                _updateStatusCode = UpdateStatusCode.ERROR_GETTING_RESOURCE_FILE_SIZE;
-                Addressables.Release(_sizeOpration);
-                return;
+                if (operation.IsValid()) Addressables.Release(operation);
             }
-
-            _totalDownloadSize = _sizeOpration.Result;
-            if (BeOtherDebug)
-            {
-                HMRuntimeDialogHelper.DebugStopWatchInfo($"需要更新的数据量:{_totalDownloadSize}");
-            }
-
-            if (_totalDownloadSize <= 0)
-            {
-                _updateStatus = AsyncOperationStatus.Succeeded;
-                _resultMessage = $"{_totalDownloadSize}";
-                _updateStatusCode = UpdateStatusCode.DETECTED_SIZE_OF_RESOURCES_TO_DOWNLOAD;
-                PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
-                Addressables.Release(_sizeOpration);
-                return;
-            }
-
-            Addressables.Release(_sizeOpration);
         }
 
-
-        static async UniTask DownLoadAssets()
+        private static async UniTask DownLoadAssets()
         {
-            HMRuntimeDialogHelper.DebugStopWatchInfo("DownLoadAssets");
-
-            _downloadOp = Addressables.DownloadDependenciesAsync(NeedUpdateKeys, Addressables.MergeMode.Union);
-
-
-            HMRuntimeDialogHelper.DebugStopWatchInfo("DownLoadAssets TotalSize = " +
-                                                     _downloadOp.GetDownloadStatus().TotalBytes);
-
-            while (_downloadOp.Status == AsyncOperationStatus.None && !_downloadOp.IsDone)
+            _updateStatusCode = UpdateStatusCode.DOWNLOADING_RESOURCES;
+            var operation = Addressables.DownloadDependenciesAsync(NeedUpdateKeys, Addressables.MergeMode.Union, false);
+            try
             {
-                await UniTask.NextFrame();
-                _progressValue = _downloadOp.GetDownloadStatus().Percent;
-                _resultMessage = $"{_downloadOp.GetDownloadStatus().DownloadedBytes}/{_totalDownloadSize}";
-                _updateStatusCode = UpdateStatusCode.DOWNLOADING_RESOURCES;
-                DispatchUpdateCallback();
+                while (!operation.IsDone)
+                {
+                    var download = operation.GetDownloadStatus();
+                    _progressValue = download.Percent;
+                    _resultMessage = $"{download.DownloadedBytes}/{_totalDownloadSize}";
+                    DispatchUpdateCallback();
+                    await UniTask.NextFrame();
+                }
+                if (operation.Status != AsyncOperationStatus.Succeeded)
+                    throw operation.OperationException ?? new InvalidOperationException("下载更新资源失败。");
+                _updateStatus = AsyncOperationStatus.Succeeded;
+                _resultMessage = string.Empty;
+                _updateStatusCode = UpdateStatusCode.FINISHED_DOWNLOADING_RESOURCES;
             }
-
-            HMRuntimeDialogHelper.DebugStopWatchInfo($"DownLoadAssets Status = {_downloadOp.Status}");
-            if (BeOtherDebug)
+            finally
             {
-                HMRuntimeDialogHelper.DebugStopWatchInfo(
-                    $"下载资源结束:{_downloadOp.GetDownloadStatus().DownloadedBytes}/{_totalDownloadSize}");
+                if (operation.IsValid()) Addressables.Release(operation);
             }
-
-            switch (_downloadOp.Status)
-            {
-                case AsyncOperationStatus.Failed:
-                    _updateStatus = AsyncOperationStatus.Failed;
-                    _resultMessage = _downloadOp.OperationException.Message;
-                    _updateStatusCode = UpdateStatusCode.ERROR_DOWNLOADING_RESOURCES;
-                    break;
-                case AsyncOperationStatus.Succeeded:
-
-                    PlayerPrefs.SetString(PrefsName, ""); //更新成功了,清理掉所有需要更新的内容
-
-                    if (BeOtherDebug)
-                    {
-                        HMRuntimeDialogHelper.DebugStopWatchInfo($"更新成功 值为:{PlayerPrefs.GetString(PrefsName, "")}");
-                    }
-
-                    _updateStatus = AsyncOperationStatus.Succeeded;
-                    _resultMessage = "";
-                    _updateStatusCode = UpdateStatusCode.FINISHED_DOWNLOADING_RESOURCES;
-                    break;
-            }
-
-            Addressables.Release(_downloadOp);
         }
 
         private static void DispatchUpdateCallback()
         {
-            _updateCb?.Invoke(_updateStatus, _progressValue, _resultMessage, _updateStatusCode);
-        }
-
-
-        private static bool CheckCanGoOn()
-        {
-            switch (_updateStatus)
+            var callbacks = _updateCb;
+            if (callbacks == null) return;
+            foreach (UnityAction<AsyncOperationStatus, float, string, UpdateStatusCode> callback in callbacks.GetInvocationList())
             {
-                case AsyncOperationStatus.Failed:
-                    DispatchUpdateCallback();
-                    return false;
-                case AsyncOperationStatus.Succeeded:
-                    DispatchUpdateCallback();
-                    return false;
+                try { callback(_updateStatus, _progressValue, _resultMessage, _updateStatusCode); }
+                catch (Exception exception) { Debug.LogException(exception); }
             }
-
-            return true;
         }
+
 
         public static string ListToStr(List<string> listStr)
         {
@@ -1014,25 +962,30 @@ namespace HM
         public static async UniTask<(List<string> assetsNames, string message)> DownloadAssetsToLocal(
             List<string> assetsNames, UnityAction<long, long, float> progressCb = null)
         {
-            var downloadOp = Addressables.DownloadDependenciesAsync(assetsNames, Addressables.MergeMode.Union, false);
-
-            while (downloadOp.Status == AsyncOperationStatus.None)
+            AsyncOperationHandle downloadOp = default;
+            try
             {
-                progressCb?.Invoke(downloadOp.GetDownloadStatus().DownloadedBytes,
-                    downloadOp.GetDownloadStatus().TotalBytes, downloadOp.PercentComplete);
-
-                await UniTask.DelayFrame(10);
+                downloadOp = Addressables.DownloadDependenciesAsync(assetsNames, Addressables.MergeMode.Union, false);
+                while (!downloadOp.IsDone)
+                {
+                    var download = downloadOp.GetDownloadStatus();
+                    try { progressCb?.Invoke(download.DownloadedBytes, download.TotalBytes, download.Percent); }
+                    catch (Exception callbackException) { Debug.LogException(callbackException); }
+                    await UniTask.DelayFrame(10);
+                }
+                if (downloadOp.Status != AsyncOperationStatus.Succeeded)
+                    throw downloadOp.OperationException ?? new InvalidOperationException("下载资源组失败。");
+                return (assetsNames, "Succeeded");
             }
-
-            if (downloadOp.Status != AsyncOperationStatus.Succeeded)
+            catch (Exception exception)
             {
-                Debug.LogError($"下载资源组失败:{downloadOp.OperationException.Message}");
-                return (assetsNames, $"Download Failed:{downloadOp.OperationException.Message}");
+                Debug.LogError("下载资源组失败：" + exception.Message);
+                return (assetsNames, "Download Failed:" + exception.Message);
             }
-
-            //Debug.Log(" 下载资源组成功");
-            Addressables.Release(downloadOp);
-            return (assetsNames, "Succeeded");
+            finally
+            {
+                if (downloadOp.IsValid()) Addressables.Release(downloadOp);
+            }
         }
     }
 }

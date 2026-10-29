@@ -51,9 +51,10 @@ public class HMAddressableTest : MonoBehaviour
     }
 
 
-    void Sphere(bool beSecond = false)
+    async void Sphere(bool beSecond = false)
     {
-        var prefab = HMAddressableManager.Load<GameObject>(spherePath);
+        var prefab = await HMAddressableManager.LoadAsync<GameObject>(spherePath);
+        if (prefab == null) return;
 
         var gameObj = Instantiate(prefab);
         gameObj.transform.position = new Vector3(beSecond ? -0.5f : 1, 0, 0);
