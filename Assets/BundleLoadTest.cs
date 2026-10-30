@@ -50,8 +50,10 @@ public class BundleLoadTest : MonoBehaviour
             Debug.Assert(finalStatus == AsyncOperationStatus.Succeeded, "只有更新成功后才能加载示例资源。");
             HMRuntimeDialogHelper.DebugStopWatchInfo("升级完毕");
             var list = await HMAddressableManager.LoadAssetsAsyncByGroup<TextAsset>("Assets/TestBundle/Config");
+            if (list.Exists(asset => asset == null)) throw new InvalidOperationException("部分示例配置表加载失败。");
             HMRuntimeDialogHelper.DebugStopWatchInfo($"配置表加载完毕,配置表数量:{list.Count}");
             var list2 = await HMAddressableManager.LoadAssetsAsyncByGroup<TextAsset>("Assets/TestBundle/Code");
+            if (list2.Exists(asset => asset == null)) throw new InvalidOperationException("部分示例配置代码加载失败。");
             HMRuntimeDialogHelper.DebugStopWatchInfo($"配置代码加载完毕,配置表数量:{list2.Count}");
             var list3 = await HMAddressableManager.LoadAsync<Texture2D>("Assets/TestBundle/sprite/中世纪3.png");
             if (list3 == null) throw new InvalidOperationException("示例贴图加载失败：Assets/TestBundle/sprite/中世纪3.png");

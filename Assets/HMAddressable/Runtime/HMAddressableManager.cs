@@ -50,7 +50,8 @@ namespace HM
         private static readonly Dictionary<string, AsyncOperationHandle> ResourceHandles =
             new Dictionary<string, AsyncOperationHandle>();
 
-        private static Dictionary<string, SceneInstance> LoadedSceneMap = new Dictionary<string, SceneInstance>();
+        private static readonly Dictionary<string, (Scene Scene, SceneInstance AddressableInstance)> LoadedSceneMap =
+            new Dictionary<string, (Scene Scene, SceneInstance AddressableInstance)>();
         private static readonly Dictionary<string, UniTaskCompletionSource<Scene>> LoadingSceneMap =
             new Dictionary<string, UniTaskCompletionSource<Scene>>();
         private static readonly Dictionary<string, UniTaskCompletionSource> ActivatingSceneMap =
@@ -465,6 +466,8 @@ namespace HM
                     await editorOperation.ToUniTask();
                     result = GetSceneByPathOrName(sceneName);
                     if (!result.IsValid()) throw new InvalidOperationException("场景加载结果无效：" + sceneName);
+                    LoadedSceneMap[sceneName] = (result, default);
+                    Debug.Assert(LoadedSceneMap[sceneName].Scene == result, "编辑器直读场景未登记。");
                 }
                 else
 #endif
@@ -472,7 +475,7 @@ namespace HM
                     if (!operation.IsValid()) operation = Addressables.LoadSceneAsync(sceneName, mode, activate);
                     var instance = await operation.ToUniTask();
                     if (!instance.Scene.IsValid()) throw new InvalidOperationException("场景加载结果无效：" + sceneName);
-                    LoadedSceneMap[sceneName] = instance;
+                    LoadedSceneMap[sceneName] = (instance.Scene, instance);
                     result = instance.Scene;
                     operation = default; // 成功句柄交给场景卸载流程释放。
                 }
@@ -518,8 +521,10 @@ namespace HM
 #if UNITY_EDITOR
                 if (!HasSceneAssets(sceneName))
                 {
-                    SceneManager.LoadScene(sceneName, loadSceneMode);
-                    result = GetSceneByPathOrName(sceneName);
+                    result = SceneManager.LoadScene(sceneName, new LoadSceneParameters(loadSceneMode));
+                    if (!result.IsValid()) throw new InvalidOperationException("场景加载结果无效：" + sceneName);
+                    LoadedSceneMap[sceneName] = (result, default);
+                    Debug.Assert(LoadedSceneMap[sceneName].Scene == result, "编辑器直读场景未登记。");
                 }
                 else
 #endif
@@ -529,7 +534,7 @@ namespace HM
                     if (!operation.IsDone)
                     {
                         // 场景激活可能尚未结束，保留句柄并由异步流程完成清理。
-                        if (instance.Scene.IsValid()) LoadedSceneMap[sceneName] = instance;
+                        if (instance.Scene.IsValid()) LoadedSceneMap[sceneName] = (instance.Scene, instance);
                         delegated = true;
                         LoadSceneCoreAsync(sceneName, loadSceneMode, activeteOnLoad, completion, operation).Forget();
                         operation = default;
@@ -537,7 +542,7 @@ namespace HM
                     }
                     if (operation.Status != AsyncOperationStatus.Succeeded || !instance.Scene.IsValid())
                         throw operation.OperationException ?? new InvalidOperationException("场景加载结果无效：" + sceneName);
-                    LoadedSceneMap[sceneName] = instance;
+                    LoadedSceneMap[sceneName] = (instance.Scene, instance);
                     result = instance.Scene;
                     operation = default;
                 }
@@ -583,9 +588,19 @@ namespace HM
             Exception failure = null;
             try
             {
-                var operation = instance.ActivateAsync();
-                if (operation == null) throw new InvalidOperationException("场景未返回有效的激活操作：" + scenePath);
-                await operation.ToUniTask();
+#if UNITY_EDITOR
+                if (!instance.AddressableInstance.Scene.IsValid())
+                {
+                    // SceneManager.LoadScene 返回句柄后，Unity 仍可能在下一帧完成自动激活。
+                    await UniTask.WaitUntil(() => !instance.Scene.IsValid() || instance.Scene.isLoaded);
+                }
+                else
+#endif
+                {
+                    var operation = instance.AddressableInstance.ActivateAsync();
+                    if (operation == null) throw new InvalidOperationException("场景未返回有效的激活操作：" + scenePath);
+                    await operation.ToUniTask();
+                }
                 if (!instance.Scene.IsValid() || !instance.Scene.isLoaded)
                     throw new InvalidOperationException("场景激活后仍未加载完成：" + scenePath);
             }
@@ -644,8 +659,19 @@ namespace HM
                     throw new InvalidOperationException("场景尚未激活，不能直接卸载：" + scenePath);
                 if (!HasOtherLoadedScene(instance.Scene))
                     throw new InvalidOperationException("不能卸载最后一个已加载场景，请先加载其他场景：" + scenePath);
-                operation = Addressables.UnloadSceneAsync(instance, UnloadSceneOptions.UnloadAllEmbeddedSceneObjects, false);
-                await operation.ToUniTask();
+#if UNITY_EDITOR
+                if (!instance.AddressableInstance.Scene.IsValid())
+                {
+                    var editorOperation = SceneManager.UnloadSceneAsync(instance.Scene, UnloadSceneOptions.UnloadAllEmbeddedSceneObjects);
+                    if (editorOperation == null) throw new InvalidOperationException("无法卸载编辑器直读场景：" + scenePath);
+                    await editorOperation.ToUniTask();
+                }
+                else
+#endif
+                {
+                    operation = Addressables.UnloadSceneAsync(instance.AddressableInstance, UnloadSceneOptions.UnloadAllEmbeddedSceneObjects, false);
+                    await operation.ToUniTask();
+                }
                 if (instance.Scene.IsValid() && instance.Scene.isLoaded)
                     throw new InvalidOperationException("场景卸载操作结束，但场景仍处于已加载状态：" + scenePath);
                 LoadedSceneMap.Remove(scenePath);

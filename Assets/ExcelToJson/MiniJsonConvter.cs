@@ -13,6 +13,7 @@ public class MiniJsonConvter : MonoBehaviour
     async Task Start()
     {
         var text = await HM.HMAddressableManager.LoadAsync<TextAsset>("Assets/Bundles/ConfigMini/Testconfig.json");
+        if (text == null) return;
         TestConfigCategory.Instance.Init(text.text);
         var map = TestConfigCategory.Instance.GetAll();
         if (map == null)

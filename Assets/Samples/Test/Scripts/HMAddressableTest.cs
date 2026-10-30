@@ -48,6 +48,7 @@ public class HMAddressableTest : MonoBehaviour
     {
         var prefabUniTask = HMAddressableManager.LoadAsync<GameObject>(capsulePath);
         var prefab = await prefabUniTask;
+        if (prefab == null) return;
         var gameObj = Instantiate(prefab);
         gameObj.transform.position = new Vector3(beSecond ? -1.5f : 0, 0, 2);
         allObjs.Add(gameObj);
@@ -170,6 +171,7 @@ public class HMAddressableTest : MonoBehaviour
 
         foreach (var gameObject in objs)
         {
+            if (gameObject == null) continue;
             var g = Instantiate(gameObject);
             g.transform.position = new Vector3(Random.Range(-5f, 5f), 0, 0);
             this.allObjs.Add(g);
@@ -200,6 +202,7 @@ public class HMAddressableTest : MonoBehaviour
         Debug.Log($"单个加载耗时={stopwatch.ElapsedMilliseconds} objs数量={objs.Count}");
         for (int i = 0; i < objs.Count; i++)
         {
+            if (objs[i] == null) continue;
             var g = Instantiate(objs[i]);
             g.transform.position = new Vector3(Random.Range(-5f, 5f), 0, 0);
             this.allObjs.Add(g);
@@ -315,6 +318,7 @@ public class HMAddressableTest : MonoBehaviour
     private async void TestLoad(string url)
     {
         var prefabs = await HMAddressableManager.LoadAsync<GameObject>(url);
+        if (prefabs == null) return;
         var a = Instantiate(prefabs);
         a.transform.position = new Vector3(Random.Range(-5f, 5f), 0, 0);
         this.allObjs.Add(a);

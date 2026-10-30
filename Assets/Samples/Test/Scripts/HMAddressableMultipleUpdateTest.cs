@@ -171,6 +171,7 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
         System.Diagnostics.Stopwatch stopwatch = new Stopwatch();
         stopwatch.Start();
         var objPrefab = await HM.HMAddressableManager.LoadAsync<GameObject>(resUrl);
+        if (objPrefab == null) return;
         Debug.Log($"资源加载完成{resUrl}  资源是否为空:{objPrefab==null}");
         var obj = GameObject.Instantiate(objPrefab);
         this.instanceObjs.Add(obj);

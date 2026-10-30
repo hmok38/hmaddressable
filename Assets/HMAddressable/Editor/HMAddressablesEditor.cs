@@ -107,11 +107,12 @@ namespace HM.Editor
         public static void Readme4()
         {
             Debug.Log(@"测试包可以配合git使用,用来不影响线上产品的同时 测试热更是否正常,测试方式:
-1,需要进行热更前,请将工程使用git回退到上一次发布的版本;
-2,使用一键打出包资源(测试包) 选项打出测试资源,并打出游戏包;
-3,将资源发布到测试用的资源服务器,并运行游戏包检查是否正常,此时已经准备好了跟线上游戏相同的游戏,只是资源地址不同
-4,git还原修改,但不要还原数据文件(如:Assets/AddressableAssetsData/[发布平台]/addressables_content_state.bin),然后再切换到最新的版本,
-5,使用一键打更新资源包(测试包) 打出测试用的热更包,然后发布到测试用的资源服务器,再次运行测试游戏包,即可在不影响线上产品的同时检查热更是否成功
+1,保存当前工作和正式母包构建数据，在测试分支切换到上一次发布的版本，选择相同目标平台。
+2,使用一键打出包资源(测试包)并打出游戏包，在工程外保存构建后的完整 Assets/AddressableAssetsData 快照，包含 Settings、Groups、Schemas、DataBuilders、目标平台的 state 和所有 .meta 文件。
+3,发布资源到测试服务器，运行测试游戏包并确认母包可用。
+4,切换到最新业务版本后，恢复这份完整测试母包快照；不能只保留 .bin 后还原组资产，否则 state 与组 GUID 可能不匹配。
+5,保持目标平台和测试 Catalog 地址不变，按最新资源整理目录配置，使用一键打更新资源包(测试包)，发布后用第2步的游戏包检查热更。此阶段不要构建母包或重新分析重复依赖。
+6,测试结束后恢复原工作分支和正式构建数据，不要用测试数据覆盖正式母包的数据。
 ");
         }
 
@@ -769,7 +770,7 @@ namespace HM.Editor
         }
 
         /// <summary>
-        /// 增量同步目录资源，保留已有条目的 Address 和 Labels。
+        /// 增量同步目录资源，保留自定义 Address；默认路径地址由资源移动回调同步。
         /// </summary>
         private static void SetAssetsToGroup(List<GroupInfo> groupInfos, bool beUpdateAssets = false)
         {
