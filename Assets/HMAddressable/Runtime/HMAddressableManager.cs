@@ -42,13 +42,14 @@ namespace HM
         //-------防止代码裁剪的类
         private const string PrefsName = "ADDRESSABLES_NEEDUPDATE_NEWV3";
 
-        static readonly Dictionary<string, Object> ResMap =
-            new Dictionary<string, Object>();
+        // 保留本次加载的标识，避免旧的释放请求删除重新加载后的缓存。
+        static readonly Dictionary<(string Address, Type Type), (Object Resource, UniTaskCompletionSource<Object> Completion)> ResMap =
+            new Dictionary<(string Address, Type Type), (Object Resource, UniTaskCompletionSource<Object> Completion)>();
 
-        private static readonly Dictionary<string, UniTaskCompletionSource<Object>> LoadingMap =
-            new Dictionary<string, UniTaskCompletionSource<Object>>();
-        private static readonly Dictionary<string, AsyncOperationHandle> ResourceHandles =
-            new Dictionary<string, AsyncOperationHandle>();
+        private static readonly Dictionary<(string Address, Type Type), UniTaskCompletionSource<Object>> LoadingMap =
+            new Dictionary<(string Address, Type Type), UniTaskCompletionSource<Object>>();
+        private static readonly Dictionary<(string Address, Type Type), AsyncOperationHandle> ResourceHandles =
+            new Dictionary<(string Address, Type Type), AsyncOperationHandle>();
 
         private static readonly Dictionary<string, (Scene Scene, SceneInstance AddressableInstance)> LoadedSceneMap =
             new Dictionary<string, (Scene Scene, SceneInstance AddressableInstance)>();
@@ -126,13 +127,14 @@ namespace HM
         {
             var resName = NormalizePath(resNameP);
             if (string.IsNullOrEmpty(resName)) throw new ArgumentException("资源地址不能为空。", nameof(resNameP));
-            if (ResMap.TryGetValue(resName, out var cached)) return cached as T;
+            var key = (resName, typeof(T));
+            if (ResMap.TryGetValue(key, out var cached)) return cached.Resource as T;
             RequireSynchronousLoading(nameof(LoadAsync));
-            if (LoadingMap.ContainsKey(resName))
+            if (LoadingMap.ContainsKey(key))
                 throw new InvalidOperationException($"资源 {resName} 正在异步加载，请使用 LoadAsync 等待同一次加载。");
 
             var completion = new UniTaskCompletionSource<Object>();
-            LoadingMap.Add(resName, completion);
+            LoadingMap.Add(key, completion);
             AsyncOperationHandle<T> operation = default;
             T result = null;
             Exception failure = null;
@@ -147,10 +149,10 @@ namespace HM
                     result = operation.WaitForCompletion();
                     if (operation.Status != AsyncOperationStatus.Succeeded || result == null)
                         throw operation.OperationException ?? new InvalidOperationException("资源加载结果为空：" + resName);
-                    ResourceHandles[resName] = operation;
+                    ResourceHandles[key] = operation;
                     operation = default;
                 }
-                ResMap[resName] = result;
+                ResMap[key] = (result, completion);
             }
             catch (Exception exception)
             {
@@ -160,8 +162,8 @@ namespace HM
             finally
             {
                 if (operation.IsValid()) Addressables.Release(operation);
-                LoadingMap.Remove(resName);
-                Debug.Assert(!LoadingMap.ContainsKey(resName), "资源加载结束后仍存在加载标记。");
+                LoadingMap.Remove(key);
+                Debug.Assert(!LoadingMap.ContainsKey(key), "资源加载结束后仍存在加载标记。");
                 completion.TrySetResult(result);
             }
             if (failure != null) NotifyLoadingFailure(resName, failure);
@@ -169,17 +171,18 @@ namespace HM
         }
 
         /// <summary>
-        /// 异步加载资源。同一地址的并发请求共用一次加载；失败返回 null 并通知 OnLoadingResException。
+        /// 异步加载资源。同一地址、同一类型的并发请求共用一次加载；失败返回 null 并通知 OnLoadingResException。
         /// </summary>
         public static async UniTask<T> LoadAsync<T>(string resNameP) where T : UnityEngine.Object
         {
             var resName = NormalizePath(resNameP);
             if (string.IsNullOrEmpty(resName)) throw new ArgumentException("资源地址不能为空。", nameof(resNameP));
-            if (ResMap.TryGetValue(resName, out var cached)) return cached as T;
-            if (LoadingMap.TryGetValue(resName, out var pending)) return await pending.Task as T;
+            var key = (resName, typeof(T));
+            if (ResMap.TryGetValue(key, out var cached)) return cached.Resource as T;
+            if (LoadingMap.TryGetValue(key, out var pending)) return await pending.Task as T;
 
             var completion = new UniTaskCompletionSource<Object>();
-            LoadingMap.Add(resName, completion);
+            LoadingMap.Add(key, completion);
             AsyncOperationHandle<T> operation = default;
             T result = null;
             Exception failure = null;
@@ -194,10 +197,10 @@ namespace HM
                     result = await operation.ToUniTask();
                     if (result == null)
                         throw new InvalidOperationException("资源加载结果为空：" + resName);
-                    ResourceHandles[resName] = operation;
+                    ResourceHandles[key] = operation;
                     operation = default;
                 }
-                ResMap[resName] = result;
+                ResMap[key] = (result, completion);
             }
             catch (Exception exception)
             {
@@ -207,8 +210,8 @@ namespace HM
             finally
             {
                 if (operation.IsValid()) Addressables.Release(operation);
-                LoadingMap.Remove(resName);
-                Debug.Assert(!LoadingMap.ContainsKey(resName), "资源加载结束后仍存在加载标记。");
+                LoadingMap.Remove(key);
+                Debug.Assert(!LoadingMap.ContainsKey(key), "资源加载结束后仍存在加载标记。");
                 completion.TrySetResult(result);
             }
             if (failure != null) NotifyLoadingFailure(resName, failure);
@@ -366,30 +369,35 @@ namespace HM
         }
 
         /// <summary>
-        /// 释放资源,
+        /// 释放指向该对象的所有缓存记录及其句柄。
         /// </summary>
         /// <param name="res"></param>
         /// <returns></returns>
         public static bool ReleaseRes(Object res)
         {
             if (res == null) return false;
-            var item = ResMap.FirstOrDefault(pair => pair.Value == res);
-            return item.Key != null && ReleaseLoadedResource(item.Key);
+            var items = ResMap.Where(pair => pair.Value.Resource == res).ToArray();
+            var released = false;
+            foreach (var item in items)
+                released |= ReleaseLoadedResource(item.Key, item.Value.Completion);
+            return released;
         }
 
-        /// <summary>释放资源；若正在加载，等待本次加载结束后释放，不会重新发起加载。</summary>
+        /// <summary>释放该地址下所有类型的资源；正在加载的请求各自在完成后释放，不会重新发起加载。</summary>
         public static async void ReleaseRes(string resNameP)
         {
             var resName = NormalizePath(resNameP);
             if (string.IsNullOrEmpty(resName)) return;
             try
             {
-                if (LoadingMap.TryGetValue(resName, out var pending))
-                {
-                    var loaded = await pending.Task;
-                    if (loaded == null) return;
-                }
-                ReleaseLoadedResource(resName);
+                var loaded = ResMap.Where(pair => pair.Key.Address == resName).ToArray();
+                var loading = LoadingMap.Where(pair => pair.Key.Address == resName).ToArray();
+                var releaseTasks = new UniTask[loading.Length];
+                for (var i = 0; i < loading.Length; i++)
+                    releaseTasks[i] = ReleaseLoadingResourceAsync(loading[i].Key, loading[i].Value);
+                foreach (var item in loaded)
+                    ReleaseLoadedResource(item.Key, item.Value.Completion);
+                await UniTask.WhenAll(releaseTasks);
             }
             catch (Exception exception)
             {
@@ -397,12 +405,29 @@ namespace HM
             }
         }
 
-        private static bool ReleaseLoadedResource(string resName)
+        private static async UniTask ReleaseLoadingResourceAsync((string Address, Type Type) key,
+            UniTaskCompletionSource<Object> completion)
         {
-            if (!ResMap.Remove(resName)) return false;
-            if (ResourceHandles.TryGetValue(resName, out var handle))
+            try
             {
-                ResourceHandles.Remove(resName);
+                var loaded = await completion.Task;
+                if (loaded != null) ReleaseLoadedResource(key, completion);
+            }
+            catch (Exception exception)
+            {
+                NotifyLoadingFailure(key.Address, exception);
+            }
+        }
+
+        private static bool ReleaseLoadedResource((string Address, Type Type) key,
+            UniTaskCompletionSource<Object> completion)
+        {
+            if (!ResMap.TryGetValue(key, out var cached) || !ReferenceEquals(cached.Completion, completion))
+                return false;
+            ResMap.Remove(key);
+            if (ResourceHandles.TryGetValue(key, out var handle))
+            {
+                ResourceHandles.Remove(key);
                 if (handle.IsValid()) Addressables.Release(handle);
             }
             return true;
