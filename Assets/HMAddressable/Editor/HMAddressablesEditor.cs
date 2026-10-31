@@ -106,13 +106,14 @@ namespace HM.Editor
             @"HMAA资源管理/========================不影响线上的热更测试<点我读说明>============================", false, 5)]
         public static void Readme4()
         {
-            Debug.Log(@"测试包可以配合git使用,用来不影响线上产品的同时 测试热更是否正常,测试方式:
-1,保存当前工作和正式母包构建数据，在测试分支切换到上一次发布的版本，选择相同目标平台。
-2,使用一键打出包资源(测试包)并打出游戏包，在工程外保存构建后的完整 Assets/AddressableAssetsData 快照，包含 Settings、Groups、Schemas、DataBuilders、目标平台的 state 和所有 .meta 文件。
-3,发布资源到测试服务器，运行测试游戏包并确认母包可用。
-4,切换到最新业务版本后，恢复这份完整测试母包快照；不能只保留 .bin 后还原组资产，否则 state 与组 GUID 可能不匹配。
-5,保持目标平台和测试 Catalog 地址不变，按最新资源整理目录配置，使用一键打更新资源包(测试包)，发布后用第2步的游戏包检查热更。此阶段不要构建母包或重新分析重复依赖。
-6,测试结束后恢复原工作分支和正式构建数据，不要用测试数据覆盖正式母包的数据。
+            Debug.Log(@"配合 Gitflow 长期保留 debug 分支，测试热更流程如下：
+1,从 develop 创建 debug/5.0.0，使用一键打出包资源(测试包)并打出测试游戏包。修复在 develop 完成，再同步业务修复到 debug。测试完毕后提交最终构建数据并保留该分支。
+2,从 develop 创建 release/5.0.0，构建正式母包并保存各平台最终的分组、state 和产物。正式上线后打标签 5.0.0，测试母包标签为 5.0.0_debug，按团队 Gitflow 结束 release 分支并合回主线。
+3,需要热更时，只把 develop 中本次需要的业务修改摘取到 debug/5.0.0。必须排除正式 AssetGroups、Schemas、Settings、DataBuilders、组模板、各平台 state 及其 .meta，默认排除 Assets/AddressableAssetsData/。不要整笔摘取正式构建提交，也不要把 release、master 或 hotfix 整支合并到 debug。业务资源自身的 .meta 要保留；Address、Labels 的业务修改应在 debug 自己的条目中落实。
+4,保留 debug 自己的原测试母包 state、累计更新组、对应目标平台及测试 Catalog 地址，使用一键打更新资源包(测试包)。发布后用原测试母包客户端检查热更，测试完毕后保存本轮最终构建数据并打标签 5.0.1_debug。热更阶段不要重打母包或重新分析重复依赖。
+5,直接从当时的 develop 创建 hotfix/5.0.1。该提交必须包含正式母包 state、累计正式更新组和 debug 已验证的全部业务内容，不能夹带未经测试的新内容。使用一键打更新资源包(正式包)，保存本轮最终构建数据，发布后打标签 5.0.1，按团队 Gitflow 结束 hotfix 分支并合回主线。
+6,后续热更继续使用 debug/5.0.0，递增热更版本号。每轮只提交最终构建数据，持续保留对应平台的原母包 state。重发母包时丢弃旧 debug 分支，不要合并它，再从 develop 创建 debug/5.1.0。
+还要审核 Addressables 目录外的平台配置，保留测试服务器地址和既定的 preset、Provider、ForceRemoteAssetsToLocal 等设置。各环境、各平台的构建数据与产物不能相互覆盖。完整规则见仓库 ReadMe/版本发布Git工作流.md。
 ");
         }
 
@@ -213,6 +214,8 @@ namespace HM.Editor
         private static void RefreshAASetting(bool beTest)
         {
             var groupInfos = ValidateBuildInputs(false, beTest);
+            if (!BuildUtility.CheckModifiedScenesAndAskToSave())
+                throw new OperationCanceledException("未保存场景或取消了保存，已停止母包资源整理和后续打包，未修改资源组。");
             CheckAndCreateSetting();
             SetDataBuilder();
             SetProfiles();
@@ -659,13 +662,78 @@ namespace HM.Editor
         /// <param name="groupInfos"></param>
         private static void CreatAndUpdateGroupAndContextFromConfig(List<GroupInfo> groupInfos)
         {
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            // 先保存内存中的配置修改，快照才能保留用户尚未落盘的 Address、Labels 和 Schema。
+            AssetDatabase.SaveAssets();
+            var settingsPath = AssetDatabase.GetAssetPath(settings);
+            var groupFolder = settings.GroupFolder;
+            var assetPaths = settings.groups
+                .SelectMany(group => group.Schemas.Cast<Object>().Append(group))
+                .Select(AssetDatabase.GetAssetPath).Append(settingsPath).Distinct().ToArray();
+            var files = Directory.GetFiles(groupFolder, "*", SearchOption.AllDirectories)
+                .Concat(assetPaths.SelectMany(path => new[] { path, path + ".meta" }))
+                .Select(path => path.Replace('\\', '/')).Distinct(StringComparer.OrdinalIgnoreCase);
+            var snapshot = files.ToDictionary(path => path, File.ReadAllBytes, StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                SynchronizeGroupsAndDependencies(settings, groupInfos);
+            }
+            catch (Exception exception)
+            {
+                try
+                {
+                    RestoreGroupSettingsSnapshot(groupFolder, settingsPath, assetPaths, snapshot);
+                }
+                catch (Exception restoreException)
+                {
+                    throw new AggregateException("母包资源整理失败，且原资源组配置未能完整恢复。请恢复构建前的 Addressables 配置后再重试。",
+                        exception, restoreException);
+                }
+                throw;
+            }
+        }
+
+        private static void RestoreGroupSettingsSnapshot(string groupFolder, string settingsPath,
+            string[] assetPaths, Dictionary<string, byte[]> snapshot)
+        {
+            AssetDatabase.StartAssetEditing();
+            try
+            {
+                AssetDatabase.ReleaseCachedFileHandles();
+                // 删除本次新增的文件，再连同 .meta 恢复原文件，保留组和 Schema 的 GUID。
+                foreach (var path in Directory.GetFiles(groupFolder, "*", SearchOption.AllDirectories))
+                {
+                    if (!snapshot.ContainsKey(path.Replace('\\', '/'))) File.Delete(path);
+                }
+                foreach (var file in snapshot)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(file.Key));
+                    File.WriteAllBytes(file.Key, file.Value);
+                }
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
+            }
+
+            var importOptions = ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport;
+            AssetDatabase.Refresh(importOptions);
+            // 强制重读原资产，避免后续保存把失败流程中的内存状态重新写回磁盘。
+            foreach (var path in assetPaths)
+            {
+                if (path != settingsPath) AssetDatabase.ImportAsset(path, importOptions);
+            }
+            AssetDatabase.ImportAsset(settingsPath, importOptions);
+        }
+
+        private static void SynchronizeGroupsAndDependencies(AddressableAssetSettings settings, List<GroupInfo> groupInfos)
+        {
             if (ConfigHmAddressables.ForceRemoteAssetsToLocal)
             {
                 Debug.LogWarning("配置已开启强制本地：普通资源组和重复依赖组将使用本地路径，打包模式仍由目录的分散开关决定。");
             }
             CreateGroups(groupInfos);
             SetAssetsToGroup(groupInfos);
-            var settings = AddressableAssetSettingsDefaultObject.Settings;
             var obsoleteGroups = settings.groups.Where(group => group != null &&
                 !group.HasSchema<PlayerDataGroupSchema>() && !groupInfos.Any(info => info.Group == group)).ToArray();
             var dependencyMetadata = new Dictionary<string, (string address, string[] labels, bool readOnly)>();

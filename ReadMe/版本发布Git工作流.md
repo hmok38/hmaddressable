@@ -2,6 +2,7 @@
 
 
 ### 1 开发时序图
+>在标准GitFlow工作流基础上增加了 **版本主分支**  的概念,用来给测试人员提供不同迭代的合并分支测试,满足大量功能并行开发
 ```mermaid
 sequenceDiagram
 autonumber
@@ -42,8 +43,8 @@ participant DEV as develop
 
 ###
 
-### 2 母包发布时序图
-
+### 2 母包发布和热更时序图
+> 不热更的项目也适用
 ```mermaid
 sequenceDiagram
     autonumber
@@ -120,20 +121,4 @@ sequenceDiagram
 
 把“业务修改”和“某环境构建后生成的配置”分成不同提交，例如 `biz: 调整角色资源` 与 `build(debug): 保存 5.0.1 更新组`。正式分支和 debug 可以对应同一个业务来源提交，但分别拥有自己的构建提交。
 
-摘取前先查看每笔提交的文件清单与实际差异。只有确认是纯业务提交后才执行摘取；`cherry-pick` 默认处理整笔提交，`-x` 只记录来源，不会过滤文件。见 [Git cherry-pick 文档](https://git-scm.com/docs/git-cherry-pick)。
-
-以下命令是人工检查示例，`业务提交ID`、`摘取前提交ID` 需要替换成实际值：
-
-```text
-git status --short
-git show --format=fuller --name-status 业务提交ID
-git show 业务提交ID
-git cherry-pick -x 业务提交ID
-git diff --name-status 摘取前提交ID HEAD
-git diff 摘取前提交ID HEAD -- Assets/AddressableAssetsData
-```
-
-最后一项应能证明没有导入正式构建数据。业务资源导入后，如果移动回调更新了 debug 自己的 Address，需要区分这些本地同步修改与来源提交携带的正式组替换；不能把两者混为一谈。热更构建完成后的更新组变化也应单独保存和审核。
-
-发生冲突时不使用“一律采用来源分支”的方式处理 Addressables 目录。若已误带入正式数据，先停止构建和发布，再依据摘取前 debug 的记录恢复受影响配置。不要用重新打测试母包掩盖问题，否则原测试客户端与 state 的对应关系会改变。
-
+摘取前先查看每笔提交的文件清单与实际差异。只有确认是纯业务提交后才执行摘取

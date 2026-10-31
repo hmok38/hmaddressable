@@ -170,7 +170,7 @@ namespace HM
         private Dictionary<string, AssetGroupLoadPath> map = new Dictionary<string, AssetGroupLoadPath>();
 
         /// <summary>
-        /// 整理资源路径,用来在打包资源前对资源路径进行整理,比如去除路径中的重复项,或者检查路径的合法性等,目前暂时没有实现任何功能,后续根据需要进行实现
+        /// 按规范路径整理资源目录，保留已有本地、远程和分散打包设置，清理失效配置。
         /// </summary>
         public void OrganizeAssetsPaths()
         {
@@ -180,14 +180,14 @@ namespace HM
                 GetAllSubFolders(AAAssetsPath[i], allSubFolders);
             }
 
-            var allSub = allSubFolders.ToHashSet();
+            var allSub = new HashSet<string>(allSubFolders, StringComparer.OrdinalIgnoreCase);
             Debug.Log($"共 {allSubFolders.Count} 个资源组");
             bool needSave = false;
             if (UnassignedAssetsPath.Length != 0)
             {
                 for (int i = 0; i < UnassignedAssetsPath.Length; i++)
                 {
-                    if (allSub.Contains(UnassignedAssetsPath[i].GroupName))
+                    if (allSub.Contains(NormalizeFolderForComparison(UnassignedAssetsPath[i].GroupName)))
                     {
                         //合法的groupName,继续检查路径是否合法
                         if (UnassignedAssetsPath[i].BeLocal) //设置了本地
@@ -207,10 +207,10 @@ namespace HM
 
             List<int> needRemoveIndex = new List<int>();
             needRemoveIndex.Clear();
-            //检查LocalAseetsPaths中的路径是否合法,比如是否存在,是否是文件夹等,目前暂时没有实现任何功能,后续根据需要进行实现
+            // 比较时规范化路径，避免将不同分隔符写法误判为失效目录。
             for (int i = LocalAseetsPaths.Length - 1; i >= 0; i--)
             {
-                var localAssets = LocalAseetsPaths[i];
+                var localAssets = NormalizeFolderForComparison(LocalAseetsPaths[i]);
                 if (!allSub.Contains(localAssets))
                 {
                     Debug.LogError($"LocalAseetsPaths 资源组中存在不合法的路径:{localAssets},已经移除");
@@ -232,7 +232,7 @@ namespace HM
             needRemoveIndex.Clear();
             for (int i = RemoteAseetsPaths.Length - 1; i >= 0; i--)
             {
-                var remoteAseetsPath = RemoteAseetsPaths[i];
+                var remoteAseetsPath = NormalizeFolderForComparison(RemoteAseetsPaths[i]);
                 if (!allSub.Contains(remoteAseetsPath))
                 {
                     Debug.LogError($"RemoteAseetsPaths 资源组中存在不合法的路径:{remoteAseetsPath},已经移除");
@@ -255,8 +255,8 @@ namespace HM
             needRemoveIndex.Clear();
             for (int i = SeparatelyPackAssetsPaths.Length - 1; i >= 0; i--)
             {
-                var separatelyPath = SeparatelyPackAssetsPaths[i];
-                if (!allSubFolders.Contains(separatelyPath))
+                var separatelyPath = NormalizeFolderForComparison(SeparatelyPackAssetsPaths[i]);
+                if (!allSubFolders.Contains(separatelyPath, StringComparer.OrdinalIgnoreCase))
                 {
                     Debug.LogError($"SeparatelyPackAssetsPaths 资源组中存在不合法的路径:{separatelyPath},已经移除");
                     needRemoveIndex.Add(i);
@@ -299,6 +299,21 @@ namespace HM
                 UnityEditor.EditorUtility.SetDirty(this);
                 UnityEditor.AssetDatabase.SaveAssets();
                 UnityEditor.AssetDatabase.Refresh();
+            }
+        }
+
+        private static string NormalizeFolderForComparison(string path)
+        {
+            try
+            {
+                return NormalizeAssetFolder(path);
+            }
+            catch (Exception exception) when (exception is ArgumentException ||
+                                               exception is NotSupportedException ||
+                                               exception is System.IO.PathTooLongException)
+            {
+                // 失效目录仍交给整理流程移除，不能因规范化失败中断整个列表的清理。
+                return path;
             }
         }
 

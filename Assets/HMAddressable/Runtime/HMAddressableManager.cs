@@ -603,30 +603,43 @@ namespace HM
             foreach (var name in resNames) ReleaseRes(name);
         }
 
-        /// <summary>按组或标签匹配实际资源位置，释放对应位置下的所有加载类型。</summary>
+        /// <summary>按组或标签匹配实际资源位置，释放对应位置下的所有加载类型及图集子资源。</summary>
         public static async void ReleaseResGroup(string groupNameOrLabel)
         {
             try
             {
+                var groupKeys = new List<string> { groupNameOrLabel };
 #if UNITY_EDITOR
                 var names = GetAllResouceAssetsByFolder<Object>(groupNameOrLabel);
                 if (names != null && names.Count > 0)
                 {
                     ReleaseRes(names);
-                    return;
+                    if (AssetDatabase.LoadAssetAtPath<Object>("Assets/AddressableAssetsData/AddressableAssetSettings.asset") == null)
+                        return;
+                    // 自定义 Address 不一定等于资源路径，同时用 GUID 查询目录内的主资源。
+                    groupKeys = names.Concat(names.Select(path => AssetDatabase.AssetPathToGUID(path))).Distinct().ToList();
                 }
 #endif
-                var locations = await GetResourceLocationsAsync(groupNameOrLabel);
-                // 图集子资源按 Sprite 查询时，Provider 和依赖也会变化，需补查实际请求类型。
+                var locations = new List<IResourceLocation>();
+                // 保留主资源位置，同时补查已请求类型对应的位置。
                 var types = ResourceLoads.Keys.Select(key => key.Type)
-                    .Concat(ResolvingLoads.Keys.Select(key => key.Type)).Distinct().ToArray();
+                    .Concat(ResolvingLoads.Keys.Select(key => key.Type)).Prepend(null).Distinct().ToArray();
                 foreach (var type in types)
-                    locations.AddRange(await GetResourceLocationsAsync(groupNameOrLabel, type));
+                {
+                    var operation = Addressables.LoadResourceLocationsAsync(groupKeys, Addressables.MergeMode.Union, type);
+                    try
+                    {
+                        locations.AddRange(await operation.ToUniTask());
+                    }
+                    finally
+                    {
+                        if (operation.IsValid()) Addressables.Release(operation);
+                    }
+                }
                 // 释放匹配位置下的所有加载类型。
                 var keys = locations.Select(location => (location.InternalId, location.ProviderId, location.DependencyHashCode)).ToHashSet();
                 if (keys.Count == 0) return;
-                Func<ResourceLoad, bool> matches = load => load.Location != null &&
-                    keys.Contains((load.Key.InternalId, load.Key.ProviderId, load.Key.DependencyHash));
+                Func<ResourceLoad, bool> matches = load => MatchesResourceGroup(load, keys);
                 var loads = ResourceLoads.Values.Where(matches).ToArray();
                 var resolving = ResolvingLoads.Values.ToArray();
                 var tasks = loads.Select(ReleaseResourceAsync)
@@ -637,6 +650,20 @@ namespace HM
             {
                 NotifyLoadingFailure(groupNameOrLabel, exception);
             }
+        }
+
+        private static bool MatchesResourceGroup(ResourceLoad load,
+            HashSet<(string InternalId, string ProviderId, int DependencyHash)> keys)
+        {
+            var location = load.Location;
+            if (location == null) return false;
+            if (keys.Contains((load.Key.InternalId, load.Key.ProviderId, load.Key.DependencyHash))) return true;
+            if (!(Addressables.ResourceManager.GetResourceProvider(load.Key.Type, location) is AtlasSpriteProvider) ||
+                !location.HasDependencies) return false;
+
+            // AtlasSpriteProvider 的第一个依赖是主图集，只检查它，避免匹配到共享 Bundle 的其他资源。
+            var atlasLocation = location.Dependencies[0];
+            return keys.Contains((atlasLocation.InternalId, atlasLocation.ProviderId, atlasLocation.DependencyHashCode));
         }
 
         /// <summary>
