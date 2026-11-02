@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-RES-RemoteRes-MultipleTestRemote
   m_Data:
     m_SerializedData: []
-  m_GUID: 1c47663a71a15d3418bfe6d4266dad3f
+  m_GUID: ef9aae2673fad88479b1ecb84240a10e
   m_SerializeEntries:
   - m_GUID: 88a0518ba4c48fa4aa90ae424853246e
     m_Address: Assets/Samples/Test/RES/RemoteRes/MultipleTestRemote/MuitipleTestRemoteSphere.prefab

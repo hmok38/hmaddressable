@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-RES-RemoteRes-x
   m_Data:
     m_SerializedData: []
-  m_GUID: 4eff4772ece976c47a6755f00061c045
+  m_GUID: 69a02cccee9b79d49bbe6d6618ab18e4
   m_SerializeEntries:
   - m_GUID: b2bf405d14665e149946b79f394beb86
     m_Address: Assets/Samples/Test/RES/RemoteRes/x/xx.mat

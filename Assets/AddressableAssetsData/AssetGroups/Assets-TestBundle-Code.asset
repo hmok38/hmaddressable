@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-TestBundle-Code
   m_Data:
     m_SerializedData: []
-  m_GUID: abf97bbbb822ec94eae497371f1efc9e
+  m_GUID: 1599cf8763c7a894c9c5c0872558e42c
   m_SerializeEntries:
   - m_GUID: 22e10e15b0a232f4e94f6286232b9d6d
     m_Address: Assets/TestBundle/Code/Unity.Hotfix.dll.bytes

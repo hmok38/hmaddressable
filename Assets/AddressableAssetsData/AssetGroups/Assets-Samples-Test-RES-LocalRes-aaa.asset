@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-RES-LocalRes-aaa
   m_Data:
     m_SerializedData: []
-  m_GUID: 89c8e1afdc6ed7148bb617029a44ba87
+  m_GUID: 62b0b8a479e05ba448dbe84fc4c1a1ee
   m_SerializeEntries:
   - m_GUID: 2155d94575df00c48a22c24490af5ffb
     m_Address: Assets/Samples/Test/RES/LocalRes/aaa/Cube.prefab

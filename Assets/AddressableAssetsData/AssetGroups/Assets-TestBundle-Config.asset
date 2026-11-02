@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-TestBundle-Config
   m_Data:
     m_SerializedData: []
-  m_GUID: 44e07ff368e42724fb2eda2caa676693
+  m_GUID: ecb50e4ea225d734e93f3bee82be0988
   m_SerializeEntries:
   - m_GUID: 00376e33d254f9b4c8f49366c87b8f94
     m_Address: Assets/TestBundle/Config/HeroLevelGrowUpConfigCategory.bytes

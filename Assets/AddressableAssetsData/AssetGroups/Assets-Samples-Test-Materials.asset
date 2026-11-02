@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-Materials
   m_Data:
     m_SerializedData: []
-  m_GUID: 89f79a08e10299b4e893b5b6c28d7323
+  m_GUID: 878a84ecc6ad44e49b4ea79e61c0de90
   m_SerializeEntries:
   - m_GUID: 53f417f9a91503b4fb9fa2546b484978
     m_Address: Assets/Samples/Test/Materials/SphereMate.mat

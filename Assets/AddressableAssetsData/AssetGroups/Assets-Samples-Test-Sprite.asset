@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-Sprite
   m_Data:
     m_SerializedData: []
-  m_GUID: 642d85816e3fab844af58d0f08fca5b2
+  m_GUID: 08f428c7908e65f4ba480c423284a2a3
   m_SerializeEntries:
   - m_GUID: a269aa3dc9f7cd549b6920a39dc85942
     m_Address: Assets/Samples/Test/Sprite/New Material.mat

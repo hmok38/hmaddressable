@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-RES-LocalRes-MultipleTestLocal
   m_Data:
     m_SerializedData: []
-  m_GUID: 6dfe4817b81ca374da53a57f919c0ad8
+  m_GUID: eec7925264ef5354fb107a4d4eaf55a7
   m_SerializeEntries:
   - m_GUID: 7f378f1d9a3680c41a50d7cf38fba26f
     m_Address: Assets/Samples/Test/RES/LocalRes/MultipleTestLocal/MultipleMat_Local.mat

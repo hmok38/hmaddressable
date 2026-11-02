@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-RES-RemoteRes-Sphere
   m_Data:
     m_SerializedData: []
-  m_GUID: ababf634971bde14f8f1d6daa0879682
+  m_GUID: 335f6e669835da2488919b965257cc88
   m_SerializeEntries:
   - m_GUID: 8bf69f34831bc5640b0dd1806efddea7
     m_Address: Assets/Samples/Test/RES/RemoteRes/Sphere/CapsuleCopy.prefab

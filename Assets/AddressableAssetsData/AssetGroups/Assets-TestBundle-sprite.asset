@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-TestBundle-sprite
   m_Data:
     m_SerializedData: []
-  m_GUID: f21f60ffcf81e394a99896a671226933
+  m_GUID: cb286c7ff8b30af4eb8e4ad46ecc3ef0
   m_SerializeEntries:
   - m_GUID: 007a5f7d70269f34084a80a1d15b9167
     m_Address: "Assets/TestBundle/sprite/\u901A\u7528\u7070\u6309\u94AE.png"

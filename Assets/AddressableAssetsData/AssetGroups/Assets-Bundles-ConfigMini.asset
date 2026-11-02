@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Bundles-ConfigMini
   m_Data:
     m_SerializedData: []
-  m_GUID: 0ad6cb2db22136a4994d346839960327
+  m_GUID: a119718f35776394e93da203f1e2fb2a
   m_SerializeEntries:
   - m_GUID: ec1bfa55d520c9e4c8605efe4b1256f4
     m_Address: Assets/Bundles/ConfigMini/Testconfig.json

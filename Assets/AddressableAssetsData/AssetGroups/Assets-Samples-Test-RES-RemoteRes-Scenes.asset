@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-RES-RemoteRes-Scenes
   m_Data:
     m_SerializedData: []
-  m_GUID: 1f5c6dbe80b57684884b4b4b52d0c5fc
+  m_GUID: b779d9180a7743845938f821c8c53784
   m_SerializeEntries:
   - m_GUID: ee2d03d932483d94e9105992adc208e0
     m_Address: Assets/Samples/Test/RES/RemoteRes/Scenes/BeLoadScene.unity

@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-Resources
   m_Data:
     m_SerializedData: []
-  m_GUID: b41ece445dd26d144aea75330edfbff5
+  m_GUID: 54f9b4b6332a47e4f8a4142e60e15ffc
   m_SerializeEntries:
   - m_GUID: 5731d83cb574f51498c1079aaf4d57d0
     m_Address: Assets/Samples/Test/Resources/ResourceRT.renderTexture

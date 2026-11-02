@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test-ParrentFolder-SubFolder2
   m_Data:
     m_SerializedData: []
-  m_GUID: a0fe3540aed85dd4dbe0b77a3ee46daf
+  m_GUID: acf935c7f4b7324429594c5bb0ff45b1
   m_SerializeEntries:
   - m_GUID: b81a8bc2b557a6343845eb111c329609
     m_Address: Assets/Samples/Test/ParrentFolder/SubFolder2/sub2.mat

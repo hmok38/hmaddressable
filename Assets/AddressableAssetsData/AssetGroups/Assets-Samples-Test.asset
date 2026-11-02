@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: Assets-Samples-Test
   m_Data:
     m_SerializedData: []
-  m_GUID: 704ee721fb4e8554b8d0c97c9646ed98
+  m_GUID: cd7481448a4e3444093157d2f446d2ce
   m_SerializeEntries:
   - m_GUID: 2fed067ac09792d47a8b4d800ca74334
     m_Address: Assets/Samples/Test/test.png
