@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 637bda5d1592f3446b87b2bd397d9122, type: 3}
   m_Name: ConfigHMAddressables
   m_EditorClassIdentifier: 
+  BundledAssetGroupSchemaPreset: {fileID: 2655988077585873504, guid: de794e682f783fc4d9efa7cbddb32a45, type: 2}
   AAAssetsPath:
   - Assets/Bundles
   - Assets/TestBundle
@@ -33,10 +34,6 @@ MonoBehaviour:
   - Assets/Samples/Test/RES/LocalRes/Capsule
   - Assets/Samples/Test/RES/LocalRes/MultipleTestLocal
   - Assets/Samples/Test/RES/LocalRes/New
-  - Assets/Samples/Test/RES/RemoteRes/MultipleTestRemote
-  - Assets/Samples/Test/RES/RemoteRes/Scenes
-  - Assets/Samples/Test/RES/RemoteRes/Sphere
-  - Assets/Samples/Test/RES/RemoteRes/x
   - Assets/Samples/Test/Resources
   - Assets/Samples/Test/Scenes
   - Assets/Samples/Test/Scripts
@@ -44,11 +41,17 @@ MonoBehaviour:
   - Assets/Samples/Test/SeceneRes
   RemoteAseetsPaths:
   - Assets/TestBundle/Config
+  - Assets/Samples/Test/RES/RemoteRes/MultipleTestRemote
+  - Assets/Samples/Test/RES/RemoteRes/Scenes
+  - Assets/Samples/Test/RES/RemoteRes/Sphere
+  - Assets/Samples/Test/RES/RemoteRes/x
   SeparatelyPackAssetsPaths:
   - Assets/TestBundle/Config
   - Assets/TestBundle/Code
-  RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
-  TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
+  - Assets/Samples/Test/RES/LocalRes/Capsule
+  - Assets/Samples/Test/RES/RemoteRes/Sphere
+  RemoteLoadPath: https://changan-37-aliyun-cdn-test.benfeigame.com/hmaa/release/[BuildTarget]
+  TestRemoteLoadPath: https://changan-37-aliyun-cdn-test.benfeigame.com/hmaa/debug/[BuildTarget]
   EncryptAssetsGroup: []
   MyDefaultAssetsEncryptType: 3
   DuplicateDependenciesGroupBeRemote: 0
