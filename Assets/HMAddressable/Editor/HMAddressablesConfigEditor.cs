@@ -322,6 +322,7 @@ namespace HM
             try
             {
                 schema.name = nameof(BundledAssetGroupSchema);
+                schema.OnAfterDeserialize();
                 var preset = new Preset(schema)
                 {
                     excludedProperties = new[] { "m_Group" }

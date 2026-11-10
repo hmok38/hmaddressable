@@ -1,0 +1,12 @@
+<linker>
+  <!-- 仅供测试入口读取缓存记录和句柄，避免 IL2CPP 裁剪反射所需字段。 -->
+  <assembly fullname="HMAddressable.Runtime">
+    <type fullname="HM.HMAddressableManager" preserve="nothing">
+      <field name="ResourceLoads" />
+    </type>
+    <type fullname="HM.HMAddressableManager/ResourceLoad" preserve="nothing">
+      <field name="Resource" />
+      <field name="Handle" />
+    </type>
+  </assembly>
+</linker>

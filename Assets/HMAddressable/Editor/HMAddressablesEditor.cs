@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using HM.Editor.HMAddressable.Editor;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
@@ -13,6 +14,7 @@ using UnityEditor.Presets;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
+using UnityEngine.ResourceManagement.Util;
 using Object = UnityEngine.Object;
 
 namespace HM.Editor
@@ -373,6 +375,7 @@ namespace HM.Editor
                 }
                 Debug.Assert(schema.Group == null, "Provider 校验不能绑定实际资源组。");
                 if (applyPreset) ApplyBundledAssetGroupSchemaPreset(schema);
+                else ResetSchemaProviderTypeCache(schema);
                 var editorAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Editor).Select(x => x.name);
                 var playerAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player).Select(x => x.name);
                 var editorOnlyAssemblies = new HashSet<string>(editorAssemblies.Except(playerAssemblies));
@@ -1017,6 +1020,23 @@ namespace HM.Editor
             {
                 groupProperty.objectReferenceValue = group;
                 serializedSchema.ApplyModifiedPropertiesWithoutUndo();
+            }
+            ResetSchemaProviderTypeCache(schema);
+        }
+
+        private static void ResetSchemaProviderTypeCache(BundledAssetGroupSchema schema)
+        {
+            // Preset 只覆盖序列化字段，SerializedType 的旧类型缓存需要随整个值一起替换。
+            foreach (var fieldName in new[] { "m_BundledAssetProviderType", "m_AssetBundleProviderType" })
+            {
+                var field = typeof(BundledAssetGroupSchema).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+                if (field == null || field.FieldType != typeof(SerializedType))
+                    throw new InvalidOperationException("无法刷新 Provider 类型，请检查 Addressables 版本：" + fieldName);
+                var provider = (SerializedType)field.GetValue(schema);
+                var refreshed = JsonUtility.FromJson<SerializedType>(JsonUtility.ToJson(provider));
+                Debug.Assert(refreshed.AssemblyName == provider.AssemblyName && refreshed.ClassName == provider.ClassName,
+                    "刷新 Provider 类型缓存不能修改序列化类型配置。");
+                field.SetValue(schema, refreshed);
             }
         }
 
