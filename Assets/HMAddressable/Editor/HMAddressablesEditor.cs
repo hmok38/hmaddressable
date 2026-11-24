@@ -432,6 +432,7 @@ namespace HM.Editor
                 AddressableAssetSettingsDefaultObject.Settings.DisableCatalogUpdateOnStartup = true;
                 AddressableAssetSettingsDefaultObject.Settings.MaxConcurrentWebRequests = 100;
                 AddressableAssetSettingsDefaultObject.Settings.OverridePlayerVersion = string.Empty;
+#if !UNITY_6000_0_OR_NEWER
                 HMAACustomEncryptBuild builder = ScriptableObject.CreateInstance<HMAACustomEncryptBuild>();
 
                 if (!AssetDatabase.IsValidFolder("Assets/AddressableAssetsData"))
@@ -446,7 +447,9 @@ namespace HM.Editor
 
 
                 AssetDatabase.CreateAsset(builder, "Assets/AddressableAssetsData/DataBuilders/HMAAEncrypt.asset");
+#endif
                 AssetDatabase.SaveAssets();
+#if !UNITY_6000_0_OR_NEWER
 
                 // IDataBuilder builder
                 //     = AssetDatabase.LoadAssetAtPath<ScriptableObject>(
@@ -454,6 +457,7 @@ namespace HM.Editor
                 //         IDataBuilder;
                 AddressableAssetSettingsDefaultObject.Settings.DataBuilders.Add(builder);
                 UnityEditor.EditorUtility.SetDirty(builder);
+#endif
                 UnityEditor.EditorUtility.SetDirty(AddressableAssetSettingsDefaultObject.Settings);
 
                 EditorUtility.FocusProjectWindow();

@@ -28,6 +28,13 @@ using Debug = UnityEngine.Debug;
 namespace HM.Editor.HMAddressable.Editor
 {
 
+#if UNITY_6000_0_OR_NEWER
+    // 保留已有 HMAAEncrypt.asset 的脚本引用。BuildScriptBase 默认拒绝构建。
+    public class HMAACustomEncryptBuild : BuildScriptBase
+    {
+        public override string Name => "HMAA 旧版加密打包（Unity 6 请使用默认打包器）";
+    }
+#else
     [CreateAssetMenu(fileName = "HMAAEncrypt.asset", menuName = "HMAddressables/创建HMAA加密打包")]
     public class HMAACustomEncryptBuild:BuildScriptBase
     {
@@ -1494,4 +1501,5 @@ namespace HM.Editor.HMAddressable.Editor
         #endregion
 
     }
+#endif
 }
