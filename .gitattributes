@@ -1,1 +1,5 @@
 * text=auto eol=lf
+
+# Windows 批处理检出到工作区时使用 CRLF，扩展名匹配大小写。
+*.[bB][aA][tT] text eol=crlf
+*.[cC][mM][dD] text eol=crlf
