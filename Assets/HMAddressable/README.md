@@ -47,7 +47,9 @@ by:黄敏
 6. 到工程目录下的ServerData目录获取刚刚打出的相应平台的资源,并将其放入资源服务器中
 7. 游戏启动后,根据逻辑调用 HMAddressableManager.UpdateAddressablesAllAssets() 接口进行热更即可更新资源
 
-资源移动或重命名后，如果条目的 Address 与移动前的完整资源路径相同，插件会在 Unity 导入回调中将它更新为新路径；移动整个目录也会同步其中资源的默认地址。其他自定义 Address 保持原样，目录标签在下次整理分组时更新。调用方使用的路径字符串仍需同步修改。
+母包可以在平台配置中选择“按 Label 打包”，目录按文件名和估算大小分片。启用后，该目录每个资源只保留工具生成的分片 Label。运行时调用 `HMAddressableManager.InitializeAsync()` 后，插件从原生 Catalog 的 Label 建立分片索引。传原目录给 `LoadAssetsAsyncByGroup<T>` 和 `ReleaseResGroup` 会处理目录 Label 和该目录已发布的全部分片。传完整 Label 给 `LoadAssetsAsyncByLabel<T>` 只加载该 Label。热更新增资源使用目录 Label，迁入更新组的分片资源保留原 Label，更新组整组打包。Catalog 更新成功后插件重新建立索引。
+
+资源移动或重命名后，如果条目的 Address 与移动前的完整资源路径相同，插件会在 Unity 导入回调中将它更新为新路径；移动整个目录也会同步其中资源的默认地址。其他自定义 Address 保持原样。下次母包整理会为按 Label 打包的目录重新分片，其他目录继续同步目录标签。调用方使用的路径字符串仍需同步修改。
 
 启用此修复之前已经发生的移动，以及 Unity 未报告移动事件的外部文件操作，无法可靠区分旧路径地址与自定义地址；这些历史条目需要在 Addressables Groups 中人工核对 Address，插件不会猜测并覆盖。
 

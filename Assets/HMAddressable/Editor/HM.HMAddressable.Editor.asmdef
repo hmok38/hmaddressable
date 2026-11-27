@@ -18,6 +18,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.addressables",
+            "expression": "[1.0.0,2.0.0)",
+            "define": "HMAA_HAS_VIRTUAL_BUILD"
+        }
+    ],
     "noEngineReferences": false
 }

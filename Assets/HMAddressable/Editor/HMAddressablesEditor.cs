@@ -7,6 +7,7 @@ using HM.Editor.HMAddressable.Editor;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build;
+using UnityEditor.AddressableAssets.Build.DataBuilders;
 using UnityEditor.Compilation;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
@@ -215,14 +216,17 @@ namespace HM.Editor
         /// </summary>
         private static void RefreshAASetting(bool beTest)
         {
-            var groupInfos = ValidateBuildInputs(false, beTest);
+            var groupInfos = ValidateBuildInputs(false, beTest, out _);
             if (!BuildUtility.CheckModifiedScenesAndAskToSave())
                 throw new OperationCanceledException("未保存场景或取消了保存，已停止母包资源整理和后续打包，未修改资源组。");
             CheckAndCreateSetting();
-            SetDataBuilder();
-            SetProfiles();
-            SetActiveProfiles(beTest);
-            CreatAndUpdateGroupAndContextFromConfig(groupInfos);
+            WithGroupSettingsSnapshot(settings =>
+            {
+                SetDataBuilder();
+                SetProfiles();
+                SetActiveProfiles(beTest);
+                SynchronizeGroupsAndDependencies(settings, groupInfos);
+            });
         }
 
         /// <summary>
@@ -231,18 +235,25 @@ namespace HM.Editor
         /// <param name="beTest"></param>
         private static void UpdateAASetting(bool beTest)
         {
-            var groupInfos = ValidateBuildInputs(true, beTest);
-            SetDataBuilder();
-            SetProfiles();
-            SetActiveProfiles(beTest);
-            CreateGroups(groupInfos);
-            SetAssetsToGroup(groupInfos, true);
-            SetAllGroupSchema(groupInfos, true);
-            CheckForContentUpdateRestructions();
+            var groupInfos = ValidateBuildInputs(true, beTest, out var motherState);
+            var motherMembers = motherState.cachedInfos.Where(info => info != null)
+                .Select(info => (info.asset.guid.ToString(), info.groupGuid)).ToHashSet();
+            WithGroupSettingsSnapshot(settings =>
+            {
+                SetDataBuilder();
+                SetProfiles();
+                SetActiveProfiles(beTest);
+                CreateGroups(groupInfos, true);
+                SetAssetsToGroup(groupInfos, motherMembers);
+                SetAllGroupSchema(groupInfos, true);
+                CheckForContentUpdateRestructions();
+                HMGroupLabelsEditor.ValidateLabels(settings, groupInfos, true);
+            });
         }
 
-        private static List<GroupInfo> ValidateBuildInputs(bool beUpdate, bool beTest)
+        private static List<GroupInfo> ValidateBuildInputs(bool beUpdate, bool beTest, out AddressablesContentState state)
         {
+            state = null;
             var config = ConfigHmAddressables;
             if (config == null || !config.CheckAllAssetsPathIsInList())
                 throw new InvalidOperationException("HMAA 平台配置或资源目录无效，已停止打包，未修改资源组。");
@@ -299,6 +310,12 @@ namespace HM.Editor
                     throw new InvalidOperationException($"资源组 {group.Name} 为只读，不能自动整理。");
                 if (!Enum.IsDefined(typeof(BundledAssetGroupSchema.BundlePackingMode), group.GetSchema<BundledAssetGroupSchema>().BundleMode))
                     throw new InvalidOperationException($"资源组 {group.Name} 的 BundleMode 无效。");
+                var published = group.GetSchema<HMLabelPackingSchema>();
+                if (beUpdate && published != null && (published.BuildTarget != EditorUserBuildSettings.activeBuildTarget ||
+                    group.GetSchema<BundledAssetGroupSchema>().BundleMode != BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel))
+                {
+                    throw new InvalidOperationException($"分片组 {group.Name} 的母包平台为 {published.BuildTarget}，请恢复当前平台母包的组和 Schema 后再热更。");
+                }
                 bool keepsSchema = beUpdate && !names.ContainsKey(group.Name) &&
                     !IsContentUpdateGroup(group) && !IsDuplicateGroup(group);
                 ValidateSchemaProviders(group.GetSchema<BundledAssetGroupSchema>(), builder, !keepsSchema);
@@ -325,7 +342,7 @@ namespace HM.Editor
                 var defaultGroup = settings.groups.Find(group => group.Guid == defaultGuid);
                 if (defaultGroup == null || defaultGroup.GetSchema<BundledAssetGroupSchema>() == null)
                     throw new InvalidOperationException("母包默认组丢失，请恢复原默认组及其 GUID 后再热更。");
-                var state = LoadContentStateForUpdate();
+                state = LoadContentStateForUpdate();
                 var currentGroupGuids = new HashSet<string>(settings.groups.Select(group => group.Guid));
                 var missingGroupGuids = state.cachedInfos.Where(info => info != null &&
                     !currentGroupGuids.Contains(info.groupGuid)).Select(info => info.groupGuid).Distinct().ToArray();
@@ -376,6 +393,10 @@ namespace HM.Editor
                 Debug.Assert(schema.Group == null, "Provider 校验不能绑定实际资源组。");
                 if (applyPreset) ApplyBundledAssetGroupSchemaPreset(schema);
                 else ResetSchemaProviderTypeCache(schema);
+                if (source == null && !schema.IncludeLabelsInCatalog)
+                {
+                    throw new InvalidOperationException("按组和按 Label 加载需要导出 Label，请在平台 Preset 勾选 Include Labels in Catalog。");
+                }
                 var editorAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Editor).Select(x => x.name);
                 var playerAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player).Select(x => x.name);
                 var editorOnlyAssemblies = new HashSet<string>(editorAssemblies.Except(playerAssemblies));
@@ -470,6 +491,19 @@ namespace HM.Editor
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             var builder = GetConfiguredDataBuilder(settings);
+#if HMAA_HAS_VIRTUAL_BUILD
+            // 旧版本在原索引替换了模拟构建器，恢复原生资产并保留用户选择的播放模式。
+            int virtualIndex = settings.DataBuilders.FindIndex(item => item is HMGroupVirtualBuild);
+            if (virtualIndex >= 0)
+            {
+                var original = AssetDatabase.LoadAssetAtPath<BuildScriptVirtualMode>(
+                    settings.ConfigFolder + "/DataBuilders/BuildScriptVirtualMode.asset");
+                if (original != null)
+                {
+                    settings.SetDataBuilderAtIndex(virtualIndex, original);
+                }
+            }
+#endif
             settings.ActivePlayerDataBuilderIndex = settings.DataBuilders.IndexOf((ScriptableObject)builder);
             Debug.Log($"打包器选用:{builder.Name}");
         }
@@ -644,9 +678,22 @@ namespace HM.Editor
                 loadPaths.Add(HMAddressablesConfig.NormalizeAssetFolder(item.GroupName),
                     item.BeLocal || (!item.BeRemote && config.UnassignedAssetsBeLocal));
             }
+            var labelPaths = new HashSet<string>((config.LabelPackAssetsPaths ?? Array.Empty<string>())
+                .Select(HMAddressablesConfig.NormalizeAssetFolder), StringComparer.OrdinalIgnoreCase);
+            var separatePaths = new HashSet<string>(config.SeparatelyPackAssetsPaths
+                .Select(HMAddressablesConfig.NormalizeAssetFolder), StringComparer.OrdinalIgnoreCase);
             foreach (var info in groupInfos)
             {
                 var path = info.Path;
+                info.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackTogether;
+                if (labelPaths.Contains(path))
+                {
+                    info.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel;
+                }
+                else if (separatePaths.Contains(path))
+                {
+                    info.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackSeparately;
+                }
                 info.BeLocalGroup = config.UnassignedAssetsBeLocal;
                 while (!string.IsNullOrEmpty(path))
                 {
@@ -663,11 +710,8 @@ namespace HM.Editor
         }
 
 
-        /// <summary>
-        /// 同步母包资源组，应用最终设置后再分析重复依赖。
-        /// </summary>
-        /// <param name="groupInfos"></param>
-        private static void CreatAndUpdateGroupAndContextFromConfig(List<GroupInfo> groupInfos)
+        /// <summary>母包或热更整理失败时恢复原组、Schema、Label 表及当前 Profile，供修正配置后重试。</summary>
+        private static void WithGroupSettingsSnapshot(Action<AddressableAssetSettings> synchronize)
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             // 先保存内存中的配置修改，快照才能保留用户尚未落盘的 Address、Labels 和 Schema。
@@ -676,14 +720,15 @@ namespace HM.Editor
             var groupFolder = settings.GroupFolder;
             var assetPaths = settings.groups
                 .SelectMany(group => group.Schemas.Cast<Object>().Append(group))
-                .Select(AssetDatabase.GetAssetPath).Append(settingsPath).Distinct().ToArray();
+                .Select(AssetDatabase.GetAssetPath).Append(settingsPath).Append(AssetDatabase.GetAssetPath(ConfigHmAddressables))
+                .Distinct().ToArray();
             var files = Directory.GetFiles(groupFolder, "*", SearchOption.AllDirectories)
                 .Concat(assetPaths.SelectMany(path => new[] { path, path + ".meta" }))
                 .Select(path => path.Replace('\\', '/')).Distinct(StringComparer.OrdinalIgnoreCase);
             var snapshot = files.ToDictionary(path => path, File.ReadAllBytes, StringComparer.OrdinalIgnoreCase);
             try
             {
-                SynchronizeGroupsAndDependencies(settings, groupInfos);
+                synchronize(settings);
             }
             catch (Exception exception)
             {
@@ -693,7 +738,7 @@ namespace HM.Editor
                 }
                 catch (Exception restoreException)
                 {
-                    throw new AggregateException("母包资源整理失败，且原资源组配置未能完整恢复。请恢复构建前的 Addressables 配置后再重试。",
+                    throw new AggregateException("资源组整理失败，且原资源组配置未能完整恢复。请恢复构建前的 Addressables 配置后再重试。",
                         exception, restoreException);
                 }
                 throw;
@@ -737,7 +782,7 @@ namespace HM.Editor
         {
             if (ConfigHmAddressables.ForceRemoteAssetsToLocal)
             {
-                Debug.LogWarning("配置已开启强制本地：普通资源组和重复依赖组将使用本地路径，打包模式仍由目录的分散开关决定。");
+                Debug.LogWarning("配置已开启强制本地：普通资源组和重复依赖组将使用本地路径，打包模式仍由各目录的配置决定。");
             }
             CreateGroups(groupInfos);
             SetAssetsToGroup(groupInfos);
@@ -755,6 +800,19 @@ namespace HM.Editor
             }
             foreach (var group in obsoleteGroups) settings.RemoveGroup(group);
             SetAllGroupSchema(groupInfos);
+            foreach (var info in groupInfos)
+            {
+                if (info.BundleMode == BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel)
+                {
+                    HMLabelPacking.AssignLabels(info.Group, ConfigHmAddressables.LabelSizeK);
+                    var published = info.Group.GetSchema<HMLabelPackingSchema>() ?? info.Group.AddSchema<HMLabelPackingSchema>();
+                    published.RecordBuildTarget(EditorUserBuildSettings.activeBuildTarget);
+                }
+                else if (info.Group.HasSchema<HMLabelPackingSchema>())
+                {
+                    info.Group.RemoveSchema<HMLabelPackingSchema>();
+                }
+            }
             // 分析必须使用最终 Schema，否则修改分散开关后会沿用旧的依赖结果。
             var helper2 = new CalculateAddressHelper();
             helper2.CheckForDuplicateDependencies(AddressableAssetSettingsDefaultObject.Settings, groupInfos,
@@ -776,6 +834,8 @@ namespace HM.Editor
             }
             DeleteEmptyGroup();
             ClearGroupMissingReferences();
+            HMGroupLabelsEditor.ValidateLabels(settings, groupInfos, false);
+            ConfigHmAddressables.CanonicalizePlayerGroupPaths();
         }
 
         private static void SetConfigsDefaultGroupInfo(List<GroupInfo> groupInfos)
@@ -793,9 +853,6 @@ namespace HM.Editor
         private static void SetAllGroupSchema(List<GroupInfo> groupInfos, bool beUpdateAssetGroup = false)
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;
-            var separatelyPaths = new HashSet<string>(
-                ConfigHmAddressables.SeparatelyPackAssetsPaths.Select(HMAddressablesConfig.NormalizeAssetFolder),
-                StringComparer.OrdinalIgnoreCase);
             foreach (var group in settings.groups)
             {
                 if (group == null || group.HasSchema<PlayerDataGroupSchema>()) continue;
@@ -817,9 +874,7 @@ namespace HM.Editor
                     throw new InvalidOperationException($"资源组 {group.Name} 未匹配到目录配置。");
                 if (!beUpdateAssetGroup)
                 {
-                    bundleMode = info != null && separatelyPaths.Contains(info.Path)
-                        ? BundledAssetGroupSchema.BundlePackingMode.PackSeparately
-                        : BundledAssetGroupSchema.BundlePackingMode.PackTogether;
+                    bundleMode = info?.BundleMode ?? BundledAssetGroupSchema.BundlePackingMode.PackTogether;
                 }
                 bool beLocal = ConfigHmAddressables.ForceRemoteAssetsToLocal ||
                     (isDuplicate ? !ConfigHmAddressables.DuplicateDependenciesGroupBeRemote : info.BeLocalGroup);
@@ -829,7 +884,7 @@ namespace HM.Editor
             if (!beUpdateAssetGroup) SetConfigsDefaultGroupInfo(groupInfos);
         }
 
-        private static bool IsContentUpdateGroup(AddressableAssetGroup group)
+        internal static bool IsContentUpdateGroup(AddressableAssetGroup group)
         {
             if (group == null) return false;
             if (group.Name.StartsWith("Content Update", StringComparison.Ordinal)) return true;
@@ -838,38 +893,70 @@ namespace HM.Editor
             return index >= 0 && int.TryParse(group.Name.Substring(index + marker.Length), out var sequence) && sequence > 0;
         }
 
-        private static bool IsDuplicateGroup(AddressableAssetGroup group)
+        internal static bool IsDuplicateGroup(AddressableAssetGroup group)
         {
             return group != null && (group.Name == "Duplicate Asset Isolation" ||
-                group.Name.StartsWith("Duplicate Asset Isolation ", StringComparison.Ordinal));
+                group.Name.StartsWith("Duplicate Asset Isolation ", StringComparison.Ordinal) ||
+                group.Name.StartsWith("Duplicate Asset Isolation_Content Update_", StringComparison.Ordinal));
         }
 
         /// <summary>
         /// 增量同步目录资源，保留自定义 Address；默认路径地址由资源移动回调同步。
         /// </summary>
-        private static void SetAssetsToGroup(List<GroupInfo> groupInfos, bool beUpdateAssets = false)
+        private static void SetAssetsToGroup(List<GroupInfo> groupInfos, HashSet<(string, string)> motherMembers = null)
         {
+            bool beUpdateAssets = motherMembers != null;
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             var desiredEntries = new Dictionary<string, GroupInfo>();
             foreach (var info in groupInfos)
             {
-                foreach (var guid in AssetDatabase.FindAssets("", new[] { info.Path }))
+                foreach (var path in info.allAssetsInFolder)
                 {
-                    var path = AssetDatabase.GUIDToAssetPath(guid);
-                    if (!IsPackableAssetPath(path)) continue;
-                    var directory = Path.GetDirectoryName(path)?.Replace('\\', '/');
-                    if (!string.Equals(directory, info.Path, StringComparison.OrdinalIgnoreCase)) continue;
-                    desiredEntries[guid] = info;
+                    if (IsPackableAssetPath(path))
+                    {
+                        desiredEntries.Add(AssetDatabase.AssetPathToGUID(path), info);
+                    }
                 }
             }
 
+            if (beUpdateAssets)
+            {
+                // 旧母包曾给隔离依赖加上业务目录 Label。仅转换可从隔离组名称确认归属的自动 Label。
+                foreach (var isolation in settings.groups.Where(IsDuplicateGroup))
+                {
+                    foreach (var dependency in isolation.entries)
+                    {
+                        string legacy = FindAutomaticGroupLabel(dependency);
+                        if (legacy != null && IsDirectoryLabel(legacy))
+                        {
+                            dependency.SetLabel(legacy, false);
+                            dependency.SetLabel("Duplicate Asset Isolation " + legacy.Replace('/', '-'), true, true);
+                        }
+                    }
+                }
+            }
             foreach (var pair in desiredEntries)
             {
+                // 热更读取已发布组的模式，配置表里的模式变更只在下次母包整理应用。
+                bool useDirectoryLabel = beUpdateAssets
+                    ? !pair.Value.Group.HasSchema<HMLabelPackingSchema>()
+                    : pair.Value.BundleMode != BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel;
                 var entry = settings.FindAssetEntry(pair.Key);
                 if (entry != null)
                 {
-                    SynchronizeDirectoryLabel(entry, pair.Value.Path);
-                    if (beUpdateAssets && (IsContentUpdateGroup(entry.parentGroup) || IsDuplicateGroup(entry.parentGroup)))
+                    if (beUpdateAssets && IsDuplicateGroup(entry.parentGroup))
+                    {
+                        continue;
+                    }
+                    if (useDirectoryLabel)
+                    {
+                        SynchronizeDirectoryLabel(entry, pair.Value.Path);
+                    }
+                    else if (beUpdateAssets)
+                    {
+                        SynchronizeHotUpdateLabels(entry, pair.Value, motherMembers.Contains((entry.guid, pair.Value.Group.Guid)));
+                    }
+                    if (beUpdateAssets && IsContentUpdateGroup(entry.parentGroup))
                         continue;
                     if (entry.parentGroup != pair.Value.Group)
                         settings.MoveEntry(entry, pair.Value.Group, entry.ReadOnly);
@@ -877,10 +964,18 @@ namespace HM.Editor
                         $"资源条目 {pair.Key} 在同步时被重新创建。");
                     continue;
                 }
+                if (beUpdateAssets && !useDirectoryLabel && motherMembers.Contains((pair.Key, pair.Value.Group.Guid)))
+                {
+                    throw new InvalidOperationException($"母包分片资源 {AssetDatabase.GUIDToAssetPath(pair.Key)} 缺少原条目，请恢复该平台母包或累计更新组后再热更。");
+                }
                 entry = settings.CreateOrMoveEntry(pair.Key, pair.Value.Group);
                 if (entry == null)
                     throw new InvalidOperationException("无法创建 Addressables 条目：" + AssetDatabase.GUIDToAssetPath(pair.Key));
-                entry.SetLabel(pair.Value.Path, true, true);
+                // 新增的热更条目可以沿用目录标签，保证仅将 Labels 写入 Catalog 的 preset 也有可用键。
+                if (useDirectoryLabel || beUpdateAssets)
+                {
+                    entry.SetLabel(pair.Value.Path, true, true);
+                }
             }
 
             // 完成移动后再移除失效条目，避免跨目录移动时丢失自定义 Address 和 Labels。
@@ -896,6 +991,27 @@ namespace HM.Editor
                 EditorUtility.SetDirty(group);
             }
             EditorUtility.SetDirty(settings);
+        }
+
+        private static void SynchronizeHotUpdateLabels(AddressableAssetEntry entry, GroupInfo info, bool wasInMotherGroup)
+        {
+            // 原始 state 区分母包成员和后来预先登记的新增资源；累计更新组中的成员也按原 GUID 判断。
+            var parts = entry.labels.Where(label => HMGroupLabelIndex.TryGetPartGroup(label, out var owner) &&
+                owner == info.GroupName).ToArray();
+            if (wasInMotherGroup)
+            {
+                if (parts.Length != 1)
+                {
+                    throw new InvalidOperationException($"母包分片资源 {entry.AssetPath} 缺少唯一分片 Label，请恢复该平台母包的原分片 Label 后再热更。");
+                }
+                return;
+            }
+
+            foreach (var part in parts)
+            {
+                entry.SetLabel(part, false);
+            }
+            SynchronizeDirectoryLabel(entry, info.Path);
         }
 
         private static void SynchronizeDirectoryLabel(AddressableAssetEntry entry, string directory)
@@ -917,7 +1033,7 @@ namespace HM.Editor
                 int.TryParse(groupName.Substring(markerIndex + marker.Length), out var sequence) && sequence > 0;
             string sourceName = hasSourceGroup ? groupName.Substring(0, markerIndex) : groupName;
             bool truncatedSource = hasSourceGroup && sourceName.Length == 48;
-            var candidates = entry.labels.Where(label => MatchesAutomaticGroupLabel(label, sourceName, truncatedSource)).ToArray();
+            var candidates = entry.labels.Where(label => MatchesAutomaticGroupLabel(label, sourceName, truncatedSource, entry.parentGroup.Settings)).ToArray();
             if (candidates.Length == 1) return candidates[0];
 
             // 历史条目没有标签来源记录，不能把目录形式的自定义标签直接删除。
@@ -930,10 +1046,21 @@ namespace HM.Editor
             return null;
         }
 
-        private static bool MatchesAutomaticGroupLabel(string label, string sourceName, bool truncatedSource)
+        private static bool MatchesAutomaticGroupLabel(string label, string sourceName, bool truncatedSource,
+            AddressableAssetSettings settings)
         {
             string normalized = label.Replace('\\', '/').TrimEnd('/');
-            if (normalized == "Duplicate Asset Isolation") return sourceName == normalized;
+            if (HMGroupLabelIndex.TryGetPartGroup(normalized, out string partGroup) &&
+                settings.FindGroup(partGroup)?.HasSchema<HMLabelPackingSchema>() == true)
+            {
+                // 资源跨目录移动时只清除原母包分配的分片，目录内迁入热更组时保留原片。
+                return sourceName == (truncatedSource ? partGroup.Substring(0, Math.Min(48, partGroup.Length)) : partGroup);
+            }
+            if (normalized == "Duplicate Asset Isolation" || normalized.StartsWith("Duplicate Asset Isolation ", StringComparison.Ordinal))
+            {
+                var name = truncatedSource ? normalized.Substring(0, Math.Min(48, normalized.Length)) : normalized;
+                return sourceName == name;
+            }
             if (!IsDirectoryLabel(normalized)) return false;
             string directoryGroup = normalized.Replace('/', '-');
             string duplicateGroup = "Duplicate Asset Isolation " + directoryGroup;
@@ -952,7 +1079,7 @@ namespace HM.Editor
             return normalized == "Assets" || normalized.StartsWith("Assets/", StringComparison.Ordinal);
         }
 
-        private static bool IsPackableAssetPath(string path)
+        internal static bool IsPackableAssetPath(string path)
         {
             return !AssetDatabase.IsValidFolder(path) && AddressableAssetUtility.IsPathValidForEntry(path);
         }
@@ -1201,7 +1328,7 @@ namespace HM.Editor
         /// 创建缺失的目录组，不修改已有组的打包模式。
         /// </summary>
         /// <param name="groupInfos"></param>
-        private static void CreateGroups(List<GroupInfo> groupInfos)
+        private static void CreateGroups(List<GroupInfo> groupInfos, bool updating = false)
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             foreach (var info in groupInfos)
@@ -1210,10 +1337,11 @@ namespace HM.Editor
                 if (info.Group != null) continue;
                 info.Group = settings.CreateGroup(info.GroupName, false, false, false, null,
                     typeof(BundledAssetGroupSchema), typeof(ContentUpdateGroupSchema));
-                bool separately = ConfigHmAddressables.SeparatelyPackAssetsPaths.Any(path =>
-                    string.Equals(HMAddressablesConfig.NormalizeAssetFolder(path), info.Path, StringComparison.OrdinalIgnoreCase));
-                var mode = separately ? BundledAssetGroupSchema.BundlePackingMode.PackSeparately :
-                    BundledAssetGroupSchema.BundlePackingMode.PackTogether;
+                var mode = info.BundleMode;
+                if (updating && mode == BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel)
+                {
+                    mode = BundledAssetGroupSchema.BundlePackingMode.PackTogether;
+                }
                 SetGroupSchema(info.Group, ConfigHmAddressables.ForceRemoteAssetsToLocal || info.BeLocalGroup, true, mode);
                 EditorUtility.SetDirty(info.Group);
                 Debug.Log("创建" + info.GroupName);
@@ -1270,7 +1398,6 @@ namespace HM.Editor
 
         private static void CheckForContentUpdateRestructions()
         {
-            LoadContentStateForUpdate();
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             // 原生入口会合并直接变化项和必须随之迁移的依赖项。
             var items = ContentUpdateScript.GatherModifiedEntries(settings, GetContentStatePath());
@@ -1296,64 +1423,29 @@ namespace HM.Editor
                 groupNames.Add(sourceGroup, FindUniqueGroupName(sourceName + "_Content Update_", reservedNames));
             }
 
-            var createdGroups = new List<AddressableAssetGroup>();
-            try
+            foreach (var groupItems in itemsByGroup)
             {
-                foreach (var groupItems in itemsByGroup)
-                {
-                    createdGroups.Add(CreatContentUpdateGroup(settings, groupItems.ToList(), groupItems.Key,
-                        groupNames[groupItems.Key]));
-                }
-            }
-            catch
-            {
-                // 只撤销本次迁移和本次创建的更新组，不记录或恢复 BundleMode。
-                foreach (var groupItems in itemsByGroup)
-                {
-                    foreach (var entry in groupItems)
-                    {
-                        if (createdGroups.Contains(entry.parentGroup))
-                            settings.MoveEntry(entry, groupItems.Key, entry.ReadOnly);
-                    }
-                }
-                foreach (var group in createdGroups) settings.RemoveGroup(group);
-                throw;
+                CreateContentUpdateGroup(settings, groupItems.ToList(), groupItems.Key, groupNames[groupItems.Key]);
             }
         }
 
-        private static AddressableAssetGroup CreatContentUpdateGroup(AddressableAssetSettings settings,
+        private static void CreateContentUpdateGroup(AddressableAssetSettings settings,
             List<AddressableAssetEntry> items, AddressableAssetGroup sourceGroup, string groupName)
         {
             var sourceSchema = sourceGroup.GetSchema<BundledAssetGroupSchema>();
-            AddressableAssetGroup contentGroup = null;
-            try
-            {
-                contentGroup = settings.CreateGroup(groupName, false, false, false, null);
-                var schema = contentGroup.AddSchema<BundledAssetGroupSchema>();
-                var contentUpdateSchema = contentGroup.AddSchema<ContentUpdateGroupSchema>();
-                SetGroupSchema(contentGroup, false, false, sourceSchema.BundleMode);
-                foreach (var entry in items) settings.MoveEntry(entry, contentGroup, entry.ReadOnly);
-                Debug.Assert(schema.BundleMode == sourceSchema.BundleMode &&
-                             items.All(entry => entry.parentGroup == contentGroup),
-                    $"更新组 {contentGroup.Name} 未正确继承来源组的打包模式或资源。");
-                EditorUtility.SetDirty(contentGroup);
-                EditorUtility.SetDirty(schema);
-                EditorUtility.SetDirty(contentUpdateSchema);
-                return contentGroup;
-            }
-            catch
-            {
-                if (contentGroup != null)
-                {
-                    foreach (var entry in items)
-                    {
-                        if (entry.parentGroup == contentGroup)
-                            settings.MoveEntry(entry, sourceGroup, entry.ReadOnly);
-                    }
-                    settings.RemoveGroup(contentGroup);
-                }
-                throw;
-            }
+            var contentGroup = settings.CreateGroup(groupName, false, false, false, null);
+            var schema = contentGroup.AddSchema<BundledAssetGroupSchema>();
+            var contentUpdateSchema = contentGroup.AddSchema<ContentUpdateGroupSchema>();
+            var updateMode = sourceGroup.HasSchema<HMLabelPackingSchema>()
+                ? BundledAssetGroupSchema.BundlePackingMode.PackTogether : sourceSchema.BundleMode;
+            SetGroupSchema(contentGroup, false, false, updateMode);
+            foreach (var entry in items) settings.MoveEntry(entry, contentGroup, entry.ReadOnly);
+            Debug.Assert(schema.BundleMode == updateMode &&
+                         items.All(entry => entry.parentGroup == contentGroup),
+                $"更新组 {contentGroup.Name} 未正确继承来源组的打包模式或资源。");
+            EditorUtility.SetDirty(contentGroup);
+            EditorUtility.SetDirty(schema);
+            EditorUtility.SetDirty(contentUpdateSchema);
         }
 
         private static string FindUniqueGroupName(string potentialName, HashSet<string> reservedNames)
@@ -1408,6 +1500,8 @@ namespace HM.Editor
 
     public class GroupInfo
     {
+        /// <summary>当前目录配置的母包打包模式。</summary>
+        internal BundledAssetGroupSchema.BundlePackingMode BundleMode;
         public string Path;
         public string GroupName;
         public System.IO.DirectoryInfo MyDirectoryInfo;

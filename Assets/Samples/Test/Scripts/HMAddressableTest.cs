@@ -45,7 +45,7 @@ public class HMAddressableTest : MonoBehaviour
     void Start()
     {
 #if !UNITY_EDITOR
-         Addressables.InitializeAsync();
+         HMAddressableManager.InitializeAsync().Forget();
 #endif
     }
 
@@ -641,8 +641,8 @@ public class HMAddressableTest : MonoBehaviour
     {
         var paths = new[] { capsulePath, cylinderPath };
         var key = "HMAAValidation/" + Guid.NewGuid().ToString("N");
-        var label = key + "/both";
-        var secondLabel = key + "/second";
+        var label = "Assets/" + key + "/both";
+        var secondAddress = key + "/second";
         var locator = new ResourceLocationMap(key);
         var assets = new GameObject[2];
         for (var i = 0; i < paths.Length; i++)
@@ -661,7 +661,7 @@ public class HMAddressableTest : MonoBehaviour
                     source.Dependencies.ToArray()) { Data = source.Data };
                 locator.Add(key, alias);
                 locator.Add(label, alias);
-                if (i == 1) locator.Add(secondLabel, alias);
+                if (i == 1) locator.Add(secondAddress, alias);
             }
             finally
             {
@@ -673,28 +673,22 @@ public class HMAddressableTest : MonoBehaviour
         Addressables.AddResourceLocator(locator);
         try
         {
-            var second = await HMAddressableManager.LoadAssetsAsyncByGroup<GameObject>(secondLabel).Timeout(ValidationTimeout);
-            fixtureAssets.AddRange(second);
-            assets[1] = second.Count == 1 ? second[0] : null;
-            await ValidateAssetResults(second, new[] { cylinderPath }, true);
+            // 两个位置共享主地址。先加载第二个，再确认按共用地址加载时仍选中第一个。
+            assets[1] = await HMAddressableManager.LoadAsync<GameObject>(secondAddress).Timeout(ValidationTimeout);
+            fixtureAssets.Add(assets[1]);
+            await ValidateAssetResults(new[] { assets[1] }, new[] { cylinderPath }, true);
             assets[0] = await HMAddressableManager.LoadAsync<GameObject>(key).Timeout(ValidationTimeout);
             fixtureAssets.Add(assets[0]);
             await ValidateAssetResults(new[] { assets[0] }, new[] { capsulePath }, true);
 
-            var both = await HMAddressableManager.LoadAssetsAsyncByGroup<GameObject>(label).Timeout(ValidationTimeout);
-            fixtureAssets.AddRange(both);
-            await ValidateAssetResults(both, paths, false);
-            second = await HMAddressableManager.LoadAssetsAsyncByGroup<GameObject>(secondLabel).Timeout(ValidationTimeout);
-            fixtureAssets.AddRange(second);
-            await ValidateAssetResults(second, new[] { cylinderPath }, true);
-
-            var secondHandles = GetValidationHandles(assets[1]);
-            var firstHandles = GetValidationHandles(assets[0]);
-            HMAddressableManager.ReleaseResGroup(secondLabel);
-            await WaitForValidationRelease(new[] { assets[1] }, secondHandles);
-            RequireValidation(firstHandles.All(handle => handle.IsValid()) && GetValidationHandles(assets[0]).Count > 0,
-                "按标签释放误伤了同 Address 的另一个资源。");
-            Debug.Log("[HMAA校验] 重名 Address 通过：标签位置、地址首项及按标签释放均正确。");
+            var invalidGroup = await HMAddressableManager.LoadAssetsAsyncByGroup<GameObject>(label).Timeout(ValidationTimeout);
+            RequireValidation(invalidGroup.Count == 0, "目录形式的手工 Label 被当作业务组加载。");
+            var handles = assets.SelectMany(asset => GetValidationHandles(asset)).ToArray();
+            HMAddressableManager.ReleaseResGroup(label);
+            await UniTask.Yield();
+            RequireValidation(handles.Length >= 2 && handles.All(handle => handle.IsValid()),
+                "无效组参数释放了同名 Address 的资源。");
+            Debug.Log("[HMAA校验] 重名 Address 的选择正确，手工 Label 不能用于按组加载和释放。");
         }
         finally
         {

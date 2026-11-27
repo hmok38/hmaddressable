@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 637bda5d1592f3446b87b2bd397d9122, type: 3}
   m_Name: ConfigHMAddressables
   m_EditorClassIdentifier: 
+  BundledAssetGroupSchemaPreset: {fileID: 2655988077585873504, guid: a9a3ccec160c0e340a073a58f6b84982, type: 2}
   AAAssetsPath:
   - Assets/Bundles
   - Assets/TestBundle
@@ -47,6 +48,9 @@ MonoBehaviour:
   SeparatelyPackAssetsPaths:
   - Assets/TestBundle/Config
   - Assets/TestBundle/Code
+  LabelPackAssetsPaths:
+  - Assets/TestBundle/sprite
+  LabelSizeK: 1024
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
   EncryptAssetsGroup: []

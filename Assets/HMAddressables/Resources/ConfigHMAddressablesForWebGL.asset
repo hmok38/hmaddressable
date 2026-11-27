@@ -49,6 +49,9 @@ MonoBehaviour:
   - Assets/Bundles/ConfigMini
   - Assets/Samples/Test/Materials
   - Assets/Samples/Test/ParrentFolder
+  LabelPackAssetsPaths:
+  - Assets/TestBundle/sprite
+  LabelSizeK: 1024
   RemoteLoadPath: http://[PrivateIpAddress]/[BuildTarget]
   TestRemoteLoadPath: http://[PrivateIpAddress]/Test/[BuildTarget]
   EncryptAssetsGroup: []

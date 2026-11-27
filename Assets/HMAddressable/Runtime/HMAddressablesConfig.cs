@@ -27,6 +27,14 @@ namespace HM
         [Header("要包含在APP中的资源目录")] public string[] LocalAseetsPaths = new string[] { "Assets/Bundles" };
         [Header("要远程下载的资源目录")] public string[] RemoteAseetsPaths = new string[] { };
         [Header("要分散打包的资源目录")] public string[] SeparatelyPackAssetsPaths = new string[] { };
+        /// <summary>在母包整理时按文件名和大小分片的资源目录。</summary>
+        [Header("按 Label 打包的资源目录"), Tooltip("勾选的目录由工具管理全部 Label，与分散打包互斥。")]
+        public string[] LabelPackAssetsPaths = Array.Empty<string>();
+
+        /// <summary>每个母包分片的估算上限，1 K 为 1024 字节。</summary>
+        [Min(1), Tooltip("母包分片的估算上限，1 K = 1024 字节。按当前平台导入的数据和本组 Bundle 压缩方式估算。")]
+        public int LabelSizeK = 1024;
+
         [Header("正式资源服务器分发地址")] public string RemoteLoadPath = "http://[PrivateIpAddress]/[BuildTarget]";
         [Header("测试资源服务器分发地址")] public string TestRemoteLoadPath = "http://[PrivateIpAddress]/Test/[BuildTarget]";
 
@@ -251,24 +259,8 @@ namespace HM
                 needSave = true;
             }
 
-            //检查SeparatelyPackAssetsPaths中的路径是否合法
-            needRemoveIndex.Clear();
-            for (int i = SeparatelyPackAssetsPaths.Length - 1; i >= 0; i--)
-            {
-                var separatelyPath = NormalizeFolderForComparison(SeparatelyPackAssetsPaths[i]);
-                if (!allSubFolders.Contains(separatelyPath, StringComparer.OrdinalIgnoreCase))
-                {
-                    Debug.LogError($"SeparatelyPackAssetsPaths 资源组中存在不合法的路径:{separatelyPath},已经移除");
-                    needRemoveIndex.Add(i);
-                }
-            }
-
-            if (needRemoveIndex.Count > 0)
-            {
-                SeparatelyPackAssetsPaths = SeparatelyPackAssetsPaths
-                    .Where((path, index) => !needRemoveIndex.Contains(index)).ToArray();
-                needSave = true;
-            }
+            needSave |= RemoveInvalidPackFolders(ref SeparatelyPackAssetsPaths, allSubFolders);
+            needSave |= RemoveInvalidPackFolders(ref LabelPackAssetsPaths, allSubFolders);
 
             //还有一些路径没有被LocalAseetsPaths和RemoteAseetsPaths包含,说明这些路径没有被分配到资源组,需要进行提醒
             if (allSub.Count > 0)
@@ -302,7 +294,30 @@ namespace HM
             }
         }
 
-        private static string NormalizeFolderForComparison(string path)
+        private static bool RemoveInvalidPackFolders(ref string[] paths, List<string> folders)
+        {
+            var valid = new HashSet<string>(folders, StringComparer.OrdinalIgnoreCase);
+            var kept = new List<string>();
+            foreach (var path in paths ?? Array.Empty<string>())
+            {
+                if (valid.Remove(NormalizeFolderForComparison(path)))
+                {
+                    kept.Add(path);
+                }
+                else
+                {
+                    Debug.LogWarning($"已移除失效或重复的打包目录：{path}");
+                }
+            }
+            if (paths != null && paths.Length == kept.Count)
+            {
+                return false;
+            }
+            paths = kept.ToArray();
+            return true;
+        }
+
+        internal static string NormalizeFolderForComparison(string path)
         {
             try
             {
@@ -394,6 +409,23 @@ namespace HM
                     if (!expected.Contains(folder) || !separately.Add(folder))
                         throw new InvalidOperationException("分散打包目录未纳入资源目录或重复配置：" + folder);
                 }
+                if (LabelSizeK <= 0)
+                {
+                    throw new InvalidOperationException("每 Label 资源大小（K）必须为正整数。");
+                }
+                var labelFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var path in LabelPackAssetsPaths ?? Array.Empty<string>())
+                {
+                    var folder = NormalizeAssetFolder(path);
+                    if (separately.Contains(folder))
+                    {
+                        throw new InvalidOperationException("同一目录不能同时分散打包和按 Label 打包：" + folder);
+                    }
+                    if (!expected.Contains(folder) || !labelFolders.Add(folder))
+                    {
+                        throw new InvalidOperationException("按 Label 打包目录未纳入资源目录或重复配置：" + folder);
+                    }
+                }
                 if (expected.Count == 0) throw new InvalidOperationException("配置目录中没有资源，不能打包。");
                 Debug.Assert(configured.SetEquals(expected), "资源目录校验结果不一致。");
                 return true;
@@ -403,6 +435,35 @@ namespace HM
                 Debug.LogError("HMAA 配置检查失败：" + exception.Message, this);
                 EditorGUIUtility.PingObject(this);
                 return false;
+            }
+        }
+
+        /// <summary>把已校验的目录写成 Assets 相对路径，使 Player 能按发布时的名称查找 Label。</summary>
+        internal void CanonicalizePlayerGroupPaths()
+        {
+            bool changed = false;
+            string Canonical(string path)
+            {
+                string canonical = NormalizeAssetFolder(path);
+                changed |= canonical != path;
+                return canonical;
+            }
+
+            foreach (var paths in new[] { LocalAseetsPaths, RemoteAseetsPaths, LabelPackAssetsPaths ?? Array.Empty<string>() })
+            {
+                for (int i = 0; i < paths.Length; i++)
+                {
+                    paths[i] = Canonical(paths[i]);
+                }
+            }
+            foreach (var item in UnassignedAssetsPath)
+            {
+                item.GroupName = Canonical(item.GroupName);
+            }
+            if (changed)
+            {
+                EditorUtility.SetDirty(this);
+                AssetDatabase.SaveAssets();
             }
         }
 

@@ -3,7 +3,6 @@ using System.Diagnostics;
 using Cysharp.Threading.Tasks;
 using HM;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
@@ -26,7 +25,7 @@ public class HMAddressableMultipleUpdateTest : MonoBehaviour
 
     void Start()
     {
-        Addressables.InitializeAsync();
+        HMAddressableManager.InitializeAsync().Forget();
         Debug.Log(Application.persistentDataPath);
         Debug.Log(Application.dataPath);
         Object.DontDestroyOnLoad(this.gameObject);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -99,7 +99,7 @@ namespace HM.Editor.HMAddressable.Editor
                            newCreatGroups.Add( parentGroup.DuplicateAssetIsolationGroup);
                        }
                        var tmp=   settings.CreateOrMoveEntry(AssetDatabase.AssetPathToGUID(assetPathKeyValue.Key), parentGroup.DuplicateAssetIsolationGroup,false, false);
-                       tmp.SetLabel(parentGroup.Path, true, true);
+                       tmp.SetLabel(parentGroup.DuplicateAssetIsolationGroup.Name, true, true);
                    }
                    else
                    {

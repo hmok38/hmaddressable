@@ -20,6 +20,8 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("HMAddressable.Editor")]
+
 namespace HM
 {
     /// <summary>
@@ -42,20 +44,33 @@ namespace HM
         //-------防止代码裁剪的类
         private const string PrefsName = "ADDRESSABLES_NEEDUPDATE_NEWV3";
 
-        // 地址只记录单资源调用选中的位置，标签加载不能改变同名地址的选择结果。
-        private static readonly Dictionary<(string Address, Type Type), ResourceLoad> AddressLoads =
-            new Dictionary<(string Address, Type Type), ResourceLoad>();
         private static readonly Dictionary<(string Address, Type Type), UniTaskCompletionSource<ResourceLoad>> ResolvingLoads =
             new Dictionary<(string Address, Type Type), UniTaskCompletionSource<ResourceLoad>>();
         private static readonly Dictionary<(string InternalId, string ProviderId, Type ResourceType, int DependencyHash, Type Type), ResourceLoad> ResourceLoads =
             new Dictionary<(string InternalId, string ProviderId, Type ResourceType, int DependencyHash, Type Type), ResourceLoad>();
 
+        /// <summary>记录一次按位置和类型加载的资源、句柄及用于释放它的业务归属。</summary>
         private sealed class ResourceLoad
         {
             public (string InternalId, string ProviderId, Type ResourceType, int DependencyHash, Type Type) Key;
             public IResourceLocation Location;
             public string Address;
             public string RequestAddress;
+            /// <summary>按单个地址加载时使用的别名，供 Catalog 更换后定位旧句柄。</summary>
+            internal HashSet<string> Aliases;
+            /// <summary>标记该加载记录所属的业务目录。</summary>
+            internal string GroupFolder;
+            internal void RememberAlias(string address)
+            {
+                if (address != Address)
+                {
+                    if (Aliases == null)
+                    {
+                        Aliases = new HashSet<string>(StringComparer.Ordinal);
+                    }
+                    Aliases.Add(address);
+                }
+            }
             public Object Resource;
             public AsyncOperationHandle Handle;
             public readonly UniTaskCompletionSource<Object> Completion = new UniTaskCompletionSource<Object>();
@@ -145,6 +160,10 @@ namespace HM
                 return null;
             }
             if (load != null && load.Completion.Task.Status == UniTaskStatus.Succeeded) return load.Resource as T;
+            if (_catalogChanging != null)
+            {
+                throw new InvalidOperationException("Catalog 正在更新，请使用 LoadAsync 等待新资源位置。");
+            }
             RequireSynchronousLoading(nameof(LoadAsync));
             var addressKey = (resName, typeof(T));
             if (load != null || ResolvingLoads.ContainsKey(addressKey))
@@ -172,7 +191,7 @@ namespace HM
                 if (location == null) throw new InvalidOperationException("找不到资源地址：" + resName);
 #endif
                 load = GetOrCreateResourceLoad(location, typeof(T), resName, out created);
-                AddressLoads[addressKey] = load;
+                load.RememberAlias(resName);
             }
             catch (Exception exception)
             {
@@ -202,6 +221,10 @@ namespace HM
         {
             var resName = NormalizePath(resNameP);
             if (string.IsNullOrEmpty(resName)) throw new ArgumentException("资源地址不能为空。", nameof(resNameP));
+            if (_catalogChanging != null)
+            {
+                await _catalogChanging.Task;
+            }
             ResourceLoad load;
             try { load = FindResourceLoad(resName, typeof(T)); }
             catch (Exception exception)
@@ -235,7 +258,7 @@ namespace HM
                 if (location == null) throw new InvalidOperationException("找不到资源地址：" + resName);
 #endif
                 load = GetOrCreateResourceLoad(location, typeof(T), resName, out created);
-                AddressLoads[addressKey] = load;
+                load.RememberAlias(resName);
             }
             catch (Exception exception)
             {
@@ -257,18 +280,22 @@ namespace HM
 
         private static ResourceLoad FindResourceLoad(string address, Type type)
         {
-            if (AddressLoads.TryGetValue((address, type), out var load)) return load;
             // 只查当前 Catalog 的首个可加载位置，不能用先缓存的同名变体代替地址选择。
             foreach (var locator in Addressables.ResourceLocators)
             {
                 if (!locator.Locate(address, type, out var locations)) continue;
                 var location = SelectResourceLocation(locations, type);
                 if (location == null) continue;
-                if (!ResourceLoads.TryGetValue(GetResourceKey(location, type), out load)) return null;
-                AddressLoads[(address, type)] = load;
+                if (!ResourceLoads.TryGetValue(GetResourceKey(location, type), out var load)) return null;
+                load.RememberAlias(address);
                 return load;
             }
+#if UNITY_EDITOR
+            ResourceLoads.TryGetValue(GetResourceKey(null, type, address), out var direct);
+            return direct;
+#else
             return null;
+#endif
         }
 
         private static IResourceLocation SelectResourceLocation(IList<IResourceLocation> locations, Type type)
@@ -408,34 +435,144 @@ namespace HM
             return objs.ToList();
         }
 
-        /// <summary>
-        /// 通过组或者标签加载多个资源
-        /// </summary>
-        /// <param name="groupNameOrLabel"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        public static async UniTask<List<T>> LoadAssetsAsyncByGroup<T>(string groupNameOrLabel)
-            where T : UnityEngine.Object
-        {
+        private static HMGroupLabelIndex _groupLabels;
+        private static UniTaskCompletionSource _catalogChanging;
 #if UNITY_EDITOR
-            var names = GetAllResouceAssetsByFolder<T>(groupNameOrLabel);
-            if (names != null && names.Count > 0) return await loadAssetsAsync<T>(names);
+        internal static Func<bool> HasEditorSettings;
+        internal static Func<string, List<string>> GetEditorGroupFiles;
+        internal static void InvalidateEditorGroupLabels()
+        {
+            _groupLabels = null;
+        }
 #endif
-            var locations = await GetResourceLocationsAsync(groupNameOrLabel, typeof(T));
-            // 本次请求类型固定；同一加载位置的多种 Catalog 类型不能重复加载。
-            var uniqueLocations = locations.GroupBy(location => (location.InternalId, location.ProviderId, location.DependencyHashCode))
-                .Select(group => group.First()).ToArray();
-            var tasks = new UniTask<T>[uniqueLocations.Length];
-            for (var i = 0; i < uniqueLocations.Length; i++)
-            {
-                tasks[i] = LoadResourceAtLocationAsync<T>(uniqueLocations[i]);
-            }
-            return (await UniTask.WhenAll(tasks)).ToList();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetGroupLabels()
+        {
+            _groupLabels = null;
+            _catalogChanging = null;
         }
 
-        private static async UniTask<T> LoadResourceAtLocationAsync<T>(IResourceLocation location) where T : UnityEngine.Object
+        /// <summary>初始化 Addressables 并从当前 Catalog 建立目录和分片 Label 索引。</summary>
+        public static async UniTask InitializeAsync()
+        {
+            await EnsureGroupLabelsAsync(true);
+        }
+
+        private static async UniTask EnsureGroupLabelsAsync(bool refresh = false)
+        {
+            if (_catalogChanging != null)
+            {
+                await _catalogChanging.Task;
+            }
+#if UNITY_EDITOR
+            if (HasEditorSettings != null && !HasEditorSettings())
+            {
+                if (_groupLabels == null || refresh)
+                {
+                    _groupLabels = new HMGroupLabelIndex(HMAddressablePlatformConfig?.CurrentConfig,
+                        Array.Empty<IResourceLocator>());
+                }
+                return;
+            }
+#endif
+            if (!refresh && _groupLabels != null && _groupLabels.IsCurrent(Addressables.ResourceLocators))
+            {
+                return;
+            }
+            // 原生初始化句柄可被其他调用方复用，只释放本次持有的引用。
+            var initialization = Addressables.ResourceManager.Acquire(Addressables.InitializeAsync());
+            try
+            {
+                var locator = await initialization.ToUniTask();
+                if (locator == null)
+                {
+                    throw new InvalidOperationException("Addressables 初始化未返回有效 Catalog。");
+                }
+                if (_catalogChanging != null)
+                {
+                    await _catalogChanging.Task;
+                }
+                if (refresh || _groupLabels == null || !_groupLabels.IsCurrent(Addressables.ResourceLocators))
+                {
+                    RebuildGroupLabels();
+                }
+            }
+            finally
+            {
+                if (initialization.IsValid())
+                {
+                    Addressables.Release(initialization);
+                }
+            }
+        }
+
+        private static void RebuildGroupLabels()
+        {
+            var current = Addressables.ResourceLocators;
+            var next = new HMGroupLabelIndex(HMAddressablePlatformConfig?.CurrentConfig, current);
+            if (_groupLabels != null && !_groupLabels.IsCurrent(current))
+            {
+                RememberPreviousGroupOwners(_groupLabels);
+            }
+            _groupLabels = next;
+        }
+
+        /// <summary>按原业务目录加载目录 Label 与所有分片 Label 的并集，包括已迁入热更组的资源。</summary>
+        public static async UniTask<List<T>> LoadAssetsAsyncByGroup<T>(string groupPath) where T : Object
+        {
+            string folder = NormalizePath(groupPath)?.TrimEnd('/');
+            if (string.IsNullOrEmpty(folder))
+            {
+                return new List<T>();
+            }
+            await EnsureGroupLabelsAsync();
+            var keys = _groupLabels.GetGroupKeys(folder);
+            if (keys == null)
+            {
+                return new List<T>();
+            }
+#if UNITY_EDITOR
+            if (HasEditorSettings != null && !HasEditorSettings())
+            {
+                var paths = GetEditorGroupFiles(folder).Where(path => AssetDatabase.LoadAssetAtPath<T>(path) != null).ToList();
+                return await loadAssetsAsync<T>(paths);
+            }
+#endif
+            return await LoadLabelLocationsAsync<T>(keys, folder);
+        }
+
+        /// <summary>按原生 Label 的完整名称加载符合类型的资源。传入分片 Label 时只查询该分片。</summary>
+        public static async UniTask<List<T>> LoadAssetsAsyncByLabel<T>(string label) where T : Object
+        {
+            if (string.IsNullOrEmpty(label))
+            {
+                return new List<T>();
+            }
+#if UNITY_EDITOR
+            if (HasEditorSettings != null && !HasEditorSettings())
+            {
+                return new List<T>();
+            }
+#endif
+            await EnsureGroupLabelsAsync();
+            return await LoadLabelLocationsAsync<T>(new List<string> { label }, _groupLabels.GetOwner(label));
+        }
+
+        private static async UniTask<List<T>> LoadLabelLocationsAsync<T>(List<string> keys, string folder) where T : Object
+        {
+            // 原生多键 Union 不比较依赖。按实际位置去重，保留不同 Bundle 中内部 ID 相同的成员。
+            var locations = _groupLabels.Locate(keys, typeof(T)).GroupBy(GetLocationIdentity).Select(group => group.First());
+            return (await UniTask.WhenAll(locations.Select(location => LoadResourceAtLocationAsync<T>(location, folder)))).ToList();
+        }
+
+        private static async UniTask<T> LoadResourceAtLocationAsync<T>(IResourceLocation location, string folder) where T : UnityEngine.Object
         {
             var load = GetOrCreateResourceLoad(location, typeof(T), location.PrimaryKey, out var created);
+            if (folder != null)
+            {
+                load.GroupFolder = folder;
+            }
             if (created) await LoadResourceAsync<T>(load);
             return await load.Completion.Task as T;
         }
@@ -549,9 +686,8 @@ namespace HM
             if (string.IsNullOrEmpty(resName)) return;
             try
             {
-                var loads = ResourceLoads.Values.Where(load => load.Address == resName)
-                    .Concat(AddressLoads.Where(pair => pair.Key.Address == resName).Select(pair => pair.Value))
-                    .Distinct().ToArray();
+                var loads = ResourceLoads.Values.Where(load => load.Address == resName || load.Aliases?.Contains(resName) == true)
+                    .ToArray();
                 var resolving = ResolvingLoads.Where(pair => pair.Key.Address == resName)
                     .Select(pair => pair.Value).ToArray();
                 var tasks = loads.Select(ReleaseResourceAsync)
@@ -589,8 +725,6 @@ namespace HM
             // 释放绑定到这一次加载记录，旧请求不能删除相同位置上后来创建的缓存。
             if (!ResourceLoads.TryGetValue(load.Key, out var current) || !ReferenceEquals(current, load)) return false;
             ResourceLoads.Remove(load.Key);
-            var addresses = AddressLoads.Where(pair => ReferenceEquals(pair.Value, load)).Select(pair => pair.Key).ToArray();
-            foreach (var address in addresses) AddressLoads.Remove(address);
             var handle = load.Handle;
             load.Handle = default;
             if (handle.IsValid()) Addressables.Release(handle);
@@ -603,43 +737,36 @@ namespace HM
             foreach (var name in resNames) ReleaseRes(name);
         }
 
-        /// <summary>按组或标签匹配实际资源位置，释放对应位置下的所有加载类型及图集子资源。</summary>
-        public static async void ReleaseResGroup(string groupNameOrLabel)
+        /// <summary>按业务目录释放直属资源对应的所有加载类型及图集子资源。</summary>
+        public static async void ReleaseResGroup(string groupPath)
         {
             try
             {
-                var groupKeys = new List<string> { groupNameOrLabel };
-#if UNITY_EDITOR
-                var names = GetAllResouceAssetsByFolder<Object>(groupNameOrLabel);
-                if (names != null && names.Count > 0)
+                string folder = NormalizePath(groupPath)?.TrimEnd('/');
+                if (string.IsNullOrEmpty(folder))
                 {
-                    ReleaseRes(names);
-                    if (AssetDatabase.LoadAssetAtPath<Object>("Assets/AddressableAssetsData/AddressableAssetSettings.asset") == null)
-                        return;
-                    // 自定义 Address 不一定等于资源路径，同时用 GUID 查询目录内的主资源。
-                    groupKeys = names.Concat(names.Select(path => AssetDatabase.AssetPathToGUID(path))).Distinct().ToList();
+                    return;
+                }
+                await EnsureGroupLabelsAsync();
+                var groupKeys = _groupLabels.GetGroupKeys(folder);
+                if (groupKeys == null)
+                {
+                    return;
+                }
+#if UNITY_EDITOR
+                if (HasEditorSettings != null && !HasEditorSettings())
+                {
+                    ReleaseRes(GetEditorGroupFiles(folder));
+                    return;
                 }
 #endif
-                var locations = new List<IResourceLocation>();
-                // 保留主资源位置，同时补查已请求类型对应的位置。
+                // 目录和所有分片共用本次快照。补查已请求类型，以覆盖只在指定类型下公开的位置。
+                var index = _groupLabels;
                 var types = ResourceLoads.Keys.Select(key => key.Type)
-                    .Concat(ResolvingLoads.Keys.Select(key => key.Type)).Prepend(null).Distinct().ToArray();
-                foreach (var type in types)
-                {
-                    var operation = Addressables.LoadResourceLocationsAsync(groupKeys, Addressables.MergeMode.Union, type);
-                    try
-                    {
-                        locations.AddRange(await operation.ToUniTask());
-                    }
-                    finally
-                    {
-                        if (operation.IsValid()) Addressables.Release(operation);
-                    }
-                }
-                // 释放匹配位置下的所有加载类型。
-                var keys = locations.Select(location => (location.InternalId, location.ProviderId, location.DependencyHashCode)).ToHashSet();
-                if (keys.Count == 0) return;
-                Func<ResourceLoad, bool> matches = load => MatchesResourceGroup(load, keys);
+                    .Concat(ResolvingLoads.Keys.Select(key => key.Type)).Prepend(null).Distinct();
+                var keys = types.SelectMany(type => index.Locate(groupKeys, type)).Select(GetLocationIdentity).ToHashSet();
+                // Catalog 替换后旧资源位置可能已消失，仍按加载时登记的原目录释放。
+                Func<ResourceLoad, bool> matches = load => load.GroupFolder == folder || MatchesResourceGroup(load, keys);
                 var loads = ResourceLoads.Values.Where(matches).ToArray();
                 var resolving = ResolvingLoads.Values.ToArray();
                 var tasks = loads.Select(ReleaseResourceAsync)
@@ -648,7 +775,7 @@ namespace HM
             }
             catch (Exception exception)
             {
-                NotifyLoadingFailure(groupNameOrLabel, exception);
+                NotifyLoadingFailure(groupPath, exception);
             }
         }
 
@@ -657,13 +784,48 @@ namespace HM
         {
             var location = load.Location;
             if (location == null) return false;
-            if (keys.Contains((load.Key.InternalId, load.Key.ProviderId, load.Key.DependencyHash))) return true;
-            if (!(Addressables.ResourceManager.GetResourceProvider(load.Key.Type, location) is AtlasSpriteProvider) ||
-                !location.HasDependencies) return false;
+            return keys.Contains(GetLocationIdentity(location)) ||
+                keys.Contains(GetLocationIdentity(GetGroupMemberLocation(load)));
+        }
 
-            // AtlasSpriteProvider 的第一个依赖是主图集，只检查它，避免匹配到共享 Bundle 的其他资源。
-            var atlasLocation = location.Dependencies[0];
-            return keys.Contains((atlasLocation.InternalId, atlasLocation.ProviderId, atlasLocation.DependencyHashCode));
+        private static (string InternalId, string ProviderId, int DependencyHash) GetLocationIdentity(IResourceLocation location)
+        {
+            return (location.InternalId, location.ProviderId, location.DependencyHashCode);
+        }
+
+        private static IResourceLocation GetGroupMemberLocation(ResourceLoad load)
+        {
+            // 图集子 Sprite 的第一个依赖是图集。普通资源的 Bundle 依赖不能作为目录成员。
+            var location = load.Location;
+            return location.HasDependencies && Addressables.ResourceManager.GetResourceProvider(load.Key.Type, location) is AtlasSpriteProvider
+                ? location.Dependencies[0] : location;
+        }
+
+        private static void RememberPreviousGroupOwners(HMGroupLabelIndex previous)
+        {
+            // 通过 Address 或自定义 Label 加载的资源可能尚无目录记录。只在替换 Catalog 时匹配这些仍存活的旧位置。
+            var unowned = ResourceLoads.Values.Where(load => load.GroupFolder == null && load.Location != null)
+                .GroupBy(load => GetLocationIdentity(GetGroupMemberLocation(load)))
+                .ToDictionary(group => group.Key, group => group.ToArray());
+            foreach (var group in previous.Groups)
+            {
+                if (unowned.Count == 0)
+                {
+                    break;
+                }
+                foreach (var location in previous.Locate(group.Value, null))
+                {
+                    var key = GetLocationIdentity(location);
+                    if (unowned.TryGetValue(key, out var loads))
+                    {
+                        foreach (var load in loads)
+                        {
+                            load.GroupFolder = group.Key;
+                        }
+                        unowned.Remove(key);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -956,28 +1118,6 @@ namespace HM
 
 
 
-        private static List<string> GetAllResouceAssetsByFolder<T>(string folderPath) where T : UnityEngine.Object
-        {
-#if UNITY_EDITOR
-            if (AssetDatabase.IsValidFolder(folderPath))
-            {
-                var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}", new[] { folderPath });
-                List<string> list = new List<string>();
-                for (int i = 0; i < guids.Length; i++)
-                {
-                    list.Add(AssetDatabase.GUIDToAssetPath(guids[i]));
-                }
-
-                return list;
-            }
-            else
-            {
-                return null;
-            }
-#endif
-            return null;
-        }
-
         #region ============================资源更新相关==================================================================
 
         /// <summary>
@@ -1037,6 +1177,7 @@ namespace HM
             NeedUpdateKeys.Clear();
             try
             {
+                await EnsureGroupLabelsAsync();
 #if UNITY_EDITOR
                 _updateStatus = AsyncOperationStatus.Succeeded;
                 _updateStatusCode = UpdateStatusCode.NO_UPDATES_NEEDED;
@@ -1100,19 +1241,6 @@ namespace HM
 
         private static async UniTask UpdateWork()
         {
-            // 原生初始化可能复用其他调用方的句柄，只释放本次 Acquire 的引用。
-            var initialization = Addressables.ResourceManager.Acquire(Addressables.InitializeAsync());
-            try
-            {
-                var locator = await initialization.ToUniTask();
-                if (locator == null)
-                    throw new InvalidOperationException("Addressables 初始化未返回有效 Catalog，请检查初始化错误，必要时重启客户端后重试。");
-            }
-            finally
-            {
-                if (initialization.IsValid()) Addressables.Release(initialization);
-            }
-
             await CheckUpdateMainCatalog();
             await CheckNeedUpdateRecourceLocators();
             if (_updateStatus != AsyncOperationStatus.None) return;
@@ -1147,9 +1275,17 @@ namespace HM
             _updateStatusCode = UpdateStatusCode.CHECKING_CONTENT_OF_UPDATING_RESOURCES;
             if (_needUpdateCatalogs != null && _needUpdateCatalogs.Count > 0)
             {
-                var operation = Addressables.UpdateCatalogs(_needUpdateCatalogs, false);
+                var changing = new UniTaskCompletionSource();
+                _catalogChanging = changing;
+                AsyncOperationHandle<List<IResourceLocator>> operation = default;
                 try
                 {
+                    // 让已发出的单资源请求先登记旧位置；此后新请求等待索引切换，旧句柄仍可按原目录释放。
+                    if (ResolvingLoads.Count > 0)
+                    {
+                        await UniTask.WhenAll(ResolvingLoads.Values.Select(request => request.Task).ToArray());
+                    }
+                    operation = Addressables.UpdateCatalogs(_needUpdateCatalogs, false);
                     while (!operation.IsDone)
                     {
                         DispatchUpdateCallback();
@@ -1157,10 +1293,19 @@ namespace HM
                     }
                     if (operation.Status != AsyncOperationStatus.Succeeded)
                         throw operation.OperationException ?? new InvalidOperationException("更新 Catalog 失败。");
+                    RebuildGroupLabels();
                 }
                 finally
                 {
-                    if (operation.IsValid()) Addressables.Release(operation);
+                    _catalogChanging = null;
+                    try
+                    {
+                        if (operation.IsValid()) Addressables.Release(operation);
+                    }
+                    finally
+                    {
+                        changing.TrySetResult();
+                    }
                 }
             }
 
