@@ -124,13 +124,21 @@ namespace HM
             return _ownerByKey.TryGetValue(label, out var folder) ? folder : null;
         }
 
-        /// <summary>只识别组名末尾由工具生成的 -part- 加正整数，保留组名内部的连字符。</summary>
+        /// <summary>从普通分片 -part-N 或组内共享分片 -part-sN 读取组名，N 为不带前导零的正整数。</summary>
         internal static bool TryGetPartGroup(string key, out string groupName)
         {
             groupName = null;
             int separator = key.LastIndexOf(PartSeparator, StringComparison.Ordinal);
+            if (separator <= 0)
+            {
+                return false;
+            }
             int start = separator + PartSeparator.Length;
-            if (separator <= 0 || start >= key.Length || key[start] < '1' || key[start] > '9')
+            if (start < key.Length && key[start] == 's')
+            {
+                start++;
+            }
+            if (start >= key.Length || key[start] < '1' || key[start] > '9')
             {
                 return false;
             }

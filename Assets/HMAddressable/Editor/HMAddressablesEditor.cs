@@ -785,30 +785,38 @@ namespace HM.Editor
                 Debug.LogWarning("配置已开启强制本地：普通资源组和重复依赖组将使用本地路径，打包模式仍由各目录的配置决定。");
             }
             CreateGroups(groupInfos);
+            // 全量整理先解除旧共享条目的显式归属，重新分析现在仍由哪些资源引用它们。
+            var dependencyMetadata = new Dictionary<string, (string address, string[] labels, bool readOnly)>();
+            foreach (var pair in HMLabelPackingSchema.GetSharedEntries(settings))
+            {
+                var entry = settings.FindAssetEntry(pair.Key);
+                if (entry != null)
+                {
+                    dependencyMetadata[entry.guid] = (entry.address,
+                        entry.labels.Where(label => label != pair.Value.label).ToArray(), entry.ReadOnly);
+                }
+            }
             SetAssetsToGroup(groupInfos);
             var obsoleteGroups = settings.groups.Where(group => group != null &&
                 !group.HasSchema<PlayerDataGroupSchema>() && !groupInfos.Any(info => info.Group == group)).ToArray();
-            var dependencyMetadata = new Dictionary<string, (string address, string[] labels, bool readOnly)>();
             foreach (var group in obsoleteGroups)
             {
                 foreach (var entry in group.entries)
                 {
                     var automaticLabel = FindAutomaticGroupLabel(entry);
-                    dependencyMetadata[entry.guid] = (entry.address,
-                        entry.labels.Where(label => label != automaticLabel).ToArray(), entry.ReadOnly);
+                    if (!dependencyMetadata.ContainsKey(entry.guid))
+                    {
+                        dependencyMetadata.Add(entry.guid, (entry.address,
+                            entry.labels.Where(label => label != automaticLabel).ToArray(), entry.ReadOnly));
+                    }
                 }
             }
             foreach (var group in obsoleteGroups) settings.RemoveGroup(group);
             SetAllGroupSchema(groupInfos);
             foreach (var info in groupInfos)
             {
-                if (info.BundleMode == BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel)
-                {
-                    HMLabelPacking.AssignLabels(info.Group, ConfigHmAddressables.LabelSizeK);
-                    var published = info.Group.GetSchema<HMLabelPackingSchema>() ?? info.Group.AddSchema<HMLabelPackingSchema>();
-                    published.RecordBuildTarget(EditorUserBuildSettings.activeBuildTarget);
-                }
-                else if (info.Group.HasSchema<HMLabelPackingSchema>())
+                if (info.BundleMode != BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel &&
+                    info.Group.HasSchema<HMLabelPackingSchema>())
                 {
                     info.Group.RemoveSchema<HMLabelPackingSchema>();
                 }
@@ -817,6 +825,15 @@ namespace HM.Editor
             var helper2 = new CalculateAddressHelper();
             helper2.CheckForDuplicateDependencies(AddressableAssetSettingsDefaultObject.Settings, groupInfos,
                 out var newCreatGroups);
+            foreach (var guid in HMLabelPackingSchema.GetSharedEntries(settings).Keys)
+            {
+                if (dependencyMetadata.TryGetValue(guid, out var metadata))
+                {
+                    var entry = settings.FindAssetEntry(guid);
+                    entry.SetAddress(metadata.address);
+                    entry.ReadOnly = metadata.readOnly;
+                }
+            }
             foreach (var group in newCreatGroups)
             {
                 foreach (var entry in group.entries)
@@ -908,6 +925,7 @@ namespace HM.Editor
             bool beUpdateAssets = motherMembers != null;
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             var desiredEntries = new Dictionary<string, GroupInfo>();
+            var publishedShared = new HashSet<string>();
             foreach (var info in groupInfos)
             {
                 foreach (var path in info.allAssetsInFolder)
@@ -921,6 +939,28 @@ namespace HM.Editor
 
             if (beUpdateAssets)
             {
+                // 共享条目的磁盘目录可能不在配置中；原组和累计更新组都以母包记录为准。
+                foreach (var pair in HMLabelPackingSchema.GetSharedEntries(settings))
+                {
+                    var entry = settings.FindAssetEntry(pair.Key);
+                    string path = AssetDatabase.GUIDToAssetPath(pair.Key);
+                    if (string.IsNullOrEmpty(path) || AssetDatabase.GetMainAssetTypeAtPath(path) == null)
+                    {
+                        if (entry != null)
+                        {
+                            settings.RemoveAssetEntry(pair.Key);
+                        }
+                        continue;
+                    }
+                    var (owner, label) = pair.Value;
+                    if (!motherMembers.Contains((pair.Key, owner.Guid)) || entry == null ||
+                        (entry.parentGroup != owner && !IsContentUpdateGroup(entry.parentGroup)) ||
+                        entry.labels.Count != 1 || !entry.labels.Contains(label))
+                    {
+                        throw new InvalidOperationException($"共享依赖 {pair.Key} 缺少母包归属或 Label {label}，请恢复当前平台的母包或累计更新设置。");
+                    }
+                    publishedShared.Add(pair.Key);
+                }
                 // 旧母包曾给隔离依赖加上业务目录 Label。仅转换可从隔离组名称确认归属的自动 Label。
                 foreach (var isolation in settings.groups.Where(IsDuplicateGroup))
                 {
@@ -937,6 +977,10 @@ namespace HM.Editor
             }
             foreach (var pair in desiredEntries)
             {
+                if (publishedShared.Contains(pair.Key))
+                {
+                    continue;
+                }
                 // 热更读取已发布组的模式，配置表里的模式变更只在下次母包整理应用。
                 bool useDirectoryLabel = beUpdateAssets
                     ? !pair.Value.Group.HasSchema<HMLabelPackingSchema>()
@@ -985,7 +1029,7 @@ namespace HM.Editor
                     IsContentUpdateGroup(group) || IsDuplicateGroup(group)) continue;
                 foreach (var entry in group.entries.ToArray())
                 {
-                    if (!desiredEntries.ContainsKey(entry.guid))
+                    if (!desiredEntries.ContainsKey(entry.guid) && !publishedShared.Contains(entry.guid))
                         settings.RemoveAssetEntry(entry.guid);
                 }
                 EditorUtility.SetDirty(group);

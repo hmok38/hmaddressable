@@ -32,7 +32,7 @@ namespace HM
         public string[] LabelPackAssetsPaths = Array.Empty<string>();
 
         /// <summary>每个母包分片的估算上限，1 K 为 1024 字节。</summary>
-        [Min(1), Tooltip("母包分片的估算上限，1 K = 1024 字节。按当前平台导入的数据和本组 Bundle 压缩方式估算。")]
+        [Min(1), Tooltip("普通分片和组内共享分片的估算上限，1 K = 1024 字节。按当前平台和组压缩设置计入资源及其随包依赖。")]
         public int LabelSizeK = 1024;
 
         [Header("正式资源服务器分发地址")] public string RemoteLoadPath = "http://[PrivateIpAddress]/[BuildTarget]";

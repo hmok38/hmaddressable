@@ -10,7 +10,7 @@ using UnityEngine.Experimental.Rendering;
 
 namespace HM.Editor
 {
-    /// <summary>按当前目标平台的资源导入结果和组压缩设置，估算直属资源的分片占用。</summary>
+    /// <summary>按当前目标平台的导入结果和组压缩设置，估算单个条目或依赖文件的占用。</summary>
     internal sealed class HMAssetSizeEstimator
     {
         // Unity 的音频 Inspector 用此属性显示 Imported Size。版本未提供该属性时使用当前导入数据。
@@ -122,6 +122,14 @@ namespace HM.Editor
         private long EstimateSourceFile(string path)
         {
             // 原生序列化资源可能直接使用源文件。只读自身内容，不沿引用将外部资源重复计入。
+            if (path.StartsWith("Packages/", StringComparison.Ordinal))
+            {
+                var package = UnityEditor.PackageManager.PackageInfo.FindForAssetPath(path);
+                if (package != null)
+                {
+                    path = Path.Combine(package.resolvedPath, path.Substring(package.assetPath.Length + 1));
+                }
+            }
             using (var source = File.OpenRead(path))
             {
                 TrySeekObjectData(source);

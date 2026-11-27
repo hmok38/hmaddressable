@@ -1,40 +1,86 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using UnityEditor;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 
 namespace HM.Editor
 {
-    /// <summary>按目标平台的资源大小和文件名顺序，给母包目录组分配唯一的分片 Label。</summary>
-    internal static class HMLabelPacking
+    /// <summary>按目标平台的条目及随包依赖大小，顺序分配母包普通分片和组内共享分片。</summary>
+    internal sealed class HMLabelPacking
     {
-        internal static void AssignLabels(AddressableAssetGroup group, int sizeK)
+        private readonly HMAssetSizeEstimator _estimator;
+        private readonly Dictionary<string, long> _sizes = new Dictionary<string, long>(StringComparer.Ordinal);
+        private readonly AddressableAssetGroup _group;
+        private readonly long _limit;
+
+        internal HMLabelPacking(AddressableAssetGroup group, int sizeK)
         {
-            long limit = sizeK * 1024L;
+            _group = group;
+            _limit = sizeK * 1024L;
+            _estimator = new HMAssetSizeEstimator(group.GetSchema<BundledAssetGroupSchema>().Compression);
+        }
+
+        internal void AssignLabels(IEnumerable<AddressableAssetEntry> entries,
+            Dictionary<string, List<string>> dependencies, bool shared)
+        {
             long used = 0;
             int sequence = 1;
             bool hasEntry = false;
-            var schema = group.GetSchema<BundledAssetGroupSchema>();
-            var estimator = new HMAssetSizeEstimator(schema.Compression);
-            // 只沿排序方向前进。单项超限后即使下一项为零字节，也须另开一片。
-            foreach (var entry in group.entries.OrderBy(item => Path.GetFileName(item.AssetPath), StringComparer.Ordinal))
+            var included = new HashSet<string>(StringComparer.Ordinal);
+            string prefix = _group.Name + HMGroupLabelIndex.PartSeparator + (shared ? "s" : string.Empty);
+            foreach (var entry in entries.OrderBy(item => Path.GetFileName(item.AssetPath), StringComparer.Ordinal)
+                         .ThenBy(item => item.AssetPath, StringComparer.Ordinal))
             {
-                long size = estimator.Estimate(entry.AssetPath, entry.guid);
-                if (hasEntry && size > limit - used)
+                long ownSize = GetSize(entry.AssetPath);
+                long fullSize = ownSize;
+                long addedSize = ownSize;
+                // 每个条目的依赖路径已去重；同一片只收取首次出现的依赖，换片后重新计入。
+                if (dependencies.TryGetValue(entry.guid, out var paths))
+                {
+                    foreach (string path in paths)
+                    {
+                        long bytes = GetSize(path);
+                        fullSize += bytes;
+                        if (!included.Contains(path))
+                        {
+                            addedSize += bytes;
+                        }
+                    }
+                }
+                if (hasEntry && addedSize > _limit - used)
                 {
                     sequence++;
                     used = 0;
+                    included.Clear();
+                    addedSize = fullSize;
                 }
-                string label = group.Name + HMGroupLabelIndex.PartSeparator + sequence.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (paths != null)
+                {
+                    included.UnionWith(paths);
+                }
+                string label = prefix + sequence.ToString(CultureInfo.InvariantCulture);
                 foreach (string previous in entry.labels.Where(value => value != label).ToArray())
                 {
                     entry.SetLabel(previous, false);
                 }
                 entry.SetLabel(label, true, true);
-                used += size;
+                used += addedSize;
                 hasEntry = true;
             }
+        }
+
+        private long GetSize(string path)
+        {
+            if (!_sizes.TryGetValue(path, out long bytes))
+            {
+                bytes = _estimator.Estimate(path, AssetDatabase.AssetPathToGUID(path));
+                _sizes.Add(path, bytes);
+            }
+            return bytes;
         }
     }
 }

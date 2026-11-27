@@ -45,7 +45,8 @@ namespace HM.Editor
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             if (settings == null || !(settings.ActivePlayModeDataBuilder is BuildScriptFastMode) ||
-                !location.InternalId.StartsWith("Assets/", StringComparison.Ordinal))
+                !(location.InternalId.StartsWith("Assets/", StringComparison.Ordinal) ||
+                  location.InternalId.StartsWith("Packages/", StringComparison.Ordinal)))
             {
                 return true;
             }
@@ -76,6 +77,7 @@ namespace HM.Editor
                     ? info.Group != null && info.Group.HasSchema<HMLabelPackingSchema>()
                     : info.BundleMode == BundledAssetGroupSchema.BundlePackingMode.PackTogetherByLabel)
                 .ToDictionary(info => info.GroupName, info => info.Path, StringComparer.Ordinal);
+            var sharedEntries = HMLabelPackingSchema.GetSharedEntries(settings);
             // Unity 只导出全局标签表仍然登记的 Label。删除全局 Label 后，条目的 labels 可能暂时保留旧值。
             var registered = new HashSet<string>(settings.GetLabels(), StringComparer.Ordinal);
             var labels = new HashSet<string>(StringComparer.Ordinal);
@@ -93,6 +95,18 @@ namespace HM.Editor
                     string folder = Path.GetDirectoryName(entry.AssetPath)?.Replace('\\', '/');
                     bool member = folders.Contains(folder) && !HMAddressablesEditor.IsDuplicateGroup(group) &&
                         (group.Name == folder.Replace('/', '-') || HMAddressablesEditor.IsContentUpdateGroup(group));
+                    bool sharedMember = sharedEntries.TryGetValue(entry.guid, out var shared);
+                    if (sharedMember)
+                    {
+                        // 共享资源按发布组归属，允许源文件在其他目录、条目已迁入累计更新组。
+                        if (!partOwners.TryGetValue(shared.group.Name, out folder) ||
+                            (group != shared.group && !HMAddressablesEditor.IsContentUpdateGroup(group)) ||
+                            entry.labels.Count != 1 || !entry.labels.Contains(shared.label))
+                        {
+                            throw new InvalidOperationException($"共享依赖 {entry.AssetPath} 的组或 Label 与母包记录 {shared.label} 不一致。");
+                        }
+                        member = true;
+                    }
                     if (schema.IncludeAddressInCatalog && !string.IsNullOrEmpty(entry.address) &&
                         !(schema.IncludeLabelsInCatalog && registered.Contains(entry.address) && entry.labels.Contains(entry.address)))
                     {

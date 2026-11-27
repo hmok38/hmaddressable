@@ -182,7 +182,7 @@ namespace HM
 
         private const float PackOptionsWidth = 130;
         private static readonly GUIContent SeparateOption = new GUIContent("分散", "每个直属资源单独打包。");
-        private static readonly GUIContent LabelOption = new GUIContent("按 Label", "母包按大小分片，并替换直属资源的全部 Label。");
+        private static readonly GUIContent LabelOption = new GUIContent("按 Label", "母包按资源及随包依赖的大小分片。同组跨片使用的隐式依赖分配共享 Label。");
 
         private void DrawPackOptions(Rect rect, string path)
         {
